@@ -1,0 +1,18 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "name": "novamark",
+  "version": "0.1.0",
+  "description": "NovaMark - A markup language for visual novels and text games",
+  "dependencies": [
+    {
+      "name": "nlohmann-json",
+      "version>=": "3.11.2"
+    },
+    {
+      "name": "gtest",
+      "version>=": "1.14.0",
+      "platform": "windows | linux | osx"
+    }
+  ],
+  "builtin-baseline": "62159a45e18f3a9ac0548628dcaf74fcb60c6ff9"
+}

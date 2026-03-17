@@ -1,0 +1,34 @@
+---
+title: 失落的灯塔
+version: 0.3
+base_bg_path: "assets/bg/"
+base_sprite_path: "assets/sprites/"
+base_audio_path: "assets/audio/"
+---
+
+@char 林晓
+  color: #E8A0BF
+  sprite_default: linxiao_normal.png
+@end
+
+@var hp = 100
+@var gold = 0
+
+#scene_forest "幽暗的森林"
+
+> 月光透过树梢洒落，林间寂静得出奇。
+
+林晓: 这里是...哪里？
+
+? 你要怎么做？
+- [继续探索] -> .explore
+- [转身离开] -> .leave
+
+.explore
+@bg forest_deeper.jpg
+林晓: 前方似乎有光亮。
+-> scene_tower
+
+.leave
+林晓: 还是回去吧。
+-> scene_village

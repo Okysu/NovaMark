@@ -1,0 +1,164 @@
+[
+{
+  "directory": "C:/Users/10423/Code/NovaMark",
+  "command": "C:\\PROGRA~1\\MIB055~1\\18\\COMMUN~1\\VC\\Tools\\MSVC\\1450~1.357\\bin\\Hostx64\\x64\\cl.exe  /nologo /TP -IC:\\Users\\10423\\Code\\NovaMark\\include -external:IC:\\Users\\10423\\Code\\NovaMark\\vcpkg_installed\\x64-windows\\include -external:W0 /DWIN32 /D_WINDOWS /GR /EHsc /Zi /Ob0 /Od /RTC1 -std:c++17 -MDd /W4 /utf-8 /Fosrc\\core\\CMakeFiles\\nova-core.dir\\source_location.cpp.obj /Fdsrc\\core\\CMakeFiles\\nova-core.dir\\nova-core.pdb /FS -c C:\\Users\\10423\\Code\\NovaMark\\src\\core\\source_location.cpp",
+  "file": "C:/Users/10423/Code/NovaMark/src/core/source_location.cpp",
+  "output": "C:/Users/10423/Code/NovaMark/src/core/CMakeFiles/nova-core.dir/source_location.cpp.obj"
+},
+{
+  "directory": "C:/Users/10423/Code/NovaMark",
+  "command": "C:\\PROGRA~1\\MIB055~1\\18\\COMMUN~1\\VC\\Tools\\MSVC\\1450~1.357\\bin\\Hostx64\\x64\\cl.exe  /nologo /TP -IC:\\Users\\10423\\Code\\NovaMark\\include -external:IC:\\Users\\10423\\Code\\NovaMark\\vcpkg_installed\\x64-windows\\include -external:W0 /DWIN32 /D_WINDOWS /GR /EHsc /Zi /Ob0 /Od /RTC1 -std:c++17 -MDd /W4 /utf-8 /Fosrc\\core\\CMakeFiles\\nova-core.dir\\string_utils.cpp.obj /Fdsrc\\core\\CMakeFiles\\nova-core.dir\\nova-core.pdb /FS -c C:\\Users\\10423\\Code\\NovaMark\\src\\core\\string_utils.cpp",
+  "file": "C:/Users/10423/Code/NovaMark/src/core/string_utils.cpp",
+  "output": "C:/Users/10423/Code/NovaMark/src/core/CMakeFiles/nova-core.dir/string_utils.cpp.obj"
+},
+{
+  "directory": "C:/Users/10423/Code/NovaMark",
+  "command": "C:\\PROGRA~1\\MIB055~1\\18\\COMMUN~1\\VC\\Tools\\MSVC\\1450~1.357\\bin\\Hostx64\\x64\\cl.exe  /nologo /TP -IC:\\Users\\10423\\Code\\NovaMark\\include -external:IC:\\Users\\10423\\Code\\NovaMark\\vcpkg_installed\\x64-windows\\include -external:W0 /DWIN32 /D_WINDOWS /GR /EHsc /Zi /Ob0 /Od /RTC1 -std:c++17 -MDd /W4 /utf-8 /Fosrc\\core\\CMakeFiles\\nova-core.dir\\game_metadata.cpp.obj /Fdsrc\\core\\CMakeFiles\\nova-core.dir\\nova-core.pdb /FS -c C:\\Users\\10423\\Code\\NovaMark\\src\\core\\game_metadata.cpp",
+  "file": "C:/Users/10423/Code/NovaMark/src/core/game_metadata.cpp",
+  "output": "C:/Users/10423/Code/NovaMark/src/core/CMakeFiles/nova-core.dir/game_metadata.cpp.obj"
+},
+{
+  "directory": "C:/Users/10423/Code/NovaMark",
+  "command": "C:\\PROGRA~1\\MIB055~1\\18\\COMMUN~1\\VC\\Tools\\MSVC\\1450~1.357\\bin\\Hostx64\\x64\\cl.exe  /nologo /TP -IC:\\Users\\10423\\Code\\NovaMark\\include -external:IC:\\Users\\10423\\Code\\NovaMark\\vcpkg_installed\\x64-windows\\include -external:W0 /DWIN32 /D_WINDOWS /GR /EHsc /Zi /Ob0 /Od /RTC1 -std:c++17 -MDd /W4 /utf-8 /Fosrc\\lexer\\CMakeFiles\\nova-lexer.dir\\token.cpp.obj /Fdsrc\\lexer\\CMakeFiles\\nova-lexer.dir\\nova-lexer.pdb /FS -c C:\\Users\\10423\\Code\\NovaMark\\src\\lexer\\token.cpp",
+  "file": "C:/Users/10423/Code/NovaMark/src/lexer/token.cpp",
+  "output": "C:/Users/10423/Code/NovaMark/src/lexer/CMakeFiles/nova-lexer.dir/token.cpp.obj"
+},
+{
+  "directory": "C:/Users/10423/Code/NovaMark",
+  "command": "C:\\PROGRA~1\\MIB055~1\\18\\COMMUN~1\\VC\\Tools\\MSVC\\1450~1.357\\bin\\Hostx64\\x64\\cl.exe  /nologo /TP -IC:\\Users\\10423\\Code\\NovaMark\\include -external:IC:\\Users\\10423\\Code\\NovaMark\\vcpkg_installed\\x64-windows\\include -external:W0 /DWIN32 /D_WINDOWS /GR /EHsc /Zi /Ob0 /Od /RTC1 -std:c++17 -MDd /W4 /utf-8 /Fosrc\\lexer\\CMakeFiles\\nova-lexer.dir\\lexer.cpp.obj /Fdsrc\\lexer\\CMakeFiles\\nova-lexer.dir\\nova-lexer.pdb /FS -c C:\\Users\\10423\\Code\\NovaMark\\src\\lexer\\lexer.cpp",
+  "file": "C:/Users/10423/Code/NovaMark/src/lexer/lexer.cpp",
+  "output": "C:/Users/10423/Code/NovaMark/src/lexer/CMakeFiles/nova-lexer.dir/lexer.cpp.obj"
+},
+{
+  "directory": "C:/Users/10423/Code/NovaMark",
+  "command": "C:\\PROGRA~1\\MIB055~1\\18\\COMMUN~1\\VC\\Tools\\MSVC\\1450~1.357\\bin\\Hostx64\\x64\\cl.exe  /nologo /TP -IC:\\Users\\10423\\Code\\NovaMark\\include -external:IC:\\Users\\10423\\Code\\NovaMark\\vcpkg_installed\\x64-windows\\include -external:W0 /DWIN32 /D_WINDOWS /GR /EHsc /Zi /Ob0 /Od /RTC1 -std:c++17 -MDd /W4 /utf-8 /Fosrc\\parser\\CMakeFiles\\nova-parser.dir\\parser.cpp.obj /Fdsrc\\parser\\CMakeFiles\\nova-parser.dir\\nova-parser.pdb /FS -c C:\\Users\\10423\\Code\\NovaMark\\src\\parser\\parser.cpp",
+  "file": "C:/Users/10423/Code/NovaMark/src/parser/parser.cpp",
+  "output": "C:/Users/10423/Code/NovaMark/src/parser/CMakeFiles/nova-parser.dir/parser.cpp.obj"
+},
+{
+  "directory": "C:/Users/10423/Code/NovaMark",
+  "command": "C:\\PROGRA~1\\MIB055~1\\18\\COMMUN~1\\VC\\Tools\\MSVC\\1450~1.357\\bin\\Hostx64\\x64\\cl.exe  /nologo /TP -IC:\\Users\\10423\\Code\\NovaMark\\include -external:IC:\\Users\\10423\\Code\\NovaMark\\vcpkg_installed\\x64-windows\\include -external:W0 /DWIN32 /D_WINDOWS /GR /EHsc /Zi /Ob0 /Od /RTC1 -std:c++17 -MDd /W4 /utf-8 /Fosrc\\ast\\CMakeFiles\\nova-ast.dir\\ast_node.cpp.obj /Fdsrc\\ast\\CMakeFiles\\nova-ast.dir\\nova-ast.pdb /FS -c C:\\Users\\10423\\Code\\NovaMark\\src\\ast\\ast_node.cpp",
+  "file": "C:/Users/10423/Code/NovaMark/src/ast/ast_node.cpp",
+  "output": "C:/Users/10423/Code/NovaMark/src/ast/CMakeFiles/nova-ast.dir/ast_node.cpp.obj"
+},
+{
+  "directory": "C:/Users/10423/Code/NovaMark",
+  "command": "C:\\PROGRA~1\\MIB055~1\\18\\COMMUN~1\\VC\\Tools\\MSVC\\1450~1.357\\bin\\Hostx64\\x64\\cl.exe  /nologo /TP -IC:\\Users\\10423\\Code\\NovaMark\\include -external:IC:\\Users\\10423\\Code\\NovaMark\\vcpkg_installed\\x64-windows\\include -external:W0 /DWIN32 /D_WINDOWS /GR /EHsc /Zi /Ob0 /Od /RTC1 -std:c++17 -MDd /W4 /utf-8 /Fosrc\\semantic\\CMakeFiles\\nova-semantic.dir\\semantic_analyzer.cpp.obj /Fdsrc\\semantic\\CMakeFiles\\nova-semantic.dir\\nova-semantic.pdb /FS -c C:\\Users\\10423\\Code\\NovaMark\\src\\semantic\\semantic_analyzer.cpp",
+  "file": "C:/Users/10423/Code/NovaMark/src/semantic/semantic_analyzer.cpp",
+  "output": "C:/Users/10423/Code/NovaMark/src/semantic/CMakeFiles/nova-semantic.dir/semantic_analyzer.cpp.obj"
+},
+{
+  "directory": "C:/Users/10423/Code/NovaMark",
+  "command": "C:\\PROGRA~1\\MIB055~1\\18\\COMMUN~1\\VC\\Tools\\MSVC\\1450~1.357\\bin\\Hostx64\\x64\\cl.exe  /nologo /TP -IC:\\Users\\10423\\Code\\NovaMark\\include -external:IC:\\Users\\10423\\Code\\NovaMark\\vcpkg_installed\\x64-windows\\include -external:W0 /DWIN32 /D_WINDOWS /GR /EHsc /Zi /Ob0 /Od /RTC1 -std:c++17 -MDd /W4 /utf-8 /Fosrc\\semantic\\CMakeFiles\\nova-semantic.dir\\diagnostic.cpp.obj /Fdsrc\\semantic\\CMakeFiles\\nova-semantic.dir\\nova-semantic.pdb /FS -c C:\\Users\\10423\\Code\\NovaMark\\src\\semantic\\diagnostic.cpp",
+  "file": "C:/Users/10423/Code/NovaMark/src/semantic/diagnostic.cpp",
+  "output": "C:/Users/10423/Code/NovaMark/src/semantic/CMakeFiles/nova-semantic.dir/diagnostic.cpp.obj"
+},
+{
+  "directory": "C:/Users/10423/Code/NovaMark",
+  "command": "C:\\PROGRA~1\\MIB055~1\\18\\COMMUN~1\\VC\\Tools\\MSVC\\1450~1.357\\bin\\Hostx64\\x64\\cl.exe  /nologo /TP -IC:\\Users\\10423\\Code\\NovaMark\\include -external:IC:\\Users\\10423\\Code\\NovaMark\\vcpkg_installed\\x64-windows\\include -external:W0 /DWIN32 /D_WINDOWS /GR /EHsc /Zi /Ob0 /Od /RTC1 -std:c++17 -MDd /W4 /utf-8 /Fosrc\\semantic\\CMakeFiles\\nova-semantic.dir\\symbol_table.cpp.obj /Fdsrc\\semantic\\CMakeFiles\\nova-semantic.dir\\nova-semantic.pdb /FS -c C:\\Users\\10423\\Code\\NovaMark\\src\\semantic\\symbol_table.cpp",
+  "file": "C:/Users/10423/Code/NovaMark/src/semantic/symbol_table.cpp",
+  "output": "C:/Users/10423/Code/NovaMark/src/semantic/CMakeFiles/nova-semantic.dir/symbol_table.cpp.obj"
+},
+{
+  "directory": "C:/Users/10423/Code/NovaMark",
+  "command": "C:\\PROGRA~1\\MIB055~1\\18\\COMMUN~1\\VC\\Tools\\MSVC\\1450~1.357\\bin\\Hostx64\\x64\\cl.exe  /nologo /TP -IC:\\Users\\10423\\Code\\NovaMark\\include -external:IC:\\Users\\10423\\Code\\NovaMark\\vcpkg_installed\\x64-windows\\include -external:W0 /DWIN32 /D_WINDOWS /GR /EHsc /Zi /Ob0 /Od /RTC1 -std:c++17 -MDd /W4 /utf-8 /Fosrc\\vm\\CMakeFiles\\nova-vm.dir\\vm.cpp.obj /Fdsrc\\vm\\CMakeFiles\\nova-vm.dir\\nova-vm.pdb /FS -c C:\\Users\\10423\\Code\\NovaMark\\src\\vm\\vm.cpp",
+  "file": "C:/Users/10423/Code/NovaMark/src/vm/vm.cpp",
+  "output": "C:/Users/10423/Code/NovaMark/src/vm/CMakeFiles/nova-vm.dir/vm.cpp.obj"
+},
+{
+  "directory": "C:/Users/10423/Code/NovaMark",
+  "command": "C:\\PROGRA~1\\MIB055~1\\18\\COMMUN~1\\VC\\Tools\\MSVC\\1450~1.357\\bin\\Hostx64\\x64\\cl.exe  /nologo /TP -IC:\\Users\\10423\\Code\\NovaMark\\include -external:IC:\\Users\\10423\\Code\\NovaMark\\vcpkg_installed\\x64-windows\\include -external:W0 /DWIN32 /D_WINDOWS /GR /EHsc /Zi /Ob0 /Od /RTC1 -std:c++17 -MDd /W4 /utf-8 /Fosrc\\vm\\CMakeFiles\\nova-vm.dir\\variable.cpp.obj /Fdsrc\\vm\\CMakeFiles\\nova-vm.dir\\nova-vm.pdb /FS -c C:\\Users\\10423\\Code\\NovaMark\\src\\vm\\variable.cpp",
+  "file": "C:/Users/10423/Code/NovaMark/src/vm/variable.cpp",
+  "output": "C:/Users/10423/Code/NovaMark/src/vm/CMakeFiles/nova-vm.dir/variable.cpp.obj"
+},
+{
+  "directory": "C:/Users/10423/Code/NovaMark",
+  "command": "C:\\PROGRA~1\\MIB055~1\\18\\COMMUN~1\\VC\\Tools\\MSVC\\1450~1.357\\bin\\Hostx64\\x64\\cl.exe  /nologo /TP -IC:\\Users\\10423\\Code\\NovaMark\\include -external:IC:\\Users\\10423\\Code\\NovaMark\\vcpkg_installed\\x64-windows\\include -external:W0 /DWIN32 /D_WINDOWS /GR /EHsc /Zi /Ob0 /Od /RTC1 -std:c++17 -MDd /W4 /utf-8 /Fosrc\\vm\\CMakeFiles\\nova-vm.dir\\inventory.cpp.obj /Fdsrc\\vm\\CMakeFiles\\nova-vm.dir\\nova-vm.pdb /FS -c C:\\Users\\10423\\Code\\NovaMark\\src\\vm\\inventory.cpp",
+  "file": "C:/Users/10423/Code/NovaMark/src/vm/inventory.cpp",
+  "output": "C:/Users/10423/Code/NovaMark/src/vm/CMakeFiles/nova-vm.dir/inventory.cpp.obj"
+},
+{
+  "directory": "C:/Users/10423/Code/NovaMark",
+  "command": "C:\\PROGRA~1\\MIB055~1\\18\\COMMUN~1\\VC\\Tools\\MSVC\\1450~1.357\\bin\\Hostx64\\x64\\cl.exe  /nologo /TP -IC:\\Users\\10423\\Code\\NovaMark\\include -external:IC:\\Users\\10423\\Code\\NovaMark\\vcpkg_installed\\x64-windows\\include -external:W0 /DWIN32 /D_WINDOWS /GR /EHsc /Zi /Ob0 /Od /RTC1 -std:c++17 -MDd /W4 /utf-8 /Fosrc\\vm\\CMakeFiles\\nova-vm.dir\\save_data.cpp.obj /Fdsrc\\vm\\CMakeFiles\\nova-vm.dir\\nova-vm.pdb /FS -c C:\\Users\\10423\\Code\\NovaMark\\src\\vm\\save_data.cpp",
+  "file": "C:/Users/10423/Code/NovaMark/src/vm/save_data.cpp",
+  "output": "C:/Users/10423/Code/NovaMark/src/vm/CMakeFiles/nova-vm.dir/save_data.cpp.obj"
+},
+{
+  "directory": "C:/Users/10423/Code/NovaMark",
+  "command": "C:\\PROGRA~1\\MIB055~1\\18\\COMMUN~1\\VC\\Tools\\MSVC\\1450~1.357\\bin\\Hostx64\\x64\\cl.exe  /nologo /TP -IC:\\Users\\10423\\Code\\NovaMark\\include -external:IC:\\Users\\10423\\Code\\NovaMark\\vcpkg_installed\\x64-windows\\include -external:W0 /DWIN32 /D_WINDOWS /GR /EHsc /Zi /Ob0 /Od /RTC1 -std:c++17 -MDd /W4 /utf-8 /Fosrc\\vm\\CMakeFiles\\nova-vm.dir\\serializer.cpp.obj /Fdsrc\\vm\\CMakeFiles\\nova-vm.dir\\nova-vm.pdb /FS -c C:\\Users\\10423\\Code\\NovaMark\\src\\vm\\serializer.cpp",
+  "file": "C:/Users/10423/Code/NovaMark/src/vm/serializer.cpp",
+  "output": "C:/Users/10423/Code/NovaMark/src/vm/CMakeFiles/nova-vm.dir/serializer.cpp.obj"
+},
+{
+  "directory": "C:/Users/10423/Code/NovaMark",
+  "command": "C:\\PROGRA~1\\MIB055~1\\18\\COMMUN~1\\VC\\Tools\\MSVC\\1450~1.357\\bin\\Hostx64\\x64\\cl.exe  /nologo /TP -IC:\\Users\\10423\\Code\\NovaMark\\include -external:IC:\\Users\\10423\\Code\\NovaMark\\vcpkg_installed\\x64-windows\\include -external:W0 /DWIN32 /D_WINDOWS /GR /EHsc /Zi /Ob0 /Od /RTC1 -std:c++17 -MDd /W4 /utf-8 /Fosrc\\packer\\CMakeFiles\\nova-packer.dir\\nvmp_format.cpp.obj /Fdsrc\\packer\\CMakeFiles\\nova-packer.dir\\nova-packer.pdb /FS -c C:\\Users\\10423\\Code\\NovaMark\\src\\packer\\nvmp_format.cpp",
+  "file": "C:/Users/10423/Code/NovaMark/src/packer/nvmp_format.cpp",
+  "output": "C:/Users/10423/Code/NovaMark/src/packer/CMakeFiles/nova-packer.dir/nvmp_format.cpp.obj"
+},
+{
+  "directory": "C:/Users/10423/Code/NovaMark",
+  "command": "C:\\PROGRA~1\\MIB055~1\\18\\COMMUN~1\\VC\\Tools\\MSVC\\1450~1.357\\bin\\Hostx64\\x64\\cl.exe  /nologo /TP -IC:\\Users\\10423\\Code\\NovaMark\\include -external:IC:\\Users\\10423\\Code\\NovaMark\\vcpkg_installed\\x64-windows\\include -external:W0 /DWIN32 /D_WINDOWS /GR /EHsc /Zi /Ob0 /Od /RTC1 -std:c++17 -MDd /W4 /utf-8 /Fosrc\\packer\\CMakeFiles\\nova-packer.dir\\ast_serializer.cpp.obj /Fdsrc\\packer\\CMakeFiles\\nova-packer.dir\\nova-packer.pdb /FS -c C:\\Users\\10423\\Code\\NovaMark\\src\\packer\\ast_serializer.cpp",
+  "file": "C:/Users/10423/Code/NovaMark/src/packer/ast_serializer.cpp",
+  "output": "C:/Users/10423/Code/NovaMark/src/packer/CMakeFiles/nova-packer.dir/ast_serializer.cpp.obj"
+},
+{
+  "directory": "C:/Users/10423/Code/NovaMark",
+  "command": "C:\\PROGRA~1\\MIB055~1\\18\\COMMUN~1\\VC\\Tools\\MSVC\\1450~1.357\\bin\\Hostx64\\x64\\cl.exe  /nologo /TP -IC:\\Users\\10423\\Code\\NovaMark\\include -external:IC:\\Users\\10423\\Code\\NovaMark\\vcpkg_installed\\x64-windows\\include -external:W0 /DWIN32 /D_WINDOWS /GR /EHsc /Zi /Ob0 /Od /RTC1 -std:c++17 -MDd /W4 /utf-8 /Fosrc\\packer\\CMakeFiles\\nova-packer.dir\\asset_bundler.cpp.obj /Fdsrc\\packer\\CMakeFiles\\nova-packer.dir\\nova-packer.pdb /FS -c C:\\Users\\10423\\Code\\NovaMark\\src\\packer\\asset_bundler.cpp",
+  "file": "C:/Users/10423/Code/NovaMark/src/packer/asset_bundler.cpp",
+  "output": "C:/Users/10423/Code/NovaMark/src/packer/CMakeFiles/nova-packer.dir/asset_bundler.cpp.obj"
+},
+{
+  "directory": "C:/Users/10423/Code/NovaMark",
+  "command": "C:\\PROGRA~1\\MIB055~1\\18\\COMMUN~1\\VC\\Tools\\MSVC\\1450~1.357\\bin\\Hostx64\\x64\\cl.exe  /nologo /TP -IC:\\Users\\10423\\Code\\NovaMark\\include -external:IC:\\Users\\10423\\Code\\NovaMark\\vcpkg_installed\\x64-windows\\include -external:W0 /DWIN32 /D_WINDOWS /GR /EHsc /Zi /Ob0 /Od /RTC1 -std:c++17 -MDd /W4 /utf-8 /Fosrc\\packer\\CMakeFiles\\nova-packer.dir\\nvmp_writer.cpp.obj /Fdsrc\\packer\\CMakeFiles\\nova-packer.dir\\nova-packer.pdb /FS -c C:\\Users\\10423\\Code\\NovaMark\\src\\packer\\nvmp_writer.cpp",
+  "file": "C:/Users/10423/Code/NovaMark/src/packer/nvmp_writer.cpp",
+  "output": "C:/Users/10423/Code/NovaMark/src/packer/CMakeFiles/nova-packer.dir/nvmp_writer.cpp.obj"
+},
+{
+  "directory": "C:/Users/10423/Code/NovaMark",
+  "command": "C:\\PROGRA~1\\MIB055~1\\18\\COMMUN~1\\VC\\Tools\\MSVC\\1450~1.357\\bin\\Hostx64\\x64\\cl.exe  /nologo /TP -IC:\\Users\\10423\\Code\\NovaMark\\include -external:IC:\\Users\\10423\\Code\\NovaMark\\vcpkg_installed\\x64-windows\\include -external:W0 /DWIN32 /D_WINDOWS /GR /EHsc /Zi /Ob0 /Od /RTC1 -std:c++17 -MDd /W4 /utf-8 /Fosrc\\packer\\CMakeFiles\\nova-packer.dir\\packer.cpp.obj /Fdsrc\\packer\\CMakeFiles\\nova-packer.dir\\nova-packer.pdb /FS -c C:\\Users\\10423\\Code\\NovaMark\\src\\packer\\packer.cpp",
+  "file": "C:/Users/10423/Code/NovaMark/src/packer/packer.cpp",
+  "output": "C:/Users/10423/Code/NovaMark/src/packer/CMakeFiles/nova-packer.dir/packer.cpp.obj"
+},
+{
+  "directory": "C:/Users/10423/Code/NovaMark",
+  "command": "C:\\PROGRA~1\\MIB055~1\\18\\COMMUN~1\\VC\\Tools\\MSVC\\1450~1.357\\bin\\Hostx64\\x64\\cl.exe  /nologo /TP -IC:\\Users\\10423\\Code\\NovaMark\\include -external:IC:\\Users\\10423\\Code\\NovaMark\\vcpkg_installed\\x64-windows\\include -external:W0 /DWIN32 /D_WINDOWS /GR /EHsc /Zi /Ob0 /Od /RTC1 -std:c++17 -MDd /W4 /utf-8 /Fosrc\\cli\\CMakeFiles\\nova-cli.dir\\main.cpp.obj /Fdsrc\\cli\\CMakeFiles\\nova-cli.dir\\ /FS -c C:\\Users\\10423\\Code\\NovaMark\\src\\cli\\main.cpp",
+  "file": "C:/Users/10423/Code/NovaMark/src/cli/main.cpp",
+  "output": "C:/Users/10423/Code/NovaMark/src/cli/CMakeFiles/nova-cli.dir/main.cpp.obj"
+},
+{
+  "directory": "C:/Users/10423/Code/NovaMark",
+  "command": "C:\\PROGRA~1\\MIB055~1\\18\\COMMUN~1\\VC\\Tools\\MSVC\\1450~1.357\\bin\\Hostx64\\x64\\cl.exe  /nologo /TP -IC:\\Users\\10423\\Code\\NovaMark\\include -external:IC:\\Users\\10423\\Code\\NovaMark\\vcpkg_installed\\x64-windows\\include -external:W0 /DWIN32 /D_WINDOWS /GR /EHsc /Zi /Ob0 /Od /RTC1 -std:c++17 -MDd /W4 /utf-8 /Fosrc\\cli\\CMakeFiles\\nova-cli.dir\\cli.cpp.obj /Fdsrc\\cli\\CMakeFiles\\nova-cli.dir\\ /FS -c C:\\Users\\10423\\Code\\NovaMark\\src\\cli\\cli.cpp",
+  "file": "C:/Users/10423/Code/NovaMark/src/cli/cli.cpp",
+  "output": "C:/Users/10423/Code/NovaMark/src/cli/CMakeFiles/nova-cli.dir/cli.cpp.obj"
+},
+{
+  "directory": "C:/Users/10423/Code/NovaMark",
+  "command": "C:\\PROGRA~1\\MIB055~1\\18\\COMMUN~1\\VC\\Tools\\MSVC\\1450~1.357\\bin\\Hostx64\\x64\\cl.exe  /nologo /TP -DGTEST_LINKED_AS_SHARED_LIBRARY=1 -IC:\\Users\\10423\\Code\\NovaMark\\include -external:IC:\\Users\\10423\\Code\\NovaMark\\vcpkg_installed\\x64-windows\\include -external:W0 /DWIN32 /D_WINDOWS /GR /EHsc /Zi /Ob0 /Od /RTC1 -std:c++17 -MDd /W4 /utf-8 /Fotests\\CMakeFiles\\nova-test.dir\\test_main.cpp.obj /Fdtests\\CMakeFiles\\nova-test.dir\\ /FS -c C:\\Users\\10423\\Code\\NovaMark\\tests\\test_main.cpp",
+  "file": "C:/Users/10423/Code/NovaMark/tests/test_main.cpp",
+  "output": "C:/Users/10423/Code/NovaMark/tests/CMakeFiles/nova-test.dir/test_main.cpp.obj"
+},
+{
+  "directory": "C:/Users/10423/Code/NovaMark",
+  "command": "C:\\PROGRA~1\\MIB055~1\\18\\COMMUN~1\\VC\\Tools\\MSVC\\1450~1.357\\bin\\Hostx64\\x64\\cl.exe  /nologo /TP -DGTEST_LINKED_AS_SHARED_LIBRARY=1 -IC:\\Users\\10423\\Code\\NovaMark\\include -external:IC:\\Users\\10423\\Code\\NovaMark\\vcpkg_installed\\x64-windows\\include -external:W0 /DWIN32 /D_WINDOWS /GR /EHsc /Zi /Ob0 /Od /RTC1 -std:c++17 -MDd /W4 /utf-8 /Fotests\\CMakeFiles\\nova-test.dir\\lexer_test.cpp.obj /Fdtests\\CMakeFiles\\nova-test.dir\\ /FS -c C:\\Users\\10423\\Code\\NovaMark\\tests\\lexer_test.cpp",
+  "file": "C:/Users/10423/Code/NovaMark/tests/lexer_test.cpp",
+  "output": "C:/Users/10423/Code/NovaMark/tests/CMakeFiles/nova-test.dir/lexer_test.cpp.obj"
+},
+{
+  "directory": "C:/Users/10423/Code/NovaMark",
+  "command": "C:\\PROGRA~1\\MIB055~1\\18\\COMMUN~1\\VC\\Tools\\MSVC\\1450~1.357\\bin\\Hostx64\\x64\\cl.exe  /nologo /TP -DGTEST_LINKED_AS_SHARED_LIBRARY=1 -IC:\\Users\\10423\\Code\\NovaMark\\include -external:IC:\\Users\\10423\\Code\\NovaMark\\vcpkg_installed\\x64-windows\\include -external:W0 /DWIN32 /D_WINDOWS /GR /EHsc /Zi /Ob0 /Od /RTC1 -std:c++17 -MDd /W4 /utf-8 /Fotests\\CMakeFiles\\nova-test.dir\\parser_test.cpp.obj /Fdtests\\CMakeFiles\\nova-test.dir\\ /FS -c C:\\Users\\10423\\Code\\NovaMark\\tests\\parser_test.cpp",
+  "file": "C:/Users/10423/Code/NovaMark/tests/parser_test.cpp",
+  "output": "C:/Users/10423/Code/NovaMark/tests/CMakeFiles/nova-test.dir/parser_test.cpp.obj"
+},
+{
+  "directory": "C:/Users/10423/Code/NovaMark",
+  "command": "C:\\PROGRA~1\\MIB055~1\\18\\COMMUN~1\\VC\\Tools\\MSVC\\1450~1.357\\bin\\Hostx64\\x64\\cl.exe  /nologo /TP -DGTEST_LINKED_AS_SHARED_LIBRARY=1 -IC:\\Users\\10423\\Code\\NovaMark\\include -external:IC:\\Users\\10423\\Code\\NovaMark\\vcpkg_installed\\x64-windows\\include -external:W0 /DWIN32 /D_WINDOWS /GR /EHsc /Zi /Ob0 /Od /RTC1 -std:c++17 -MDd /W4 /utf-8 /Fotests\\CMakeFiles\\nova-test.dir\\semantic_test.cpp.obj /Fdtests\\CMakeFiles\\nova-test.dir\\ /FS -c C:\\Users\\10423\\Code\\NovaMark\\tests\\semantic_test.cpp",
+  "file": "C:/Users/10423/Code/NovaMark/tests/semantic_test.cpp",
+  "output": "C:/Users/10423/Code/NovaMark/tests/CMakeFiles/nova-test.dir/semantic_test.cpp.obj"
+},
+{
+  "directory": "C:/Users/10423/Code/NovaMark",
+  "command": "C:\\PROGRA~1\\MIB055~1\\18\\COMMUN~1\\VC\\Tools\\MSVC\\1450~1.357\\bin\\Hostx64\\x64\\cl.exe  /nologo /TP -DGTEST_LINKED_AS_SHARED_LIBRARY=1 -IC:\\Users\\10423\\Code\\NovaMark\\include -external:IC:\\Users\\10423\\Code\\NovaMark\\vcpkg_installed\\x64-windows\\include -external:W0 /DWIN32 /D_WINDOWS /GR /EHsc /Zi /Ob0 /Od /RTC1 -std:c++17 -MDd /W4 /utf-8 /Fotests\\CMakeFiles\\nova-test.dir\\vm_test.cpp.obj /Fdtests\\CMakeFiles\\nova-test.dir\\ /FS -c C:\\Users\\10423\\Code\\NovaMark\\tests\\vm_test.cpp",
+  "file": "C:/Users/10423/Code/NovaMark/tests/vm_test.cpp",
+  "output": "C:/Users/10423/Code/NovaMark/tests/CMakeFiles/nova-test.dir/vm_test.cpp.obj"
+}
+]
