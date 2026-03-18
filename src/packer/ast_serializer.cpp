@@ -458,4 +458,491 @@ void AstSerializer::recordAssetRef(const std::string& path) {
     }
 }
 
+// ============================================
+// AstDeserializer
+// ============================================
+
+AstDeserializer::AstDeserializer() {}
+
+AstDeserializer::~AstDeserializer() {
+    delete m_reader;
+}
+
+std::unique_ptr<ProgramNode> AstDeserializer::deserialize(const std::vector<uint8_t>& bytecode) {
+    delete m_reader;
+    m_reader = new BytecodeReader(bytecode);
+    m_hasError = false;
+    m_errorMsg.clear();
+    
+    uint8_t op = m_reader->readByte();
+    if (op != static_cast<uint8_t>(OpCode::NodeProgram)) {
+        setError("Expected NodeProgram at start");
+        return nullptr;
+    }
+    
+    auto program = std::make_unique<ProgramNode>(SourceLocation{});
+    
+    uint32_t stmtCount = m_reader->readU32();
+    for (uint32_t i = 0; i < stmtCount && !m_hasError; ++i) {
+        auto stmt = deserializeNode();
+        if (stmt) {
+            program->add_statement(std::move(stmt));
+        }
+    }
+    
+    if (m_hasError) {
+        return nullptr;
+    }
+    return program;
+}
+
+std::unique_ptr<AstNode> AstDeserializer::deserializeNode() {
+    if (m_hasError) return nullptr;
+    
+    uint8_t op = m_reader->readByte();
+    auto opCode = static_cast<OpCode>(op);
+    
+    switch (opCode) {
+        case OpCode::NodeDialogue:
+            return deserializeDialogue();
+        case OpCode::NodeNarrator:
+            return deserializeNarrator();
+        case OpCode::NodeSceneDef:
+            return deserializeSceneDef();
+        case OpCode::NodeJump:
+            return deserializeJump();
+        case OpCode::NodeChoice:
+            return deserializeChoice();
+        case OpCode::NodeVarDef:
+            return deserializeVarDef();
+        case OpCode::NodeBranch:
+            return deserializeBranch();
+        case OpCode::NodeCharDef:
+            return deserializeCharDef();
+        case OpCode::NodeItemDef:
+            return deserializeItemDef();
+        case OpCode::NodeBgCommand:
+            return deserializeBgCommand();
+        case OpCode::NodeSpriteCommand:
+            return deserializeSpriteCommand();
+        case OpCode::NodeBgmCommand:
+            return deserializeBgmCommand();
+        case OpCode::NodeSfxCommand:
+            return deserializeSfxCommand();
+        case OpCode::NodeSetCommand:
+            return deserializeSetCommand();
+        case OpCode::NodeGiveCommand:
+            return deserializeGiveCommand();
+        case OpCode::NodeTakeCommand:
+            return deserializeTakeCommand();
+        case OpCode::NodeSave:
+            return deserializeSave();
+        case OpCode::NodeCall:
+            return deserializeCall();
+        case OpCode::NodeReturn:
+            return deserializeReturn();
+        case OpCode::NodeEnding:
+            return deserializeEnding();
+        case OpCode::NodeFlag:
+            return deserializeFlag();
+        case OpCode::NodeLabel:
+            return deserializeLabel();
+        case OpCode::NodeCheckCommand:
+            return deserializeCheckCommand();
+        case OpCode::NodeWait:
+            return deserializeWait();
+        case OpCode::NodeUiCommand:
+            return deserializeUiCommand();
+        case OpCode::NodeThemeDef:
+            return deserializeThemeDef();
+        case OpCode::NodeFrontMatter:
+            return deserializeFrontMatter();
+        case OpCode::EndNode:
+            return nullptr;
+        default:
+            setError("Unknown node opcode: " + std::to_string(op));
+            return nullptr;
+    }
+}
+
+std::unique_ptr<DialogueNode> AstDeserializer::deserializeDialogue() {
+    std::string speaker = m_reader->readString();
+    std::string emotion = m_reader->readString();
+    std::string text = m_reader->readString();
+    
+    return std::make_unique<DialogueNode>(SourceLocation{}, std::move(speaker), 
+                                           std::move(emotion), std::move(text));
+}
+
+std::unique_ptr<NarratorNode> AstDeserializer::deserializeNarrator() {
+    std::string text = m_reader->readString();
+    return std::make_unique<NarratorNode>(SourceLocation{}, std::move(text));
+}
+
+std::unique_ptr<SceneDefNode> AstDeserializer::deserializeSceneDef() {
+    std::string name = m_reader->readString();
+    std::string title = m_reader->readString();
+    return std::make_unique<SceneDefNode>(SourceLocation{}, std::move(name), std::move(title));
+}
+
+std::unique_ptr<JumpNode> AstDeserializer::deserializeJump() {
+    std::string target = m_reader->readString();
+    return std::make_unique<JumpNode>(SourceLocation{}, std::move(target));
+}
+
+std::unique_ptr<ChoiceNode> AstDeserializer::deserializeChoice() {
+    std::string question = m_reader->readString();
+    auto node = std::make_unique<ChoiceNode>(SourceLocation{}, std::move(question));
+    
+    uint32_t optCount = m_reader->readU32();
+    for (uint32_t i = 0; i < optCount && !m_hasError; ++i) {
+        uint8_t op = m_reader->readByte();
+        if (op != static_cast<uint8_t>(OpCode::NodeChoiceOption)) {
+            setError("Expected NodeChoiceOption");
+            break;
+        }
+        
+        std::string text = m_reader->readString();
+        std::string target = m_reader->readString();
+        
+        std::unique_ptr<AstNode> condition;
+        uint8_t hasCond = m_reader->readByte();
+        if (hasCond) {
+            condition = deserializeExpression();
+        }
+        
+        node->add_option(std::make_unique<ChoiceOptionNode>(SourceLocation{}, 
+            std::move(text), std::move(target), std::move(condition)));
+    }
+    
+    return node;
+}
+
+std::unique_ptr<VarDefNode> AstDeserializer::deserializeVarDef() {
+    std::string name = m_reader->readString();
+    
+    std::unique_ptr<AstNode> initValue;
+    uint8_t hasInit = m_reader->readByte();
+    if (hasInit) {
+        initValue = deserializeExpression();
+    }
+    
+    return std::make_unique<VarDefNode>(SourceLocation{}, std::move(name), std::move(initValue));
+}
+
+std::unique_ptr<BranchNode> AstDeserializer::deserializeBranch() {
+    auto condition = deserializeExpression();
+    auto node = std::make_unique<BranchNode>(SourceLocation{}, std::move(condition));
+    
+    uint32_t thenCount = m_reader->readU32();
+    for (uint32_t i = 0; i < thenCount && !m_hasError; ++i) {
+        auto stmt = deserializeNode();
+        if (stmt) {
+            node->add_then(std::move(stmt));
+        }
+    }
+    
+    uint32_t elseCount = m_reader->readU32();
+    for (uint32_t i = 0; i < elseCount && !m_hasError; ++i) {
+        auto stmt = deserializeNode();
+        if (stmt) {
+            node->add_else(std::move(stmt));
+        }
+    }
+    
+    return node;
+}
+
+std::unique_ptr<CharDefNode> AstDeserializer::deserializeCharDef() {
+    std::string name = m_reader->readString();
+    auto node = std::make_unique<CharDefNode>(SourceLocation{}, std::move(name));
+    
+    uint32_t propCount = m_reader->readU32();
+    for (uint32_t i = 0; i < propCount; ++i) {
+        std::string key = m_reader->readString();
+        std::string value = m_reader->readString();
+        node->add_property(std::move(key), std::move(value));
+    }
+    
+    return node;
+}
+
+std::unique_ptr<ItemDefNode> AstDeserializer::deserializeItemDef() {
+    std::string name = m_reader->readString();
+    auto node = std::make_unique<ItemDefNode>(SourceLocation{}, std::move(name));
+    
+    uint32_t propCount = m_reader->readU32();
+    for (uint32_t i = 0; i < propCount; ++i) {
+        std::string key = m_reader->readString();
+        std::string value = m_reader->readString();
+        node->add_property(std::move(key), std::move(value));
+    }
+    
+    return node;
+}
+
+std::unique_ptr<BgCommandNode> AstDeserializer::deserializeBgCommand() {
+    std::string image = m_reader->readString();
+    auto node = std::make_unique<BgCommandNode>(SourceLocation{}, std::move(image));
+    
+    uint32_t argCount = m_reader->readU32();
+    for (uint32_t i = 0; i < argCount; ++i) {
+        std::string key = m_reader->readString();
+        std::string value = m_reader->readString();
+        node->add_arg(std::move(key), std::move(value));
+    }
+    
+    return node;
+}
+
+std::unique_ptr<SpriteCommandNode> AstDeserializer::deserializeSpriteCommand() {
+    std::string name = m_reader->readString();
+    auto node = std::make_unique<SpriteCommandNode>(SourceLocation{}, std::move(name));
+    
+    uint32_t argCount = m_reader->readU32();
+    for (uint32_t i = 0; i < argCount; ++i) {
+        std::string key = m_reader->readString();
+        std::string value = m_reader->readString();
+        node->add_arg(std::move(key), std::move(value));
+    }
+    
+    return node;
+}
+
+std::unique_ptr<BgmCommandNode> AstDeserializer::deserializeBgmCommand() {
+    std::string file = m_reader->readString();
+    auto node = std::make_unique<BgmCommandNode>(SourceLocation{}, std::move(file));
+    
+    uint32_t argCount = m_reader->readU32();
+    for (uint32_t i = 0; i < argCount; ++i) {
+        std::string key = m_reader->readString();
+        std::string value = m_reader->readString();
+        node->add_arg(std::move(key), std::move(value));
+    }
+    
+    return node;
+}
+
+std::unique_ptr<SfxCommandNode> AstDeserializer::deserializeSfxCommand() {
+    std::string file = m_reader->readString();
+    auto node = std::make_unique<SfxCommandNode>(SourceLocation{}, std::move(file));
+    
+    uint32_t argCount = m_reader->readU32();
+    for (uint32_t i = 0; i < argCount; ++i) {
+        std::string key = m_reader->readString();
+        std::string value = m_reader->readString();
+        node->add_arg(std::move(key), std::move(value));
+    }
+    
+    return node;
+}
+
+std::unique_ptr<SetCommandNode> AstDeserializer::deserializeSetCommand() {
+    std::string name = m_reader->readString();
+    auto value = deserializeExpression();
+    return std::make_unique<SetCommandNode>(SourceLocation{}, std::move(name), std::move(value));
+}
+
+std::unique_ptr<GiveCommandNode> AstDeserializer::deserializeGiveCommand() {
+    std::string item = m_reader->readString();
+    uint32_t count = m_reader->readU32();
+    return std::make_unique<GiveCommandNode>(SourceLocation{}, std::move(item), static_cast<int>(count));
+}
+
+std::unique_ptr<TakeCommandNode> AstDeserializer::deserializeTakeCommand() {
+    std::string item = m_reader->readString();
+    uint32_t count = m_reader->readU32();
+    return std::make_unique<TakeCommandNode>(SourceLocation{}, std::move(item), static_cast<int>(count));
+}
+
+std::unique_ptr<SaveNode> AstDeserializer::deserializeSave() {
+    std::string label = m_reader->readString();
+    return std::make_unique<SaveNode>(SourceLocation{}, std::move(label));
+}
+
+std::unique_ptr<CallNode> AstDeserializer::deserializeCall() {
+    std::string target = m_reader->readString();
+    return std::make_unique<CallNode>(SourceLocation{}, std::move(target));
+}
+
+std::unique_ptr<ReturnNode> AstDeserializer::deserializeReturn() {
+    return std::make_unique<ReturnNode>(SourceLocation{});
+}
+
+std::unique_ptr<EndingNode> AstDeserializer::deserializeEnding() {
+    std::string name = m_reader->readString();
+    return std::make_unique<EndingNode>(SourceLocation{}, std::move(name));
+}
+
+std::unique_ptr<FlagNode> AstDeserializer::deserializeFlag() {
+    std::string name = m_reader->readString();
+    return std::make_unique<FlagNode>(SourceLocation{}, std::move(name));
+}
+
+std::unique_ptr<LabelNode> AstDeserializer::deserializeLabel() {
+    std::string name = m_reader->readString();
+    return std::make_unique<LabelNode>(SourceLocation{}, std::move(name));
+}
+
+std::unique_ptr<CheckCommandNode> AstDeserializer::deserializeCheckCommand() {
+    auto condition = deserializeExpression();
+    auto node = std::make_unique<CheckCommandNode>(SourceLocation{}, std::move(condition));
+    
+    uint32_t successCount = m_reader->readU32();
+    for (uint32_t i = 0; i < successCount && !m_hasError; ++i) {
+        auto stmt = deserializeNode();
+        if (stmt) {
+            node->add_success(std::move(stmt));
+        }
+    }
+    
+    uint32_t failureCount = m_reader->readU32();
+    for (uint32_t i = 0; i < failureCount && !m_hasError; ++i) {
+        auto stmt = deserializeNode();
+        if (stmt) {
+            node->add_failure(std::move(stmt));
+        }
+    }
+    
+    return node;
+}
+
+std::unique_ptr<WaitNode> AstDeserializer::deserializeWait() {
+    double seconds = m_reader->readDouble();
+    return std::make_unique<WaitNode>(SourceLocation{}, seconds);
+}
+
+std::unique_ptr<UiCommandNode> AstDeserializer::deserializeUiCommand() {
+    uint8_t actionByte = m_reader->readByte();
+    auto action = static_cast<UiCommandNode::Action>(actionByte);
+    std::string target = m_reader->readString();
+    return std::make_unique<UiCommandNode>(SourceLocation{}, action, std::move(target));
+}
+
+std::unique_ptr<ThemeDefNode> AstDeserializer::deserializeThemeDef() {
+    std::string name = m_reader->readString();
+    auto node = std::make_unique<ThemeDefNode>(SourceLocation{}, std::move(name));
+    
+    uint32_t propCount = m_reader->readU32();
+    for (uint32_t i = 0; i < propCount; ++i) {
+        std::string key = m_reader->readString();
+        std::string value = m_reader->readString();
+        node->add_property(std::move(key), std::move(value));
+    }
+    
+    return node;
+}
+
+std::unique_ptr<FrontMatterNode> AstDeserializer::deserializeFrontMatter() {
+    auto node = std::make_unique<FrontMatterNode>(SourceLocation{});
+    
+    uint32_t propCount = m_reader->readU32();
+    for (uint32_t i = 0; i < propCount; ++i) {
+        std::string key = m_reader->readString();
+        std::string value = m_reader->readString();
+        node->add_property(std::move(key), std::move(value));
+    }
+    
+    return node;
+}
+
+std::unique_ptr<AstNode> AstDeserializer::deserializeExpression() {
+    if (m_hasError) return nullptr;
+    
+    uint8_t op = m_reader->readByte();
+    auto opCode = static_cast<OpCode>(op);
+    
+    switch (opCode) {
+        case OpCode::NodeLiteral:
+            return deserializeLiteral();
+        case OpCode::NodeIdentifier:
+            return deserializeIdentifier();
+        case OpCode::NodeBinaryExpr:
+            return deserializeBinaryExpr();
+        case OpCode::NodeUnaryExpr:
+            return deserializeUnaryExpr();
+        case OpCode::NodeCallExpr:
+            return deserializeCallExpr();
+        case OpCode::NodeDiceExpr:
+            return deserializeDiceExpr();
+        case OpCode::EndNode:
+            return nullptr;
+        default:
+            setError("Unknown expression opcode: " + std::to_string(op));
+            return nullptr;
+    }
+}
+
+std::unique_ptr<LiteralNode> AstDeserializer::deserializeLiteral() {
+    uint8_t typeByte = m_reader->readByte();
+    auto type = static_cast<OpCode>(typeByte);
+    
+    switch (type) {
+        case OpCode::LiteralNull:
+            return std::make_unique<LiteralNode>(SourceLocation{}, LiteralNode::Value{std::monostate{}});
+        case OpCode::LiteralString: {
+            std::string str = m_reader->readString();
+            return std::make_unique<LiteralNode>(SourceLocation{}, LiteralNode::Value{std::move(str)});
+        }
+        case OpCode::LiteralNumber: {
+            double num = m_reader->readDouble();
+            return std::make_unique<LiteralNode>(SourceLocation{}, LiteralNode::Value{num});
+        }
+        case OpCode::LiteralBool: {
+            uint8_t b = m_reader->readByte();
+            return std::make_unique<LiteralNode>(SourceLocation{}, LiteralNode::Value{b != 0});
+        }
+        default:
+            setError("Unknown literal type: " + std::to_string(typeByte));
+            return nullptr;
+    }
+}
+
+std::unique_ptr<IdentifierNode> AstDeserializer::deserializeIdentifier() {
+    std::string name = m_reader->readString();
+    return std::make_unique<IdentifierNode>(SourceLocation{}, std::move(name));
+}
+
+std::unique_ptr<BinaryExprNode> AstDeserializer::deserializeBinaryExpr() {
+    std::string op = m_reader->readString();
+    auto left = deserializeExpression();
+    auto right = deserializeExpression();
+    return std::make_unique<BinaryExprNode>(SourceLocation{}, std::move(op), 
+                                             std::move(left), std::move(right));
+}
+
+std::unique_ptr<UnaryExprNode> AstDeserializer::deserializeUnaryExpr() {
+    std::string op = m_reader->readString();
+    auto operand = deserializeExpression();
+    return std::make_unique<UnaryExprNode>(SourceLocation{}, std::move(op), std::move(operand));
+}
+
+std::unique_ptr<CallExprNode> AstDeserializer::deserializeCallExpr() {
+    std::string name = m_reader->readString();
+    auto node = std::make_unique<CallExprNode>(SourceLocation{}, std::move(name));
+    
+    uint32_t argCount = m_reader->readU32();
+    for (uint32_t i = 0; i < argCount && !m_hasError; ++i) {
+        auto arg = deserializeExpression();
+        if (arg) {
+            node->add_argument(std::move(arg));
+        }
+    }
+    
+    return node;
+}
+
+std::unique_ptr<DiceExprNode> AstDeserializer::deserializeDiceExpr() {
+    uint32_t count = m_reader->readU32();
+    uint32_t sides = m_reader->readU32();
+    uint32_t modifier = m_reader->readU32();
+    return std::make_unique<DiceExprNode>(SourceLocation{}, 
+        static_cast<int>(count), static_cast<int>(sides), static_cast<int>(modifier));
+}
+
+void AstDeserializer::setError(const std::string& msg) {
+    m_hasError = true;
+    m_errorMsg = msg;
+}
+
 } // namespace nova

@@ -7,6 +7,7 @@
 #include "nova/ast/ast_node.h"
 #include <memory>
 #include <functional>
+#include <vector>
 
 namespace nova {
 
@@ -33,15 +34,39 @@ public:
     
     /// @brief 获取当前渲染状态
     const NovaState& state() const { return m_state; }
+
+    /// @brief 消费当前对话（渲染层展示后调用）
+    void consumeDialogue();
+    
+    /// @brief 捕获当前游戏状态
+    GameState captureState() const;
+    
+    /// @brief 从存档恢复游戏状态
+    bool loadSave(const SaveData& save);
+    
+    /// @brief 从存档恢复游戏状态
+    bool loadSave(const GameState& state);
     
     /// @brief 执行一步（直到需要用户输入）
     void step();
     
+    /// @brief 执行一步（advance 的别名，用于 C API）
+    void advance() { step(); }
+    
     /// @brief 执行到下一个等待点
     void run();
     
-    /// @brief 选择选项
+    /// @brief 选择选项（按索引）
     void selectChoice(int index);
+    
+    /// @brief 选择选项（按 ID）
+    bool selectChoiceById(const std::string& choiceId);
+    
+    /// @brief 获取当前场景名
+    const std::string& currentScene() const { return m_currentScene; }
+    
+    /// @brief 获取当前语句索引
+    size_t statementIndex() const { return m_statementIndex; }
     
     /// @brief 设置场景入口
     void setEntryPoint(const std::string& sceneName);
@@ -91,6 +116,9 @@ private:
     
     const ProgramNode* m_program = nullptr;
     std::unordered_map<std::string, SceneData> m_scenes;
+
+    std::vector<std::string> m_scene_order;
+    std::unordered_map<std::string, size_t> m_scene_order_index;
     
     std::string m_currentScene;
     size_t m_statementIndex = 0;

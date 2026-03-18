@@ -1,6 +1,6 @@
 #pragma once
 
-#include "nova_state.h"
+#include "nova/vm/state.h"
 #include <functional>
 #include <memory>
 
@@ -21,18 +21,18 @@ public:
     virtual void hideSprite(const std::string& id) = 0;
     virtual void clearSprites() = 0;
     
-    virtual void playBgm(const std::string& path, bool loop = true) = 0;
+    virtual void playBgm(const std::string& path, bool loop = true, double volume = 1.0) = 0;
     virtual void stopBgm() = 0;
     
-    virtual void playSfx(const std::string& id, const std::string& path, bool loop = false) = 0;
+    virtual void playSfx(const SfxState& sfx) = 0;
     virtual void stopSfx(const std::string& id) = 0;
     virtual void stopAllSfx() = 0;
     
     virtual void showDialogue(const DialogueState& dialogue) = 0;
     virtual void hideDialogue() = 0;
     
-    virtual void showChoices(const std::vector<ChoiceState>& choices) = 0;
-    virtual void hideChoices() = 0;
+    virtual void showChoice(const ChoiceState& choice) = 0;
+    virtual void hideChoice() = 0;
     
     virtual void showHud(const HudState& hud) = 0;
     virtual void hideHud(const std::string& id) = 0;
@@ -53,19 +53,19 @@ public:
     void showSprite(const SpriteState&) override {}
     void hideSprite(const std::string&) override {}
     void clearSprites() override {}
-    void playBgm(const std::string&, bool) override {}
+    void playBgm(const std::string&, bool, double) override {}
     void stopBgm() override {}
-    void playSfx(const std::string&, const std::string&, bool) override {}
+    void playSfx(const SfxState&) override {}
     void stopSfx(const std::string&) override {}
     void stopAllSfx() override {}
     void showDialogue(const DialogueState&) override {}
     void hideDialogue() override {}
-    void showChoices(const std::vector<ChoiceState>&) override {}
-    void hideChoices() override {}
+    void showChoice(const ChoiceState&) override {}
+    void hideChoice() override {}
     void showHud(const HudState&) override {}
     void hideHud(const std::string&) override {}
     void setOnClick(ClickCallback) override {}
     void setOnChoice(ChoiceCallback) override {}
 };
 
-} // namespace nova
+}

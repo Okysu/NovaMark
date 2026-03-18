@@ -1,0 +1,40 @@
+baseURL = 'https://novamark.dev/'
+defaultContentLanguage = 'zh'
+title = 'NovaMark'
+theme = 'hugo-book'
+
+[languages]
+  [languages.zh]
+    contentDir = 'content/zh'
+    languageName = '中文'
+    languageCode = 'zh-cn'
+    weight = 1
+  [languages.en]
+    contentDir = 'content/en'
+    languageName = 'English'
+    languageCode = 'en'
+    weight = 2
+
+[params]
+  BookTheme = 'auto'
+  BookToC = true
+  BookSection = 'docs'
+  BookRepo = 'https://github.com/Okysu/NovaMark'
+  BookDateFormat = '2006-01-02'
+  BookSearch = true
+  BookComments = false
+
+[menu]
+  [[menu.before]]
+    name = "GitHub"
+    url = "https://github.com/Okysu/NovaMark"
+    weight = 10
+
+[markup]
+  [markup.highlight]
+    codeFences = true
+    style = "monokai"
+    tabWidth = 4
+  [markup.goldmark]
+    [markup.goldmark.renderer]
+      unsafe = true

@@ -16,6 +16,11 @@ struct SpriteState {
     double opacity = 1.0;
     int zIndex = 0;
     std::optional<std::string> animation;
+
+    bool operator==(const SpriteState& other) const {
+        return id == other.id && url == other.url && x == other.x && y == other.y &&
+               opacity == other.opacity && zIndex == other.zIndex && animation == other.animation;
+    }
 };
 
 /// @brief 音效状态
@@ -43,6 +48,11 @@ struct DialogueState {
     std::string text;
     std::string emotion;
     std::string color;
+
+    bool operator==(const DialogueState& other) const {
+        return isShow == other.isShow && speaker == other.speaker && text == other.text &&
+               emotion == other.emotion && color == other.color;
+    }
 };
 
 /// @brief 选择选项
@@ -51,6 +61,10 @@ struct ChoiceOption {
     std::string text;
     std::string target;
     bool disabled = false;
+
+    bool operator==(const ChoiceOption& other) const {
+        return id == other.id && text == other.text && target == other.target && disabled == other.disabled;
+    }
 };
 
 /// @brief 选择状态
@@ -58,6 +72,14 @@ struct ChoiceState {
     bool isShow = false;
     std::string question;
     std::vector<ChoiceOption> options;
+
+    bool operator==(const ChoiceState& other) const {
+        return isShow == other.isShow && question == other.question && options == other.options;
+    }
+
+    bool operator!=(const ChoiceState& other) const {
+        return !(*this == other);
+    }
 };
 
 /// @brief VM 运行状态

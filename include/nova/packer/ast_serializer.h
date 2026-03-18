@@ -67,6 +67,7 @@ private:
 class AstDeserializer {
 public:
     AstDeserializer();
+    ~AstDeserializer();
     
     /// @brief 反序列化字节码为 AST
     std::unique_ptr<ProgramNode> deserialize(const std::vector<uint8_t>& bytecode);
@@ -76,7 +77,7 @@ public:
     const std::string& errorMessage() const { return m_errorMsg; }
 
 private:
-    BytecodeReader m_reader;
+    BytecodeReader* m_reader = nullptr;
     bool m_hasError = false;
     std::string m_errorMsg;
     

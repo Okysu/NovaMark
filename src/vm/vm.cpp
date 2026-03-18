@@ -8,6 +8,16 @@ namespace nova {
 
 namespace {
 
+double safe_stod(const std::string& s, double defaultVal = 0.0) {
+    try { return std::stod(s); }
+    catch (...) { return defaultVal; }
+}
+
+int safe_stoi(const std::string& s, int defaultVal = 0) {
+    try { return std::stoi(s); }
+    catch (...) { return defaultVal; }
+}
+
 const SceneDefNode* as_scene(const AstNode* node) {
     return dynamic_cast<const SceneDefNode*>(node);
 }
@@ -146,6 +156,57 @@ NovaVM::NovaVM() {
     m_state.status = VMStatus::Running;
 }
 
+void NovaVM::consumeDialogue() {
+    m_state.clearDialogue();
+}
+
+GameState NovaVM::captureState() const {
+    GameState state;
+    state.currentScene = m_currentScene;
+    state.statementIndex = m_statementIndex;
+    state.callStack = m_callStack;
+    
+    state.numberVariables = m_variables.getAllNumbers();
+    state.stringVariables = m_variables.getAllStrings();
+    state.boolVariables = m_variables.getAllBools();
+    state.inventory = m_inventory.getAllItems();
+    
+    state.triggeredEndings = m_playthrough.endings();
+    state.flags = m_playthrough.flags();
+    
+    return state;
+}
+
+bool NovaVM::loadSave(const SaveData& save) {
+    return loadSave(save.state);
+}
+
+bool NovaVM::loadSave(const GameState& state) {
+    if (!m_program) return false;
+    
+    auto sceneIt = m_scenes.find(state.currentScene);
+    if (sceneIt == m_scenes.end()) return false;
+    
+    m_currentScene = state.currentScene;
+    m_statementIndex = state.statementIndex;
+    m_callStack = state.callStack;
+    
+    m_variables.loadFrom(state.numberVariables, state.stringVariables, state.boolVariables);
+    m_inventory.loadFrom(state.inventory);
+    
+    for (const auto& ending : state.triggeredEndings) {
+        m_playthrough.triggerEnding(ending);
+    }
+    for (const auto& flag : state.flags) {
+        m_playthrough.setFlag(flag);
+    }
+    
+    m_state.currentScene = m_currentScene;
+    m_state.status = VMStatus::Running;
+    
+    return true;
+}
+
 void NovaVM::load(const ProgramNode* program) {
     m_program = program;
     buildSceneIndex();
@@ -181,6 +242,8 @@ void NovaVM::load(const AstPtr& program) {
 
 void NovaVM::buildSceneIndex() {
     m_scenes.clear();
+    m_scene_order.clear();
+    m_scene_order_index.clear();
     
     if (!m_program) return;
     
@@ -197,6 +260,9 @@ void NovaVM::buildSceneIndex() {
             
             currentScene = scene->name();
             sceneStartIndex = i + 1;
+
+            m_scene_order_index[currentScene] = m_scene_order.size();
+            m_scene_order.push_back(currentScene);
             
             SceneData data;
             data.name = scene->name();
@@ -219,10 +285,13 @@ void NovaVM::step() {
     if (m_state.status == VMStatus::Ended) return;
     if (m_state.status == VMStatus::WaitingChoice) return;
     
+    m_state.sfx.clear();
+    
     if (m_currentScene.empty()) {
-        if (!m_scenes.empty()) {
-            m_currentScene = m_scenes.begin()->first;
+        if (!m_scene_order.empty()) {
+            m_currentScene = m_scene_order.front();
             m_statementIndex = 0;
+            m_state.currentScene = m_currentScene;
         } else {
             m_state.status = VMStatus::Ended;
             return;
@@ -235,7 +304,7 @@ void NovaVM::step() {
     }
     
     const auto& programStatements = m_program->statements();
-    std::string currentScene = m_currentScene;
+    std::string scene_at_start = m_currentScene;
     
     while (true) {
         auto sceneIt = m_scenes.find(m_currentScene);
@@ -247,6 +316,19 @@ void NovaVM::step() {
         const auto& sceneData = sceneIt->second;
         
         if (m_statementIndex >= sceneData.statementCount) {
+            auto orderIt = m_scene_order_index.find(m_currentScene);
+            if (orderIt != m_scene_order_index.end()) {
+                size_t idx = orderIt->second;
+                if (idx + 1 < m_scene_order.size()) {
+                    m_currentScene = m_scene_order[idx + 1];
+                    m_statementIndex = 0;
+                    m_state.currentScene = m_currentScene;
+                    m_state.currentLabel.clear();
+                    scene_at_start = m_currentScene;
+                    continue;
+                }
+            }
+
             m_state.status = VMStatus::Ended;
             return;
         }
@@ -268,7 +350,7 @@ void NovaVM::step() {
             return;
         }
         
-        if (m_currentScene != currentScene) {
+        if (m_currentScene != scene_at_start) {
             return;
         }
         
@@ -289,15 +371,28 @@ void NovaVM::selectChoice(int index) {
     
     if (index < 0 || index >= static_cast<int>(m_state.choice->options.size())) return;
     
-    const auto& opt = m_state.choice->options[index];
+    ChoiceOption opt = m_state.choice->options[index];
     m_state.clearChoice();
+    m_state.clearDialogue();  // 清除旧对话，避免重复显示
     m_state.status = VMStatus::Running;
     
-    if (opt.target[0] == '.') {
+    if (!opt.target.empty() && opt.target[0] == '.') {
         jumpToLabel(opt.target.substr(1));
     } else {
         jumpToScene(opt.target);
     }
+}
+
+bool NovaVM::selectChoiceById(const std::string& choiceId) {
+    if (m_state.status != VMStatus::WaitingChoice || !m_state.choice) return false;
+    
+    for (int i = 0; i < static_cast<int>(m_state.choice->options.size()); ++i) {
+        if (m_state.choice->options[i].id == choiceId) {
+            selectChoice(i);
+            return true;
+        }
+    }
+    return false;
 }
 
 void NovaVM::setEntryPoint(const std::string& sceneName) {
@@ -316,14 +411,28 @@ bool NovaVM::jumpToScene(const std::string& sceneName) {
 }
 
 bool NovaVM::jumpToLabel(const std::string& labelName) {
+    if (m_currentScene.empty()) {
+        if (!m_scene_order.empty()) {
+            m_currentScene = m_scene_order.front();
+            m_state.currentScene = m_currentScene;
+        } else {
+            return false;
+        }
+    }
+
     auto sceneIt = m_scenes.find(m_currentScene);
     if (sceneIt == m_scenes.end()) return false;
-    
-    auto labelIt = sceneIt->second.labels.find(labelName);
+
+    std::string key = labelName;
+    if (!key.empty() && key[0] == '.') {
+        key = key.substr(1);
+    }
+
+    auto labelIt = sceneIt->second.labels.find(key);
     if (labelIt == sceneIt->second.labels.end()) return false;
     
     m_statementIndex = labelIt->second;
-    m_state.currentLabel = labelName;
+    m_state.currentLabel = key;
     return true;
 }
 
@@ -343,6 +452,7 @@ void NovaVM::returnFromCall() {
     
     m_currentScene = scene;
     m_statementIndex = index;
+    m_state.currentScene = scene;
 }
 
 void NovaVM::reset() {
@@ -528,10 +638,10 @@ void NovaVM::executeSprite(const SpriteCommandNode* node) {
     sprite.id = node->name();
     
     for (const auto& arg : node->args()) {
-        if (arg.key == "x") sprite.x = std::stod(arg.value);
-        else if (arg.key == "y") sprite.y = std::stod(arg.value);
-        else if (arg.key == "opacity") sprite.opacity = std::stod(arg.value);
-        else if (arg.key == "zIndex") sprite.zIndex = std::stoi(arg.value);
+        if (arg.key == "x") sprite.x = safe_stod(arg.value, sprite.x);
+        else if (arg.key == "y") sprite.y = safe_stod(arg.value, sprite.y);
+        else if (arg.key == "opacity") sprite.opacity = safe_stod(arg.value, sprite.opacity);
+        else if (arg.key == "zIndex") sprite.zIndex = safe_stoi(arg.value, sprite.zIndex);
         else if (arg.key == "url") sprite.url = arg.value;
     }
     
@@ -549,7 +659,7 @@ void NovaVM::executeBgm(const BgmCommandNode* node) {
     if (!node) return;
     m_state.bgm = node->file();
     for (const auto& arg : node->args()) {
-        if (arg.key == "volume") m_state.bgmVolume = std::stod(arg.value);
+        if (arg.key == "volume") m_state.bgmVolume = safe_stod(arg.value, m_state.bgmVolume);
         else if (arg.key == "loop") m_state.bgmLoop = (arg.value == "true");
     }
 }
@@ -560,7 +670,7 @@ void NovaVM::executeSfx(const SfxCommandNode* node) {
     sfx.id = node->file();
     sfx.path = node->file();
     for (const auto& arg : node->args()) {
-        if (arg.key == "volume") sfx.volume = std::stod(arg.value);
+        if (arg.key == "volume") sfx.volume = safe_stod(arg.value, sfx.volume);
         else if (arg.key == "loop") sfx.loop = (arg.value == "true");
     }
     m_state.sfx.push_back(sfx);
@@ -653,7 +763,7 @@ VarValue NovaVM::evaluateExpression(const AstNode* expr) {
         if (op == "-") return left - right;
         if (op == "*") return left * right;
         if (op == "/") return right != 0 ? left / right : 0.0;
-        if (op == "%") return std::fmod(left, right);
+        if (op == "%") return right != 0 ? std::fmod(left, right) : 0.0;
         if (op == "<") return left < right;
         if (op == "<=") return left <= right;
         if (op == ">") return left > right;
@@ -754,20 +864,23 @@ double NovaVM::evaluateDiceRoll(const std::string& expr) {
     size_t dPos = expr.find('d');
     
     if (dPos != std::string::npos) {
-        if (dPos > 0) count = std::stoi(expr.substr(0, dPos));
+        if (dPos > 0) count = safe_stoi(expr.substr(0, dPos), 1);
         size_t plusPos = expr.find('+', dPos);
         size_t minusPos = expr.find('-', dPos);
         
         if (plusPos != std::string::npos) {
-            sides = std::stoi(expr.substr(dPos + 1, plusPos - dPos - 1));
-            modifier = std::stoi(expr.substr(plusPos + 1));
+            sides = safe_stoi(expr.substr(dPos + 1, plusPos - dPos - 1), 6);
+            modifier = safe_stoi(expr.substr(plusPos + 1), 0);
         } else if (minusPos != std::string::npos) {
-            sides = std::stoi(expr.substr(dPos + 1, minusPos - dPos - 1));
-            modifier = -std::stoi(expr.substr(minusPos + 1));
+            sides = safe_stoi(expr.substr(dPos + 1, minusPos - dPos - 1), 6);
+            modifier = -safe_stoi(expr.substr(minusPos + 1), 0);
         } else {
-            sides = std::stoi(expr.substr(dPos + 1));
+            sides = safe_stoi(expr.substr(dPos + 1), 6);
         }
     }
+    
+    if (count < 1) count = 1;
+    if (sides < 1) sides = 6;
     
     static std::mt19937 rng(std::random_device{}());
     std::uniform_int_distribution<int> dist(1, sides);

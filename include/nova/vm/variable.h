@@ -54,8 +54,15 @@ public:
     
     /// @brief 获取所有布尔变量
     std::unordered_map<std::string, bool> getAllBools() const;
+    
+    /// @brief 从存档数据加载变量
+    void loadFrom(
+        const std::unordered_map<std::string, double>& numbers,
+        const std::unordered_map<std::string, std::string>& strings,
+        const std::unordered_map<std::string, bool>& bools
+    );
 
-private:
+ private:
     std::unordered_map<std::string, VarValue> m_variables;
 };
 

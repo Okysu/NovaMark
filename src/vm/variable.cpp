@@ -121,4 +121,21 @@ std::unordered_map<std::string, bool> VariableManager::getAllBools() const {
     return result;
 }
 
+void VariableManager::loadFrom(
+    const std::unordered_map<std::string, double>& numbers,
+    const std::unordered_map<std::string, std::string>& strings,
+    const std::unordered_map<std::string, bool>& bools
+) {
+    m_variables.clear();
+    for (const auto& [name, value] : numbers) {
+        m_variables[name] = value;
+    }
+    for (const auto& [name, value] : strings) {
+        m_variables[name] = value;
+    }
+    for (const auto& [name, value] : bools) {
+        m_variables[name] = value;
+    }
+}
+
 } // namespace nova

@@ -5,11 +5,17 @@
 #include "nova/packer/packer.h"
 #include "nova/packer/nvmp_writer.h"
 #include "nova/vm/vm.h"
+#include "nova/vm/serializer.h"
 #include "nova/ast/ast_node.h"
 #include <iostream>
 #include <fstream>
 #include <filesystem>
 #include <sstream>
+#include <ctime>
+
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 namespace fs = std::filesystem;
 
@@ -17,6 +23,48 @@ namespace nova::cli {
 
 static int build_single_file(const CliConfig& config, const std::string& file);
 static int build_project(const CliConfig& config, const std::string& dir, const GameMetadata& meta);
+
+static void setup_console() {
+#ifdef _WIN32
+    SetConsoleOutputCP(CP_UTF8);
+    SetConsoleCP(CP_UTF8);
+#endif
+}
+
+static std::string save_game(NovaVM& vm, const std::string& sceneName) {
+    fs::create_directories(".novamark/saves");
+    auto gameState = vm.captureState();
+    SaveData save;
+    save.saveId = "save_" + std::to_string(std::time(nullptr));
+    save.label = sceneName;
+    save.timestamp = std::chrono::system_clock::now();
+    save.state = gameState;
+    
+    std::string saveFile = ".novamark/saves/" + save.saveId + ".json";
+    if (GameStateSerializer::saveToFile(saveFile, save)) {
+        return saveFile;
+    }
+    return "";
+}
+
+static bool load_game(NovaVM& vm, const std::string& path,
+    std::optional<std::string>& last_bg,
+    std::optional<std::string>& last_bgm,
+    std::vector<SpriteState>& last_sprites,
+    std::optional<ChoiceState>& last_choice) {
+    
+    SaveData save;
+    if (GameStateSerializer::loadFromFile(path, save)) {
+        if (vm.loadSave(save)) {
+            last_bg.reset();
+            last_bgm.reset();
+            last_sprites.clear();
+            last_choice.reset();
+            return true;
+        }
+    }
+    return false;
+}
 
 void print_help(const char* program_name) {
     std::cout << "NovaMark Compiler v0.1.0\n\n"
@@ -31,6 +79,9 @@ void print_help(const char* program_name) {
               << "  nova-cli build                    Build project (finds project.yaml)\n"
               << "  nova-cli build game.nvm           Build single file\n"
               << "  nova-cli build ./MyProject        Build specific project directory\n\n"
+              << "Runtime controls (in Text Mode):\n"
+              << "  S = Save game, L = Load game, Q = Quit\n\n"
+              << "Save files are stored in .novamark/saves/\n\n"
               << "Options:\n"
               << "  -o, --output <path>          Output file path\n"
               << "  -v, --verbose                Show verbose output\n"
@@ -332,6 +383,8 @@ int build_project(const CliConfig& config, const std::string& dir, const GameMet
 }
 
 int do_run(const CliConfig& config) {
+    setup_console();
+    
     if (config.source_path.empty()) {
         std::cerr << "Error: No package file specified\n";
         return 1;
@@ -351,10 +404,175 @@ int do_run(const CliConfig& config) {
     if (config.verbose) {
         std::cout << "Package: " << config.source_path << "\n";
         std::cout << "Bytecode: " << reader.bytecode().size() << " bytes\n";
-        std::cout << "Assets: " << reader.listAssets().size() << "\n";
+        std::cout << "Assets: " << reader.listAssets().size() << "\n\n";
     }
     
-    std::cout << "Note: VM requires a renderer. Running in headless mode.\n";
+    AstDeserializer deserializer;
+    auto program = deserializer.deserialize(reader.bytecode());
+    if (!program) {
+        std::cerr << "Error: Failed to deserialize bytecode: " << deserializer.errorMessage() << "\n";
+        return 1;
+    }
+    
+    NovaVM vm;
+    vm.load(program.get());
+    
+    std::cout << "=== NovaMark Text Mode ===\n";
+    std::cout << "(S = Save, L = Load, Q = Quit)\n\n";
+
+    std::optional<std::string> last_bg;
+    std::optional<std::string> last_bgm;
+    std::vector<SpriteState> last_sprites;
+    std::optional<ChoiceState> last_choice;
+    
+    std::string input;
+    while (true) {
+        const auto& state = vm.state();
+
+        if (state.bg != last_bg) {
+            last_bg = state.bg;
+            if (state.bg) {
+                std::cout << "[BG: " << *state.bg << "]\n";
+            }
+        }
+
+        if (state.bgm != last_bgm) {
+            last_bgm = state.bgm;
+            if (state.bgm) {
+                std::cout << "[BGM: " << *state.bgm << "]\n";
+            }
+        }
+
+        if (state.sprites != last_sprites) {
+            last_sprites = state.sprites;
+            for (const auto& sprite : state.sprites) {
+                std::cout << "[Sprite: " << sprite.id << " at (" << sprite.x << "," << sprite.y << ")]\n";
+            }
+        }
+        
+        if (state.dialogue) {
+            if (!state.dialogue->speaker.empty()) {
+                std::cout << "\n** " << state.dialogue->speaker << " **\n";
+            }
+            std::cout << state.dialogue->text << "\n\n";
+            vm.consumeDialogue();
+        }
+        
+        if (state.choice && state.choice->isShow) {
+            if (!last_choice.has_value() || *state.choice != *last_choice) {
+                last_choice = state.choice;
+
+            if (!state.choice->question.empty()) {
+                std::cout << state.choice->question << "\n";
+            }
+            for (size_t i = 0; i < state.choice->options.size(); ++i) {
+                const auto& opt = state.choice->options[i];
+                std::cout << "  [" << i << "] " << opt.text;
+                if (opt.disabled) {
+                    std::cout << " (disabled)";
+                }
+                std::cout << "\n";
+            }
+            std::cout << "\n";
+            }
+        }
+        
+        if (state.ending) {
+            std::cout << "\n=== Ending: " << *state.ending << " ===\n";
+            
+            auto playthroughFile = ".novamark/playthrough.json";
+            fs::create_directories(".novamark");
+            GameState ptState;
+            ptState.triggeredEndings = vm.playthrough().endings();
+            ptState.flags = vm.playthrough().flags();
+            std::string ptJson = GameStateSerializer::serialize(ptState);
+            std::ofstream ptOut(playthroughFile);
+            ptOut << ptJson;
+            ptOut.close();
+            std::cout << "(Playthrough data saved)\n";
+            break;
+        }
+        
+        if (state.status == VMStatus::Ended) {
+            std::cout << "\n=== Game Over ===\n";
+            break;
+        }
+        
+        if (state.status == VMStatus::WaitingChoice) {
+            std::cout << "Choose (0-" << state.choice->options.size() - 1 << "): ";
+            std::getline(std::cin, input);
+            
+            if (input == "S" || input == "s") {
+                std::string saveFile = save_game(vm, state.currentScene);
+                if (!saveFile.empty()) {
+                    std::cout << "Game saved to: " << saveFile << "\n\n";
+                } else {
+                    std::cout << "Failed to save game.\n\n";
+                }
+                continue;
+            }
+            
+            if (input == "L" || input == "l") {
+                std::cout << "Enter save file path: ";
+                std::getline(std::cin, input);
+                if (load_game(vm, input, last_bg, last_bgm, last_sprites, last_choice)) {
+                    std::cout << "Game loaded from: " << input << "\n\n";
+                } else {
+                    std::cout << "Failed to load save file.\n\n";
+                }
+                continue;
+            }
+            
+            if (input == "Q" || input == "q") {
+                std::cout << "Quit game.\n";
+                break;
+            }
+            
+            try {
+                int choice = std::stoi(input);
+                if (choice >= 0 && choice < static_cast<int>(state.choice->options.size())) {
+                    vm.selectChoice(choice);
+                    vm.step();
+                }
+            } catch (...) {
+                std::cout << "Invalid input. Enter a number, S to save, L to load, or Q to quit.\n\n";
+            }
+        } else {
+            std::cout << "[Press Enter to continue]";
+            std::getline(std::cin, input);
+            
+            if (input == "S" || input == "s") {
+                std::string saveFile = save_game(vm, vm.currentScene());
+                if (!saveFile.empty()) {
+                    std::cout << "Game saved to: " << saveFile << "\n\n";
+                } else {
+                    std::cout << "Failed to save game.\n\n";
+                }
+                continue;
+            }
+            
+            if (input == "L" || input == "l") {
+                std::cout << "Enter save file path: ";
+                std::getline(std::cin, input);
+                if (load_game(vm, input, last_bg, last_bgm, last_sprites, last_choice)) {
+                    std::cout << "Game loaded from: " << input << "\n\n";
+                } else {
+                    std::cout << "Failed to load save file.\n\n";
+                }
+                continue;
+            }
+            
+            if (input == "Q" || input == "q") {
+                std::cout << "Quit game.\n";
+                break;
+            }
+            
+            vm.step();
+        }
+        
+        std::cout << "\n";
+    }
+    
     return 0;
 }
 

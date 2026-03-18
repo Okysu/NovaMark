@@ -282,6 +282,46 @@ TEST_F(VMTest, VMSelectChoice) {
     EXPECT_EQ(vm.state().dialogue->text, "Chose A");
 }
 
+TEST_F(VMTest, VMJumpToLabelAcceptsDotPrefix) {
+    auto result = parse(
+        "#scene_start \"Start\"\n"
+        ".a\n"
+        "> Hit\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+
+    NovaVM vm;
+    vm.load(result.unwrap());
+
+    ASSERT_TRUE(vm.jumpToLabel(".a"));
+    vm.step();
+    EXPECT_TRUE(vm.state().dialogue.has_value());
+    EXPECT_EQ(vm.state().dialogue->text, "Hit");
+}
+
+TEST_F(VMTest, VMContinuesToNextSceneInOrder) {
+    auto result = parse(
+        "#scene_a \"A\"\n"
+        "> In A\n"
+        "#scene_b \"B\"\n"
+        "> In B\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+
+    NovaVM vm;
+    vm.load(result.unwrap());
+
+    vm.step();
+    EXPECT_EQ(vm.state().currentScene, "scene_a");
+    EXPECT_TRUE(vm.state().dialogue.has_value());
+    EXPECT_EQ(vm.state().dialogue->text, "In A");
+
+    vm.step();
+    EXPECT_EQ(vm.state().currentScene, "scene_b");
+    EXPECT_TRUE(vm.state().dialogue.has_value());
+    EXPECT_EQ(vm.state().dialogue->text, "In B");
+}
+
 TEST_F(VMTest, VMExecuteBranchTrue) {
     auto result = parse(
         "@var flag = true\n"
@@ -609,4 +649,439 @@ TEST_F(VMTest, NvmpWriteAndReadFile) {
     EXPECT_EQ(readBytecode.size(), bytecode.size());
     
     std::remove(filepath.c_str());
+}
+
+// ============================================
+// VM State Transition Tests
+// ============================================
+
+TEST_F(VMTest, VMStatusTransitions) {
+    auto result = parse(
+        "#scene_start \"Start\"\n"
+        "> First\n"
+        "> Second\n"
+        "@ending test_end\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+    
+    NovaVM vm;
+    EXPECT_EQ(vm.state().status, VMStatus::Running);
+    
+    vm.load(result.unwrap());
+    EXPECT_EQ(vm.state().status, VMStatus::Running);
+    
+    vm.step();
+    EXPECT_EQ(vm.state().status, VMStatus::Running);
+    EXPECT_TRUE(vm.state().dialogue.has_value());
+    EXPECT_EQ(vm.state().dialogue->text, "First");
+    
+    vm.step();
+    EXPECT_EQ(vm.state().status, VMStatus::Running);
+    EXPECT_EQ(vm.state().dialogue->text, "Second");
+    
+    vm.step();
+    EXPECT_EQ(vm.state().status, VMStatus::Ended);
+    EXPECT_TRUE(vm.state().ending.has_value());
+    EXPECT_EQ(*vm.state().ending, "test_end");
+}
+
+TEST_F(VMTest, VMWaitingChoiceTransition) {
+    auto result = parse(
+        "#scene_start \"Start\"\n"
+        "? Choose:\n"
+        "- [A] -> .a\n"
+        ".a\n"
+        "> Done\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+    
+    NovaVM vm;
+    vm.load(result.unwrap());
+    
+    vm.step();
+    EXPECT_EQ(vm.state().status, VMStatus::WaitingChoice);
+    EXPECT_TRUE(vm.state().choice.has_value());
+    EXPECT_EQ(vm.state().choice->options.size(), 1);
+    
+    vm.selectChoice(0);
+    vm.step();
+    EXPECT_EQ(vm.state().status, VMStatus::Running);
+}
+
+TEST_F(VMTest, VMReset) {
+    auto result = parse(
+        "#scene_start \"Start\"\n"
+        "> Text\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+    
+    NovaVM vm;
+    vm.load(result.unwrap());
+    vm.step();
+    
+    EXPECT_TRUE(vm.state().dialogue.has_value());
+    
+    vm.reset();
+    EXPECT_EQ(vm.state().status, VMStatus::Running);
+    EXPECT_FALSE(vm.state().dialogue.has_value());
+    EXPECT_TRUE(vm.currentScene().empty());
+}
+
+// ============================================
+// Save/Load Flow Tests
+// ============================================
+
+TEST_F(VMTest, VMCaptureState) {
+    auto result = parse(
+        "@var hp = 100\n"
+        "@var name = \"Hero\"\n"
+        "@give sword 1\n"
+        "#scene_forest \"Forest\"\n"
+        ".camp\n"
+        "> At camp\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+    
+    NovaVM vm;
+    vm.load(result.unwrap());
+    vm.run();
+    
+    auto state = vm.captureState();
+    EXPECT_EQ(state.currentScene, "scene_forest");
+    EXPECT_DOUBLE_EQ(state.numberVariables["hp"], 100.0);
+    EXPECT_EQ(state.stringVariables["name"], "Hero");
+    EXPECT_EQ(state.inventory["sword"], 1);
+}
+
+TEST_F(VMTest, VMLoadSaveRestoresState) {
+    auto result = parse(
+        "@var hp = 100\n"
+        "@var gold = 50\n"
+        "@give key 1\n"
+        "#scene_dungeon \"Dungeon\"\n"
+        ".entrance\n"
+        "> Entrance\n"
+        ".hall\n"
+        "> Hall\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+    
+    NovaVM vm;
+    vm.load(result.unwrap());
+    vm.run();
+    
+    EXPECT_EQ(vm.currentScene(), "scene_dungeon");
+    
+    vm.jumpToLabel("hall");
+    vm.step();
+    
+    auto savedState = vm.captureState();
+    EXPECT_EQ(savedState.currentScene, "scene_dungeon");
+    
+    NovaVM vm2;
+    vm2.load(result.unwrap());
+    EXPECT_TRUE(vm2.loadSave(savedState));
+    EXPECT_EQ(vm2.currentScene(), "scene_dungeon");
+    EXPECT_DOUBLE_EQ(vm2.variables().asNumber("hp"), 100.0);
+    EXPECT_DOUBLE_EQ(vm2.variables().asNumber("gold"), 50.0);
+    EXPECT_EQ(vm2.inventory().count("key"), 1);
+}
+
+TEST_F(VMTest, VMLoadSaveWithEndingsAndFlags) {
+    auto result = parse(
+        "#scene_start \"Start\"\n"
+        "> Text\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+    
+    NovaVM vm;
+    vm.load(result.unwrap());
+    vm.step();
+    
+    vm.playthrough().triggerEnding("good_ending");
+    vm.playthrough().setFlag("met_king");
+    
+    auto savedState = vm.captureState();
+    EXPECT_TRUE(savedState.triggeredEndings.count("good_ending"));
+    EXPECT_TRUE(savedState.flags.count("met_king"));
+    
+    NovaVM vm2;
+    vm2.load(result.unwrap());
+    vm2.step();
+    EXPECT_TRUE(vm2.loadSave(savedState));
+    EXPECT_TRUE(vm2.playthrough().hasEnding("good_ending"));
+    EXPECT_TRUE(vm2.playthrough().hasFlag("met_king"));
+}
+
+// ============================================
+// Edge Case Tests
+// ============================================
+
+TEST_F(VMTest, VMDivisionByZero) {
+    auto result = parse(
+        "@var x = 10\n"
+        "@var zero = 0\n"
+        "@var result = x / zero\n"
+        "#scene_start \"Start\"\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+    
+    NovaVM vm;
+    vm.load(result.unwrap());
+    vm.run();
+    
+    EXPECT_DOUBLE_EQ(vm.variables().asNumber("result"), 0.0);
+}
+
+TEST_F(VMTest, VMModuloByZero) {
+    auto result = parse(
+        "@var x = 10\n"
+        "@var zero = 0\n"
+        "@var result = x % zero\n"
+        "#scene_start \"Start\"\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+    
+    NovaVM vm;
+    vm.load(result.unwrap());
+    vm.run();
+    
+    EXPECT_DOUBLE_EQ(vm.variables().asNumber("result"), 0.0);
+}
+
+TEST_F(VMTest, VMInvalidDiceExpression) {
+    auto result = parse(
+        "@var r1 = roll(\"invalid\")\n"
+        "@var r2 = roll(\"0d6\")\n"
+        "@var r3 = roll(\"1d0\")\n"
+        "#scene_start \"Start\"\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+    
+    NovaVM vm;
+    vm.load(result.unwrap());
+    vm.run();
+    
+    EXPECT_NO_THROW(vm.variables().asNumber("r1"));
+    EXPECT_NO_THROW(vm.variables().asNumber("r2"));
+    EXPECT_NO_THROW(vm.variables().asNumber("r3"));
+}
+
+TEST_F(VMTest, VMSelectChoiceInvalidIndex) {
+    auto result = parse(
+        "#scene_start \"Start\"\n"
+        "? Choose:\n"
+        "- [A] -> .a\n"
+        ".a\n"
+        "> Done\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+    
+    NovaVM vm;
+    vm.load(result.unwrap());
+    vm.step();
+    
+    EXPECT_EQ(vm.state().status, VMStatus::WaitingChoice);
+    
+    vm.selectChoice(-1);
+    EXPECT_EQ(vm.state().status, VMStatus::WaitingChoice);
+    
+    vm.selectChoice(999);
+    EXPECT_EQ(vm.state().status, VMStatus::WaitingChoice);
+    
+    vm.selectChoice(0);
+    EXPECT_EQ(vm.state().status, VMStatus::Running);
+}
+
+TEST_F(VMTest, VMJumpToInvalidLabel) {
+    auto result = parse(
+        "#scene_start \"Start\"\n"
+        "> Start\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+    
+    NovaVM vm;
+    vm.load(result.unwrap());
+    vm.step();
+    
+    EXPECT_FALSE(vm.jumpToLabel("nonexistent"));
+    EXPECT_EQ(vm.currentScene(), "scene_start");
+}
+
+TEST_F(VMTest, VMJumpToInvalidScene) {
+    auto result = parse(
+        "#scene_start \"Start\"\n"
+        "> Start\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+    
+    NovaVM vm;
+    vm.load(result.unwrap());
+    vm.step();
+    
+    EXPECT_FALSE(vm.jumpToScene("nonexistent_scene"));
+    EXPECT_EQ(vm.currentScene(), "scene_start");
+}
+
+// ============================================
+// Multi-Scene Flow Tests
+// ============================================
+
+TEST_F(VMTest, VMMultiSceneWithLabels) {
+    auto result = parse(
+        "#scene_intro \"Intro\"\n"
+        "> Welcome\n"
+        ".menu\n"
+        "? What to do?\n"
+        "- [Go to forest] -> scene_forest\n"
+        "- [Stay] -> .stay\n"
+        ".stay\n"
+        "> You stayed.\n"
+        "#scene_forest \"Forest\"\n"
+        "> In the forest.\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+    
+    NovaVM vm;
+    vm.load(result.unwrap());
+    
+    vm.step();
+    EXPECT_EQ(vm.currentScene(), "scene_intro");
+    EXPECT_EQ(vm.state().dialogue->text, "Welcome");
+    vm.consumeDialogue();
+    
+    vm.step();
+    EXPECT_EQ(vm.state().status, VMStatus::WaitingChoice);
+    
+    vm.selectChoice(0);
+    vm.step();
+    EXPECT_EQ(vm.currentScene(), "scene_forest");
+    EXPECT_EQ(vm.state().dialogue->text, "In the forest.");
+}
+
+TEST_F(VMTest, VMSceneAutoContinue) {
+    auto result = parse(
+        "#scene_a \"A\"\n"
+        "> Scene A\n"
+        "#scene_b \"B\"\n"
+        "> Scene B\n"
+        "#scene_c \"C\"\n"
+        "> Scene C\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+    
+    NovaVM vm;
+    vm.load(result.unwrap());
+    
+    vm.step();
+    EXPECT_EQ(vm.currentScene(), "scene_a");
+    
+    vm.step();
+    EXPECT_EQ(vm.currentScene(), "scene_b");
+    
+    vm.step();
+    EXPECT_EQ(vm.currentScene(), "scene_c");
+    
+    vm.step();
+    EXPECT_EQ(vm.state().status, VMStatus::Ended);
+}
+
+TEST_F(VMTest, VMCallAndReturn) {
+    auto result = parse(
+        "#scene_main \"Main\"\n"
+        "> Starting\n"
+        "@call scene_shop\n"
+        "> Back to main\n"
+        "#scene_shop \"Shop\"\n"
+        "> In shop\n"
+        "@return\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+    
+    NovaVM vm;
+    vm.load(result.unwrap());
+    
+    vm.step();
+    EXPECT_EQ(vm.currentScene(), "scene_main");
+    EXPECT_EQ(vm.state().dialogue->text, "Starting");
+    vm.consumeDialogue();
+    
+    vm.step();
+    EXPECT_EQ(vm.currentScene(), "scene_shop");
+    
+    vm.step();
+    EXPECT_EQ(vm.state().dialogue->text, "In shop");
+    vm.consumeDialogue();
+    
+    vm.step();
+    EXPECT_EQ(vm.currentScene(), "scene_main");
+    
+    vm.step();
+    EXPECT_EQ(vm.state().dialogue->text, "Back to main");
+}
+
+// ============================================
+// Expression Evaluation Tests
+// ============================================
+
+TEST_F(VMTest, VMExpressionEvaluation) {
+    auto result = parse(
+        "@var a = 10\n"
+        "@var b = 3\n"
+        "@var sum = a + b\n"
+        "@var diff = a - b\n"
+        "@var prod = a * b\n"
+        "@var quot = a / b\n"
+        "@var mod = a % b\n"
+        "#scene_start \"Start\"\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+    
+    NovaVM vm;
+    vm.load(result.unwrap());
+    vm.run();
+    
+    EXPECT_DOUBLE_EQ(vm.variables().asNumber("sum"), 13.0);
+    EXPECT_DOUBLE_EQ(vm.variables().asNumber("diff"), 7.0);
+    EXPECT_DOUBLE_EQ(vm.variables().asNumber("prod"), 30.0);
+    EXPECT_NEAR(vm.variables().asNumber("quot"), 3.333, 0.01);
+    EXPECT_DOUBLE_EQ(vm.variables().asNumber("mod"), 1.0);
+}
+
+TEST_F(VMTest, VMComparisonExpressions) {
+    auto result = parse(
+        "@var a = 10\n"
+        "@var b = 5\n"
+        "@var gt = a >= b\n"
+        "@var lt = b < a\n"
+        "@var eq = a == 10\n"
+        "@var neq = a != b\n"
+        "#scene_start \"Start\"\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+    
+    NovaVM vm;
+    vm.load(result.unwrap());
+    vm.run();
+    
+    EXPECT_TRUE(vm.variables().asBool("gt"));
+    EXPECT_TRUE(vm.variables().asBool("lt"));
+    EXPECT_TRUE(vm.variables().asBool("eq"));
+    EXPECT_TRUE(vm.variables().asBool("neq"));
+}
+
+TEST_F(VMTest, VMLogicalExpressions) {
+    auto result = parse(
+        "@var a = true\n"
+        "@var b = false\n"
+        "@var not_result = not b\n"
+        "#scene_start \"Start\"\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+    
+    NovaVM vm;
+    vm.load(result.unwrap());
+    vm.run();
+    
+    EXPECT_TRUE(vm.variables().asBool("not_result"));
 }

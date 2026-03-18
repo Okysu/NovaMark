@@ -38,8 +38,11 @@ public:
     
     /// @brief 获取所有物品（用于序列化）
     std::unordered_map<std::string, int> getAllItems() const { return m_items; }
+    
+    /// @brief 从存档数据加载背包
+    void loadFrom(const std::unordered_map<std::string, int>& items) { m_items = items; }
 
-private:
+ private:
     std::unordered_map<std::string, int> m_items;
 };
 

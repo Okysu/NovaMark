@@ -26,6 +26,7 @@ enum class NodeType {
     Narrator,           // 旁白语句
     InterpolatedText,   // 带插值/样式的文本
     Choice,             // 选择分支
+    ChoiceOption,       // 选择选项
     Branch,             // if/else 分支
     Jump,               // -> 跳转
     Call,               // @call 调用
@@ -247,7 +248,7 @@ public:
         : AstNode(std::move(loc)), m_text(std::move(text)), 
           m_target(std::move(target)), m_condition(std::move(condition)) {}
     
-    NodeType type() const override { return NodeType::Branch; }
+    NodeType type() const override { return NodeType::ChoiceOption; }
     
     const std::string& text() const { return m_text; }
     const std::string& target() const { return m_target; }

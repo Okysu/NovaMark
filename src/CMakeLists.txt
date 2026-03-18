@@ -21,5 +21,8 @@ add_subdirectory(vm)
 # 打包工具
 add_subdirectory(packer)
 
+# 渲染器接口
+add_subdirectory(renderer)
+
 # CLI 工具
 add_subdirectory(cli)
