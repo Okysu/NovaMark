@@ -19,12 +19,14 @@ struct SpriteState {
     std::string url;
     double x = 0.0;
     double y = 0.0;
+    std::string position;
     double opacity = 1.0;
     int zIndex = 0;
     std::optional<std::string> animation;
 
     bool operator==(const SpriteState& other) const {
         return id == other.id && url == other.url && x == other.x && y == other.y &&
+               position == other.position &&
                opacity == other.opacity && zIndex == other.zIndex && animation == other.animation;
     }
 };

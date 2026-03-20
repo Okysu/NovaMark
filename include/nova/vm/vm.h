@@ -25,12 +25,14 @@ struct CharacterDefinition {
     std::string id;
     std::string color;
     std::string description;
+    std::unordered_map<std::string, std::string> sprites;
 };
 
 struct ItemDefinition {
     std::string id;
     std::string name;
     std::string description;
+    std::string icon;
 };
 
 /// @brief NovaMark 虚拟机
@@ -186,6 +188,7 @@ private:
     double evaluateAsNumber(const AstNode* expr);
     std::string evaluateAsString(const AstNode* expr);
     VarValue evaluateFunctionCall(const CallExprNode* call);
+    std::string resolveCharacterSprite(const std::string& speaker, const std::string& emotion) const;
     double evaluateDiceRoll(const std::string& expr);
     void markRuntimeStateChanged(int flags);
 };

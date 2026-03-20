@@ -213,6 +213,29 @@ TEST_F(SemanticTest, RollFunction) {
     EXPECT_TRUE(result.success);
 }
 
+TEST_F(SemanticTest, RollFunctionRejectsNonStringArgument) {
+    auto result = analyze(
+        "@var damage = roll(2)\n"
+    );
+    EXPECT_FALSE(result.success);
+}
+
+TEST_F(SemanticTest, RandomAndChanceFunctions) {
+    auto result = analyze(
+        "@var hp = 10\n"
+        "@var x = random(1, hp)\n"
+        "@var lucky = chance(0.5)\n"
+    );
+    EXPECT_TRUE(result.success);
+}
+
+TEST_F(SemanticTest, HasItemRejectsNumericArgument) {
+    auto result = analyze(
+        "@var ok = has_item(123)\n"
+    );
+    EXPECT_FALSE(result.success);
+}
+
 TEST_F(SemanticTest, UnknownFunction) {
     auto result = analyze(
         "@var x = unknown_func()\n"
@@ -237,20 +260,24 @@ TEST_F(SemanticTest, CheckCommand) {
     auto result = analyze(
         "#scene_test \"Test\"\n"
         "@check roll(\"1d20\") >= 15\n"
-        "success\n"
+        "@success\n"
         "  > Success!\n"
-        "fail\n"
+        "@fail\n"
         "  > Failure!\n"
-        "endcheck\n"
+        "@endcheck\n"
     );
-    EXPECT_TRUE(result.success);
+    for (const auto& diag : result.diagnostics.diagnostics()) {
+        ADD_FAILURE() << diag.to_string();
+    }
+    EXPECT_TRUE(result.success) << result.diagnostics.to_string();
+    EXPECT_EQ(result.diagnostics.error_count(), 0u);
 }
 
 TEST_F(SemanticTest, CheckWithMissingBranches) {
     auto result = analyze(
         "#scene_test \"Test\"\n"
         "@check roll(\"1d20\") >= 15\n"
-        "endcheck\n"
+        "@endcheck\n"
     );
     EXPECT_TRUE(result.success);
     EXPECT_EQ(result.diagnostics.warning_count(), 2u);

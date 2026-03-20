@@ -31,6 +31,7 @@ Define a character in the game.
   color: #RRGGBB
   description: Character description
   sprite_default: default_sprite.png
+  sprite_happy: happy_sprite.png
 @end
 ```
 
@@ -40,6 +41,7 @@ Define a character in the game.
 | `color` | Color | Character name color in dialogue box |
 | `description` | String | Character description |
 | `sprite_default` | Filename | Default sprite file |
+| `sprite_*` | Filename | Emotion sprite convention such as `sprite_happy` |
 
 ---
 
@@ -51,7 +53,7 @@ Define an item in the game.
 @item item_id
   name: Display Name
   description: Item description
-  rarity: rarity_level
+  icon: icon_file.png
 @end
 ```
 
@@ -60,7 +62,7 @@ Define an item in the game.
 |----------|------|-------------|
 | `name` | String | Item display name |
 | `description` | String | Item description |
-| `rarity` | String | Rarity level (common/rare/legendary) |
+| `icon` | Filename | Item icon file |
 
 ---
 
@@ -164,24 +166,23 @@ Display or switch background image.
 
 ```nvm
 @bg image.png
-@bg image.png transition:fade duration:1
+@bg image.png transition:fade
 ```
 
 **Parameters**:
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `transition` | String | Transition effect (fade/slide/none) |
-| `duration` | Number | Transition time (seconds) |
 
 ---
 
 ### @sprite - Sprite/Portrait
 
-Display, move, or hide character sprites.
+Display or switch character sprites.
 
 ```nvm
-@sprite CharacterName show url:sprite.png x:400 y:500
-@sprite CharacterName move x:300 duration:0.5
+@sprite CharacterName show url:sprite.png position:left
+@sprite CharacterName show url:sprite.png x:70% y:100px
 @sprite CharacterName hide
 ```
 
@@ -190,12 +191,11 @@ Display, move, or hide character sprites.
 |-----------|------|-------------|
 | `show` | - | Show sprite |
 | `hide` | - | Hide sprite |
-| `move` | - | Move sprite |
 | `url` | Filename | Sprite image |
-| `x` | Number | X coordinate |
-| `y` | Number | Y coordinate |
+| `position` | String | Recommended `left` / `right`, passed through as-is |
+| `x` | String/Number | Interpreted by each platform |
+| `y` | String/Number | Interpreted by each platform |
 | `opacity` | Number | Opacity (0-1) |
-| `duration` | Number | Animation time (seconds) |
 
 ---
 
@@ -277,36 +277,36 @@ Execute different branches based on condition.
 
 ```nvm
 @check condition_expression
-success
+@success
   // Execute on success
-fail
+@fail
   // Execute on failure
-endcheck
+@endcheck
 ```
 
 **Examples**:
 ```nvm
 @check roll("2d6") >= 8
-success
+@success
   林晓: Success!
-fail
+@fail
   林晓: Failed...
-endcheck
+@endcheck
 
 @check has_item("key")
-success
+@success
   > You opened the chest.
-fail
+@fail
   > No key.
-endcheck
+@endcheck
 
 @check hp >= 50
-success
+@success
   林晓: I can keep going!
-fail
+@fail
   林晓: I need to rest...
   @set hp = 50
-endcheck
+@endcheck
 ```
 
 ---

@@ -502,6 +502,140 @@ TEST_F(VMTest, VMFunctionItemCountWithStringLiteral) {
     EXPECT_DOUBLE_EQ(vm.variables().asNumber("stone_count"), 2.0);
 }
 
+TEST_F(VMTest, VMFunctionHasFlag) {
+    auto result = parse(
+        "#scene_start \"Start\"\n"
+        "@flag met_spirit\n"
+        "@var met = has_flag(\"met_spirit\")\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+
+    NovaVM vm;
+    vm.load(result.unwrap());
+    vm.run();
+
+    EXPECT_TRUE(vm.variables().asBool("met"));
+}
+
+TEST_F(VMTest, VMFunctionHasEnding) {
+    auto result = parse(
+        "#scene_start \"Start\"\n"
+        "@ending good_end\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+
+    NovaVM vm;
+    vm.load(result.unwrap());
+    vm.run();
+
+    EXPECT_TRUE(vm.playthrough().hasEnding("good_end"));
+}
+
+TEST_F(VMTest, VMFunctionRandomRange) {
+    auto result = parse(
+        "@var hp = 10\n"
+        "@var r = random(1, hp)\n"
+        "#scene_start \"Start\"\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+
+    NovaVM vm;
+    vm.load(result.unwrap());
+    vm.run();
+
+    double value = vm.variables().asNumber("r");
+    EXPECT_GE(value, 1.0);
+    EXPECT_LE(value, 10.0);
+}
+
+TEST_F(VMTest, VMFunctionChanceReturnsBool) {
+    auto result = parse(
+        "@var lucky = chance(0.5)\n"
+        "#scene_start \"Start\"\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+
+    NovaVM vm;
+    vm.load(result.unwrap());
+    vm.run();
+
+    EXPECT_TRUE(vm.variables().exists("lucky"));
+}
+
+TEST_F(VMTest, VMLogicalAndOrExpressions) {
+    auto result = parse(
+        "@var hp = 80\n"
+        "@var agi = 12\n"
+        "@var luck = 1\n"
+        "@var ok = hp >= 50 and (agi > 10 or luck > 5)\n"
+        "#scene_start \"Start\"\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+
+    NovaVM vm;
+    vm.load(result.unwrap());
+    vm.run();
+
+    EXPECT_TRUE(vm.variables().asBool("ok"));
+}
+
+TEST_F(VMTest, VMDialogueUsesSpriteDefaultAndEmotionSprite) {
+    auto result = parse(
+        "@char 林晓\n"
+        "  sprite_default: linxiao_default.png\n"
+        "  sprite_happy: linxiao_happy.png\n"
+        "@end\n"
+        "#scene_start \"Start\"\n"
+        "林晓: 你好\n"
+        "林晓[happy]: 太好了\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+
+    NovaVM vm;
+    vm.load(result.unwrap());
+    vm.step();
+    ASSERT_FALSE(vm.state().sprites.empty());
+    EXPECT_EQ(vm.state().sprites.front().url, "linxiao_default.png");
+
+    vm.consumeDialogue();
+    vm.step();
+    ASSERT_FALSE(vm.state().sprites.empty());
+    EXPECT_EQ(vm.state().sprites.front().url, "linxiao_happy.png");
+}
+
+TEST_F(VMTest, VMItemDefinitionRegistryIncludesIcon) {
+    auto result = parse(
+        "@item potion\n"
+        "  name: \"治疗药水\"\n"
+        "  icon: potion.png\n"
+        "@end\n"
+        "#scene_start \"Start\"\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+
+    NovaVM vm;
+    vm.load(result.unwrap());
+
+    auto it = vm.itemDefinitions().find("potion");
+    ASSERT_NE(it, vm.itemDefinitions().end());
+    EXPECT_EQ(it->second.icon, "potion.png");
+}
+
+TEST_F(VMTest, VMSpritePositionStringPassThrough) {
+    auto result = parse(
+        "#scene_start \"Start\"\n"
+        "@sprite 林晓 url:linxiao.png position:left\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+
+    NovaVM vm;
+    vm.load(result.unwrap());
+    vm.run();
+
+    ASSERT_FALSE(vm.state().sprites.empty());
+    EXPECT_EQ(vm.state().sprites.front().position, "left");
+}
+
 // ============================================
 // Serializer Tests
 // ============================================

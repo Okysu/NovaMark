@@ -30,7 +30,7 @@ color: \#55AAFF
 
 name: "金币"
 
-desc: "地下城通用的货币，闪闪发光。"
+description: "地下城通用的货币，闪闪发光。"
 
 @end
 
@@ -38,7 +38,7 @@ desc: "地下城通用的货币，闪闪发光。"
 
 name: "生锈的开锁工具"
 
-desc: "一根生锈的铁丝，很容易折断。"
+description: "一根生锈的铁丝，很容易折断。"
 
 @end
 
@@ -98,20 +98,20 @@ if has\_item(lockpick)
 
 @wait 1.5s  
 @check roll("1d20") \+ str \>= 18  
-  成功:  
-    \> {big:咔哒！} {波浪:锁开了！}  
-    \> 你在里面发现了一大袋金币！  
-    @give gold\_coin 50  
-    @take lockpick 1  
-    \> {黄:\[系统\]} 获得 金币 x50，失去 开锁工具 x1。  
-    @flag chest\_resolved  
-  失败:  
-    \> 咔嚓一声，开锁工具承受不住你的力量，断在了锁芯里。  
-    @take lockpick 1  
-    \> {红:\[系统\]} 失去 开锁工具 x1。  
-    \> 看来这箱子彻底打不开了。  
-    @flag chest\_resolved  
-@end\_check
+@success  
+  \> {big:咔哒！} {波浪:锁开了！}  
+  \> 你在里面发现了一大袋金币！  
+  @give gold\_coin 50  
+  @take lockpick 1  
+  \> {黄:\[系统\]} 获得 金币 x50，失去 开锁工具 x1。  
+  @flag chest\_resolved  
+@fail  
+  \> 咔嚓一声，开锁工具承受不住你的力量，断在了锁芯里。  
+  @take lockpick 1  
+  \> {红:\[系统\]} 失去 开锁工具 x1。  
+  \> 看来这箱子彻底打不开了。  
+  @flag chest\_resolved  
+@endcheck
 
 else
 

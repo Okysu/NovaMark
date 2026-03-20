@@ -173,10 +173,9 @@ Result<AstPtr> Parser::parse_statement() {
 Result<AstPtr> Parser::parse_narrator() {
     SourceLocation loc = current().location;
     advance();  // consume '>'
-    
-    if (check(TokenType::Text)) {
-        std::string text = current().value;
-        advance();
+
+    std::string text = parse_property_value();
+    if (!text.empty()) {
         if (check(TokenType::Newline)) advance();
         return Ok(AstPtr(new NarratorNode(loc, std::move(text))));
     }
@@ -209,12 +208,8 @@ Result<AstPtr> Parser::parse_dialogue() {
     if (!match(TokenType::Colon)) {
         return make_error<AstPtr>(ErrorKind::ExpectedToken, "expected ':' after speaker name");
     }
-    
-    std::string text;
-    if (check(TokenType::Text)) {
-        text = current().value;
-        advance();
-    }
+
+    std::string text = parse_property_value();
     
     if (check(TokenType::Newline)) advance();
     
@@ -459,7 +454,43 @@ Result<AstPtr> Parser::parse_var_def() {
 }
 
 Result<AstPtr> Parser::parse_expression() {
-    return parse_comparison();
+    return parse_or();
+}
+
+Result<AstPtr> Parser::parse_or() {
+    auto left = parse_and();
+    if (left.is_err()) return left;
+
+    while (check(TokenType::KwOr)) {
+        std::string op = current().value.empty() ? "or" : current().value;
+        advance();
+        auto right = parse_and();
+        if (right.is_err()) return right;
+        auto loc = left.unwrap()->location();
+        auto left_expr = std::move(left.unwrap());
+        auto right_expr = std::move(right.unwrap());
+        left = Ok(AstPtr(new BinaryExprNode(loc, std::move(op), std::move(left_expr), std::move(right_expr))));
+    }
+
+    return left;
+}
+
+Result<AstPtr> Parser::parse_and() {
+    auto left = parse_comparison();
+    if (left.is_err()) return left;
+
+    while (check(TokenType::KwAnd)) {
+        std::string op = current().value.empty() ? "and" : current().value;
+        advance();
+        auto right = parse_comparison();
+        if (right.is_err()) return right;
+        auto loc = left.unwrap()->location();
+        auto left_expr = std::move(left.unwrap());
+        auto right_expr = std::move(right.unwrap());
+        left = Ok(AstPtr(new BinaryExprNode(loc, std::move(op), std::move(left_expr), std::move(right_expr))));
+    }
+
+    return left;
 }
 
 Result<AstPtr> Parser::parse_comparison() {
@@ -727,21 +758,69 @@ Result<AstPtr> Parser::parse_item_def() {
 
 std::string Parser::parse_property_value() {
     std::string value;
+
+    while (!at_end() && !check(TokenType::Newline)) {
+        std::string piece;
+
+        if (check(TokenType::Hash)) {
+            piece = "#";
+            advance();
+        } else if (check(TokenType::StringLiteral) || check(TokenType::NumberLiteral) ||
+                   check(TokenType::Identifier) || check(TokenType::Text) ||
+                   check(TokenType::KwTrue) || check(TokenType::KwFalse)) {
+            piece = current().value;
+            advance();
+        } else if (check(TokenType::Dot) || check(TokenType::Colon) || check(TokenType::Minus) ||
+                   check(TokenType::Plus) || check(TokenType::Slash) || check(TokenType::Percent) ||
+                   check(TokenType::LeftParen) || check(TokenType::RightParen) || check(TokenType::Comma) ||
+                   check(TokenType::Less) || check(TokenType::LessEqual) || check(TokenType::Greater) ||
+                   check(TokenType::GreaterEqual) || check(TokenType::EqualEqual) || check(TokenType::BangEqual) ||
+                   check(TokenType::Equals) || check(TokenType::LeftBracket) || check(TokenType::RightBracket)) {
+            piece = current().value;
+            advance();
+        } else {
+            break;
+        }
+
+        if (!value.empty()) {
+            const bool no_space_before = piece == "." || piece == "," || piece == ")" || piece == "]" ||
+                                         piece == ":" || piece == "%" || piece == "/" || piece == "!" ||
+                                         piece == "?" || piece == ";";
+            const bool no_space_after_prev = value.back() == '(' || value.back() == '[' || value.back() == '#' ||
+                                             value.back() == '.' || value.back() == '-' || value.back() == '/' ||
+                                             value.back() == ':';
+            if (!no_space_before && !no_space_after_prev) {
+                value += " ";
+            }
+        }
+
+        value += piece;
+    }
     
-    if (check(TokenType::StringLiteral)) {
-        value = current().value;
-        advance();
-    } else if (check(TokenType::NumberLiteral)) {
-        value = current().value;
-        advance();
-    } else if (check(TokenType::Text)) {
-        value = current().value;
-        advance();
-    } else if (check(TokenType::Identifier)) {
+    return value;
+}
+
+std::string Parser::parse_inline_value() {
+    std::string value;
+
+    if (check(TokenType::StringLiteral) || check(TokenType::NumberLiteral) ||
+        check(TokenType::Identifier) || check(TokenType::Text) ||
+        check(TokenType::KwTrue) || check(TokenType::KwFalse)) {
         value = current().value;
         advance();
     }
-    
+
+    while (check(TokenType::Dot)) {
+        advance();
+        value += ".";
+        if (check(TokenType::Identifier) || check(TokenType::StringLiteral) || check(TokenType::Text) || check(TokenType::NumberLiteral)) {
+            value += current().value;
+            advance();
+        } else {
+            break;
+        }
+    }
+
     return value;
 }
 
@@ -765,12 +844,14 @@ Result<AstPtr> Parser::parse_bg_command() {
     
     auto cmd = std::make_unique<BgCommandNode>(loc, std::move(image));
     
-    while (check(TokenType::Identifier)) {
+    while (check(TokenType::Identifier) || check(TokenType::KwTrue) || check(TokenType::KwFalse)) {
         std::string key = current().value;
         advance();
         if (match(TokenType::Colon)) {
-            std::string value = parse_property_value();
+            std::string value = parse_inline_value();
             cmd->add_arg(std::move(key), std::move(value));
+        } else {
+            cmd->add_arg(std::move(key), "true");
         }
     }
     
@@ -790,12 +871,14 @@ Result<AstPtr> Parser::parse_sprite_command() {
     
     auto cmd = std::make_unique<SpriteCommandNode>(loc, std::move(name));
     
-    while (check(TokenType::Identifier)) {
+    while (check(TokenType::Identifier) || check(TokenType::KwTrue) || check(TokenType::KwFalse)) {
         std::string key = current().value;
         advance();
         if (match(TokenType::Colon)) {
-            std::string value = parse_property_value();
+            std::string value = parse_inline_value();
             cmd->add_arg(std::move(key), std::move(value));
+        } else {
+            cmd->add_arg(std::move(key), "true");
         }
     }
     
@@ -824,11 +907,11 @@ Result<AstPtr> Parser::parse_bgm_command() {
     
     auto cmd = std::make_unique<BgmCommandNode>(loc, std::move(file));
     
-    while (check(TokenType::Identifier)) {
+    while (check(TokenType::Identifier) || check(TokenType::KwTrue) || check(TokenType::KwFalse)) {
         std::string key = current().value;
         advance();
         if (match(TokenType::Colon)) {
-            std::string value = parse_property_value();
+            std::string value = parse_inline_value();
             cmd->add_arg(std::move(key), std::move(value));
         }
     }
@@ -858,11 +941,11 @@ Result<AstPtr> Parser::parse_sfx_command() {
     
     auto cmd = std::make_unique<SfxCommandNode>(loc, std::move(file));
     
-    while (check(TokenType::Identifier)) {
+    while (check(TokenType::Identifier) || check(TokenType::KwTrue) || check(TokenType::KwFalse)) {
         std::string key = current().value;
         advance();
         if (match(TokenType::Colon)) {
-            std::string value = parse_property_value();
+            std::string value = parse_inline_value();
             cmd->add_arg(std::move(key), std::move(value));
         }
     }
@@ -1026,44 +1109,68 @@ Result<AstPtr> Parser::parse_check_command() {
     
     if (check(TokenType::Newline)) advance();
     
-    while (!at_end() && !check(TokenType::KwEndcheck)) {
+    while (!at_end()) {
         while (check(TokenType::Newline)) advance();
-        if (at_end() || check(TokenType::KwEndcheck)) break;
-        
-        if (check(TokenType::KwSuccess)) {
-            advance();
-            if (check(TokenType::Newline)) advance();
-            
-            while (!at_end() && !check(TokenType::KwFail) && !check(TokenType::KwEndcheck)) {
-                while (check(TokenType::Newline)) advance();
-                if (at_end() || check(TokenType::KwFail) || check(TokenType::KwEndcheck)) break;
-                
-                auto stmt = parse_statement();
-                if (stmt.is_err()) return stmt;
-                check_cmd->add_success(std::move(stmt.unwrap()));
+        if (at_end()) break;
+
+        if (check(TokenType::AtSign) && peek().is(TokenType::Identifier)) {
+            const std::string marker = peek().value;
+            if (marker == "endcheck") {
+                break;
             }
-        } else if (check(TokenType::KwFail)) {
-            advance();
-            if (check(TokenType::Newline)) advance();
-            
-            while (!at_end() && !check(TokenType::KwSuccess) && !check(TokenType::KwEndcheck)) {
-                while (check(TokenType::Newline)) advance();
-                if (at_end() || check(TokenType::KwSuccess) || check(TokenType::KwEndcheck)) break;
-                
-                auto stmt = parse_statement();
-                if (stmt.is_err()) return stmt;
-                check_cmd->add_failure(std::move(stmt.unwrap()));
+
+            if (marker == "success") {
+                advance();
+                advance();
+                if (check(TokenType::Newline)) advance();
+
+                while (!at_end()) {
+                    while (check(TokenType::Newline)) advance();
+                    if (at_end()) break;
+                    if (check(TokenType::AtSign) && peek().is(TokenType::Identifier) &&
+                        (peek().value == "fail" || peek().value == "endcheck")) {
+                        break;
+                    }
+
+                    auto stmt = parse_statement();
+                    if (stmt.is_err()) return stmt;
+                    check_cmd->add_success(std::move(stmt.unwrap()));
+                }
+                continue;
             }
-        } else {
-            auto stmt = parse_statement();
-            if (stmt.is_err()) return stmt;
-            check_cmd->add_success(std::move(stmt.unwrap()));
+
+            if (marker == "fail") {
+                advance();
+                advance();
+                if (check(TokenType::Newline)) advance();
+
+                while (!at_end()) {
+                    while (check(TokenType::Newline)) advance();
+                    if (at_end()) break;
+                    if (check(TokenType::AtSign) && peek().is(TokenType::Identifier) &&
+                        (peek().value == "success" || peek().value == "endcheck")) {
+                        break;
+                    }
+
+                    auto stmt = parse_statement();
+                    if (stmt.is_err()) return stmt;
+                    check_cmd->add_failure(std::move(stmt.unwrap()));
+                }
+                continue;
+            }
         }
+
+        auto stmt = parse_statement();
+        if (stmt.is_err()) return stmt;
+        check_cmd->add_success(std::move(stmt.unwrap()));
     }
-    
-    if (!match(TokenType::KwEndcheck)) {
-        return make_error<AstPtr>(ErrorKind::ExpectedToken, "expected 'endcheck' to close '@check' block");
+
+    if (!(check(TokenType::AtSign) && peek().is(TokenType::Identifier) && peek().value == "endcheck")) {
+        return make_error<AstPtr>(ErrorKind::ExpectedToken, "expected '@endcheck' to close '@check' block");
     }
+
+    advance();
+    advance();
     
     if (check(TokenType::Newline)) advance();
     

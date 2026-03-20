@@ -201,7 +201,8 @@ const char* nova_export_runtime_state_json(void* vm, size_t* outSize) {
         json["itemDefinitions"][id] = {
             {"id", item.id},
             {"name", item.name},
-            {"description", item.description}
+            {"description", item.description},
+            {"icon", item.icon}
         };
     }
 
@@ -210,7 +211,8 @@ const char* nova_export_runtime_state_json(void* vm, size_t* outSize) {
         json["characterDefinitions"][id] = {
             {"id", ch.id},
             {"color", ch.color},
-            {"description", ch.description}
+            {"description", ch.description},
+            {"sprites", ch.sprites}
         };
     }
 
@@ -222,6 +224,7 @@ const char* nova_export_runtime_state_json(void* vm, size_t* outSize) {
                 {"id", id},
                 {"name", it->second.name},
                 {"description", it->second.description},
+                {"icon", it->second.icon},
                 {"count", count}
             });
         } else {
@@ -229,6 +232,7 @@ const char* nova_export_runtime_state_json(void* vm, size_t* outSize) {
                 {"id", id},
                 {"name", id},
                 {"description", ""},
+                {"icon", ""},
                 {"count", count}
             });
         }

@@ -22,6 +22,9 @@ private:
     int m_line = 1;
     int m_column = 1;
     bool m_scan_text_next = false;
+    bool m_line_is_directive = false;
+
+    bool is_first_non_whitespace_on_line() const;
     
     char current() const;
     char peek() const;

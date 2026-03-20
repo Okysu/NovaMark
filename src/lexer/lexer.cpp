@@ -3,6 +3,26 @@
 
 namespace nova {
 
+bool Lexer::is_first_non_whitespace_on_line() const {
+    if (m_pos == 0) {
+        return true;
+    }
+
+    size_t i = m_pos;
+    while (i > 0) {
+        --i;
+        char c = m_source[i];
+        if (c == '\n') {
+            return true;
+        }
+        if (c != ' ' && c != '\t' && c != '\r') {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 /// @brief 检查字节是否为 UTF-8 多字节序列的首字节
 static bool is_utf8_start(unsigned char c) {
     return (c & 0xC0) != 0x80 && c >= 0x80;
@@ -72,7 +92,12 @@ Result<Token> Lexer::next_token() {
     
     if (c == '\n') {
         advance();
+        m_line_is_directive = false;
         return Ok(Token{TokenType::Newline, "\n", here()});
+    }
+
+    if (m_column == 1) {
+        m_line_is_directive = false;
     }
     
     if (c == '/' && peek() == '/') {
@@ -90,6 +115,9 @@ Result<Token> Lexer::next_token() {
         if (current() == '=') {
             advance();
             return Ok(Token{TokenType::GreaterEqual, ">=", loc});
+        }
+        if (!is_first_non_whitespace_on_line()) {
+            return Ok(Token{TokenType::Greater, ">", loc});
         }
         if (at_end() || current() == '\n') {
             return Ok(Token{TokenType::Greater, ">", loc});
@@ -256,10 +284,13 @@ Result<Token> Lexer::scan_operator() {
     char c = advance();
     
     switch (c) {
-        case '@': return Ok(Token{TokenType::AtSign, "@", loc});
-        case '#': return Ok(Token{TokenType::Hash, "#", loc});
-        case ':': 
-            if (!at_end() && current() != '\n') {
+        case '@':
+            m_line_is_directive = true;
+            return Ok(Token{TokenType::AtSign, "@", loc});
+        case '#':
+            return Ok(Token{TokenType::Hash, "#", loc});
+        case ':':
+            if (!m_line_is_directive && !at_end() && current() != '\n') {
                 m_scan_text_next = true;
             }
             return Ok(Token{TokenType::Colon, ":", loc});
@@ -286,7 +317,7 @@ Result<Token> Lexer::scan_operator() {
         
         case '!':
             if (match('=')) return Ok(Token{TokenType::BangEqual, "!=", loc});
-            return make_error<Token>(ErrorKind::UnexpectedChar, "unexpected '!'");
+            return Ok(Token{TokenType::Text, "!", loc});
         
         case '<':
             if (match('=')) return Ok(Token{TokenType::LessEqual, "<=", loc});

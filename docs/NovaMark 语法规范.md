@@ -49,13 +49,13 @@ default\_font: "Noto Serif SC"
 @char 林晓  
   color: \#E8A0BF  
   sprite\_default: linxiao\_normal.png  
+  sprite\_happy: linxiao\_happy.png  
 @end
 
 @item torch  
   name: "老旧的火把"  
   icon: torch\_icon.png  
-  desc: "可以照亮黑暗，但能燃烧的时间不多了。"  
-  max\_stack: 5        \# 最大堆叠数量（可选）  
+  description: "可以照亮黑暗，但能燃烧的时间不多了。"  
 @end
 
 @item gold\_coin  
@@ -74,7 +74,8 @@ default\_font: "Noto Serif SC"
 
 ## **6\. 角色对话**
 
-林晓\[happy\]: 太好了，我们出发吧！
+林晓: 使用 `sprite_default` 作为默认贴图  
+林晓\[happy\]: 使用 `sprite_happy` 作为情绪贴图
 
 ## **7\. 内联文本样式**
 
@@ -84,8 +85,14 @@ default\_font: "Noto Serif SC"
 ## **8\. 媒体控制**
 
 @bg forest\_night.jpg transition:slide\_left  
-@sprite 林晓 move x:70% y:100px duration:1s   
+@sprite 林晓 show url:linxiao.png position:left x:70% y:100px  
 @bgm main\_theme.mp3 loop:true volume:0.8
+
+说明：
+
+- `position` 为字符串透传字段，推荐使用 `left` / `right`
+- `x` / `y` 也允许写成字符串样式值，由不同平台自行解释
+- 当前语法不定义 `move` / `duration` 语义
 
 ## **9\. 变量与运行时状态**
 
@@ -131,10 +138,14 @@ endif
 ## **13\. 随机与跑团系统**
 
 @var damage \= roll("2d6") \+ str  
+@var random\_gold \= random(1, gold)  
+@var crit \= chance(0.25)  
 @check roll("1d20") \+ agi \>= 15  
-  成功: ...  
-  失败: ...  
-@end\_check
+@success  
+  ...  
+@fail  
+  ...  
+@endcheck
 
 ## **14\. 存档点**
 

@@ -68,60 +68,60 @@ Execute different branches based on conditions.
 
 ```nvm
 @check condition_expression
-success
+@success
   // Execute when condition is true
-fail
+@fail
   // Execute when condition is false
-endcheck
+@endcheck
 ```
 
 ### Example
 
 ```nvm
 @check hp >= 50
-success
+@success
   林晓: I can keep going!
-fail
+@fail
   林晓: I need to rest...
   @set hp = 50
-endcheck
+@endcheck
 ```
 
 ### Dice Check
 
 ```nvm
 @check roll("2d6") >= 8
-success
+@success
   > You passed the check!
   @set courage = courage + 5
-fail
+@fail
   > Check failed...
   @set hp = hp - 10
-endcheck
+@endcheck
 ```
 
 ### Item Check
 
 ```nvm
 @check has_item("key")
-success
+@success
   > You unlocked the door with the key.
   @take key 1
   -> .inside
-fail
+@fail
   > The door is locked, you don't have a key.
-endcheck
+@endcheck
 ```
 
 ### Flag Check
 
 ```nvm
 @check has_flag("met_spirit")
-success
+@success
   神秘精灵: We meet again, young traveler.
-fail
+@fail
   > This forest seems to hide some secret...
-endcheck
+@endcheck
 ```
 
 ## Branch Statements (if/endif)

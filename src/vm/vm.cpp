@@ -140,6 +140,10 @@ std::string get_string_like_argument(const AstNode* node) {
     return "";
 }
 
+bool is_string_like_argument(const AstNode* node) {
+    return as_identifier(node) != nullptr || (as_literal(node) != nullptr && as_literal(node)->is_string());
+}
+
 const DiceExprNode* as_dice(const AstNode* node) {
     return dynamic_cast<const DiceExprNode*>(node);
 }
@@ -260,6 +264,8 @@ void NovaVM::buildDefinitionRegistry() {
                     def.color = prop.value;
                 } else if (prop.key == "description") {
                     def.description = prop.value;
+                } else if (prop.key.rfind("sprite_", 0) == 0) {
+                    def.sprites[prop.key.substr(7)] = prop.value;
                 }
             }
             m_characterDefinitions[ch->name()] = std::move(def);
@@ -274,11 +280,34 @@ void NovaVM::buildDefinitionRegistry() {
                     def.name = prop.value;
                 } else if (prop.key == "description") {
                     def.description = prop.value;
+                } else if (prop.key == "icon") {
+                    def.icon = prop.value;
                 }
             }
             m_itemDefinitions[item->name()] = std::move(def);
         }
     }
+}
+
+std::string NovaVM::resolveCharacterSprite(const std::string& speaker, const std::string& emotion) const {
+    auto it = m_characterDefinitions.find(speaker);
+    if (it == m_characterDefinitions.end()) {
+        return "";
+    }
+
+    if (!emotion.empty()) {
+        auto spriteIt = it->second.sprites.find(emotion);
+        if (spriteIt != it->second.sprites.end()) {
+            return spriteIt->second;
+        }
+    }
+
+    auto defaultIt = it->second.sprites.find("default");
+    if (defaultIt != it->second.sprites.end()) {
+        return defaultIt->second;
+    }
+
+    return "";
 }
 
 void NovaVM::applyFrontMatterDefaults() {
@@ -646,6 +675,20 @@ void NovaVM::executeDialogue(const DialogueNode* node) {
         diag.color = it->second.color;
     }
     m_state.dialogue = diag;
+
+    const std::string spriteUrl = resolveCharacterSprite(diag.speaker, diag.emotion);
+    if (!spriteUrl.empty()) {
+        auto spriteIt = std::find_if(m_state.sprites.begin(), m_state.sprites.end(),
+            [&](const SpriteState& s) { return s.id == diag.speaker; });
+        if (spriteIt != m_state.sprites.end()) {
+            spriteIt->url = spriteUrl;
+        } else {
+            SpriteState sprite;
+            sprite.id = diag.speaker;
+            sprite.url = spriteUrl;
+            m_state.sprites.push_back(sprite);
+        }
+    }
 }
 
 void NovaVM::executeNarrator(const NarratorNode* node) {
@@ -739,6 +782,7 @@ void NovaVM::executeSprite(const SpriteCommandNode* node) {
     for (const auto& arg : node->args()) {
         if (arg.key == "x") sprite.x = safe_stod(arg.value, sprite.x);
         else if (arg.key == "y") sprite.y = safe_stod(arg.value, sprite.y);
+        else if (arg.key == "position") sprite.position = arg.value;
         else if (arg.key == "opacity") sprite.opacity = safe_stod(arg.value, sprite.opacity);
         else if (arg.key == "zIndex") sprite.zIndex = safe_stoi(arg.value, sprite.zIndex);
         else if (arg.key == "url") sprite.url = arg.value;
@@ -847,6 +891,8 @@ VarValue NovaVM::evaluateExpression(const AstNode* expr) {
         if (op == "*") return left * right;
         if (op == "/") return right != 0 ? left / right : 0.0;
         if (op == "%") return right != 0 ? std::fmod(left, right) : 0.0;
+        if (op == "and") return evaluateCondition(bin->left()) && evaluateCondition(bin->right());
+        if (op == "or") return evaluateCondition(bin->left()) || evaluateCondition(bin->right());
         if (op == "<") return left < right;
         if (op == "<=") return left <= right;
         if (op == ">") return left > right;
@@ -937,6 +983,24 @@ VarValue NovaVM::evaluateFunctionCall(const CallExprNode* call) {
         if (lit && lit->is_string()) {
             return evaluateDiceRoll(lit->as_string());
         }
+    }
+    if (name == "random" && args.size() == 2) {
+        int minValue = static_cast<int>(evaluateAsNumber(args[0].get()));
+        int maxValue = static_cast<int>(evaluateAsNumber(args[1].get()));
+        if (minValue > maxValue) {
+            std::swap(minValue, maxValue);
+        }
+        static std::mt19937 rng(std::random_device{}());
+        std::uniform_int_distribution<int> dist(minValue, maxValue);
+        return static_cast<double>(dist(rng));
+    }
+    if (name == "chance" && args.size() == 1) {
+        double probability = evaluateAsNumber(args[0].get());
+        if (probability < 0.0) probability = 0.0;
+        if (probability > 1.0) probability = 1.0;
+        static std::mt19937 rng(std::random_device{}());
+        std::bernoulli_distribution dist(probability);
+        return dist(rng);
     }
     
     return 0.0;

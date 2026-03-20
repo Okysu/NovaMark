@@ -21,9 +21,6 @@ enum class TokenType {
     KwAnd,
     KwOr,
     KwNot,
-    KwSuccess,
-    KwFail,
-    KwEndcheck,
     
     AtSign,
     Hash,
@@ -73,9 +70,6 @@ inline const char* token_type_str(TokenType type) {
         case TokenType::KwAnd:          return "and";
         case TokenType::KwOr:           return "or";
         case TokenType::KwNot:          return "not";
-        case TokenType::KwSuccess:      return "success";
-        case TokenType::KwFail:         return "fail";
-        case TokenType::KwEndcheck:     return "endcheck";
         case TokenType::AtSign:         return "@";
         case TokenType::Hash:           return "#";
         case TokenType::Colon:          return ":";
@@ -127,9 +121,6 @@ inline const std::unordered_map<std::string, TokenType>& get_keywords() {
         {"and", TokenType::KwAnd},
         {"or", TokenType::KwOr},
         {"not", TokenType::KwNot},
-        {"success", TokenType::KwSuccess},
-        {"fail", TokenType::KwFail},
-        {"endcheck", TokenType::KwEndcheck},
     };
     return keywords;
 }

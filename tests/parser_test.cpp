@@ -558,6 +558,19 @@ TEST_F(ParserTest, SpriteCommandWithArgs) {
     ASSERT_TRUE(result.is_ok());
 }
 
+TEST_F(ParserTest, SpriteCommandPositionPassThrough) {
+    auto result = parse("@sprite 林晓 url:linxiao.png position:left\n");
+    ASSERT_TRUE(result.is_ok());
+    auto program = as_program(result.unwrap());
+    ASSERT_EQ(program->statements().size(), 1u);
+
+    auto cmd = dynamic_cast<const SpriteCommandNode*>(program->statements()[0].get());
+    ASSERT_NE(cmd, nullptr);
+    ASSERT_EQ(cmd->args().size(), 2u);
+    EXPECT_EQ(cmd->args()[1].key, "position");
+    EXPECT_EQ(cmd->args()[1].value, "left");
+}
+
 TEST_F(ParserTest, BgmCommand) {
     auto result = parse("@bgm theme_music\n");
     ASSERT_TRUE(result.is_ok());
@@ -733,6 +746,29 @@ TEST_F(ParserTest, ItemCountComparison) {
     ASSERT_TRUE(result.is_ok());
 }
 
+TEST_F(ParserTest, LogicalAndOrExpression) {
+    auto result = parse("if true and (false or true)\n> ok\nendif\n");
+    ASSERT_TRUE(result.is_ok());
+    auto program = as_program(result.unwrap());
+    ASSERT_EQ(program->statements().size(), 1u);
+
+    auto branch = dynamic_cast<const BranchNode*>(program->statements()[0].get());
+    ASSERT_NE(branch, nullptr);
+    auto expr = as_binary_expr(branch->condition());
+    ASSERT_NE(expr, nullptr);
+    EXPECT_EQ(expr->op(), "and");
+}
+
+TEST_F(ParserTest, RandomFunctionWithTwoArgs) {
+    auto result = parse("@var x = random(1, hp)\n");
+    ASSERT_TRUE(result.is_ok());
+}
+
+TEST_F(ParserTest, ChanceFunction) {
+    auto result = parse("@var lucky = chance(0.25)\n");
+    ASSERT_TRUE(result.is_ok());
+}
+
 TEST_F(ParserTest, FunctionWithMultipleArgs) {
     auto result = parse("@var x = custom_func(a, b, c)\n");
     ASSERT_TRUE(result.is_ok());
@@ -778,7 +814,7 @@ TEST_F(ParserTest, CheckCommandSimple) {
     auto result = parse(
         "@check roll(\"1d20\") >= 15\n"
         "> Success!\n"
-        "endcheck\n"
+        "@endcheck\n"
     );
     ASSERT_TRUE(result.is_ok());
     auto program = as_program(result.unwrap());
@@ -794,11 +830,11 @@ TEST_F(ParserTest, CheckCommandSimple) {
 TEST_F(ParserTest, CheckCommandWithSuccessFail) {
     auto result = parse(
         "@check roll(\"1d20\") >= 15\n"
-        "success\n"
+        "@success\n"
         "> You succeeded!\n"
-        "fail\n"
+        "@fail\n"
         "> You failed.\n"
-        "endcheck\n"
+        "@endcheck\n"
     );
     ASSERT_TRUE(result.is_ok());
     auto program = as_program(result.unwrap());
@@ -812,11 +848,11 @@ TEST_F(ParserTest, CheckCommandWithSuccessFail) {
 TEST_F(ParserTest, CheckCommandWithVariable) {
     auto result = parse(
         "@check str + roll(\"1d20\") >= 18\n"
-        "success\n"
+        "@success\n"
         "> Critical hit!\n"
-        "fail\n"
+        "@fail\n"
         "> Missed.\n"
-        "endcheck\n"
+        "@endcheck\n"
     );
     ASSERT_TRUE(result.is_ok());
 }
@@ -824,11 +860,11 @@ TEST_F(ParserTest, CheckCommandWithVariable) {
 TEST_F(ParserTest, CheckCommandFailFirst) {
     auto result = parse(
         "@check luck >= 10\n"
-        "fail\n"
+        "@fail\n"
         "> Bad luck.\n"
-        "success\n"
+        "@success\n"
         "> Lucky!\n"
-        "endcheck\n"
+        "@endcheck\n"
     );
     ASSERT_TRUE(result.is_ok());
     auto program = as_program(result.unwrap());

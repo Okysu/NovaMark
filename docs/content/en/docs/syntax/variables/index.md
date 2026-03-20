@@ -53,24 +53,24 @@ Use in conditions:
 
 ```nvm
 @check has_item("healing_potion")
-success
+@success
   > You used a healing potion.
   @take healing_potion 1
   @set hp = hp + 50
-fail
+@fail
   > You don't have any potions.
-endcheck
+@endcheck
 ```
 
 ### Check Item Count
 
 ```nvm
 @check item_count("gold") >= 100
-success
+@success
   > You have enough gold.
-fail
+@fail
   > Not enough gold.
-endcheck
+@endcheck
 ```
 
 ## Built-in Functions

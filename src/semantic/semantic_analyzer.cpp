@@ -397,6 +397,8 @@ void SemanticAnalyzer::check_function_call(const std::string& name,
         {"has_item", 1},
         {"item_count", 1},
         {"roll", 1},
+        {"random", 2},
+        {"chance", 1},
     };
     
     auto it = builtin_functions.find(name);
@@ -414,9 +416,34 @@ void SemanticAnalyzer::check_function_call(const std::string& name,
     }
     
     if (name == "roll") {
+        if (args.empty()) {
+            return;
+        }
+        auto* lit = dynamic_cast<LiteralNode*>(args[0]);
+        if (!lit || !lit->is_string()) {
+            m_diagnostics.error(SemanticError::InvalidFunctionCall,
+                "function roll expects a string dice expression", loc);
+            return;
+        }
         for (auto* arg : args) {
             check_expression(arg);
         }
+        return;
+    }
+
+    if (name == "has_item" || name == "item_count" || name == "has_flag" || name == "has_ending") {
+        auto* lit = dynamic_cast<LiteralNode*>(args[0]);
+        auto* id = dynamic_cast<IdentifierNode*>(args[0]);
+        if (!id && (!lit || !lit->is_string())) {
+            m_diagnostics.error(SemanticError::InvalidFunctionCall,
+                "function " + name + " expects an identifier or string argument", loc);
+            return;
+        }
+        return;
+    }
+
+    for (auto* arg : args) {
+        check_expression(arg);
     }
 }
 

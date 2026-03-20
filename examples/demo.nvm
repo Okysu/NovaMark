@@ -98,17 +98,17 @@ description: 一个展示 NovaMark 完整功能的示例游戏
 > 黑暗中传来奇怪的声响...
 
 @check roll("2d6") >= 8
-success
+@success
   林晓: 是谁？！
   @sprite 神秘精灵 show url:spirit.png x:600 y:400 opacity:0.8
   神秘精灵: 不要害怕，年轻的旅人。
   -> .meet_spirit
-fail
+@fail
   @sfx monster_growl.mp3
   林晓: 恐怖的东西在靠近...快跑！
   @set hp = hp - 20
   -> .escape_monster
-endcheck
+@endcheck
 
 .light_path
 @bg forest_glade.png
@@ -200,12 +200,12 @@ endcheck
 > 山路崎岖难行...
 
 @check hp >= 50
-success
+@success
   林晓: 虽然累，但我还能坚持！
-fail
+@fail
   林晓: 我需要休息一下...
   @set hp = 50
-endcheck
+@endcheck
 
 ? 前方出现了一个分岔口：
 - [走悬崖边的小路] -> .dangerous_path
@@ -216,18 +216,18 @@ endcheck
 @sprite 林晓 show url:linxiao_careful.png x:300 y:500
 
 @check roll("1d20") >= 12
-success
+@success
   > 你小心翼翼地通过了悬崖！
   @set courage = courage + 15
   林晓: 做到了！
   -> .tower_entrance
-fail
+@fail
   @sfx rock_fall.mp3
   > 石头松动，你差点掉下去！
   @set hp = hp - 30
   林晓: 危险！还是走另一条路吧...
   -> .safe_path
-endcheck
+@endcheck
 
 .safe_path
 @bg cave_interior.png
@@ -262,12 +262,12 @@ endcheck
 > 门上似乎需要某种魔法才能打开。
 
 @check has_item("magic_stone")
-success
+@success
   -> .open_with_stone
-fail
+@fail
   林晓: 可是我没有魔法石...
   -> .bad_ending
-endcheck
+@endcheck
 
 .open_with_stone
 @bg tower_door_open.png transition:magical
@@ -286,13 +286,13 @@ endcheck
 > 你登上了塔顶，满天星光在眼前闪耀...
 
 @check has_flag("met_spirit")
-success
+@success
   @sprite 神秘精灵 show url:spirit.png x:600 y:400
   神秘精灵: 你做到了，年轻的旅人。
   神秘精灵: 现在，闭上眼睛，许下你的愿望吧。
-fail
+@fail
   > 星光似乎在回应你的到来...
-endcheck
+@endcheck
 
 林晓: 我想回家...
 

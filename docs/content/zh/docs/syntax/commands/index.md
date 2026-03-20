@@ -31,6 +31,7 @@ NovaMark 支持 `//` 单行注释：
   color: #RRGGBB
   description: 角色描述
   sprite_default: 默认立绘.png
+  sprite_happy: 开心立绘.png
 @end
 ```
 
@@ -40,6 +41,7 @@ NovaMark 支持 `//` 单行注释：
 | `color` | 颜色值 | 对话框中角色名的颜色 |
 | `description` | 字符串 | 角色描述 |
 | `sprite_default` | 文件名 | 默认立绘文件 |
+| `sprite_*` | 文件名 | 情绪贴图约定，如 `sprite_happy` |
 
 ---
 
@@ -51,7 +53,7 @@ NovaMark 支持 `//` 单行注释：
 @item 物品ID
   name: 显示名称
   description: 物品描述
-  rarity: 稀有度
+  icon: 图标文件
 @end
 ```
 
@@ -60,7 +62,7 @@ NovaMark 支持 `//` 单行注释：
 |------|------|------|
 | `name` | 字符串 | 物品显示名称 |
 | `description` | 字符串 | 物品描述 |
-| `rarity` | 字符串 | 稀有度 (common/rare/legendary) |
+| `icon` | 文件名 | 物品图标 |
 
 ---
 
@@ -164,24 +166,23 @@ NovaMark 支持 `//` 单行注释：
 
 ```nvm
 @bg image.png
-@bg image.png transition:fade duration:1
+@bg image.png transition:fade
 ```
 
 **参数**:
 | 参数 | 类型 | 说明 |
 |------|------|------|
 | `transition` | 字符串 | 过渡效果 (fade/slide/none) |
-| `duration` | 数字 | 过渡时间（秒） |
 
 ---
 
 ### @sprite - 精灵/立绘
 
-显示、移动或隐藏角色立绘。
+显示或切换角色立绘。
 
 ```nvm
-@sprite 角色名 show url:立绘.png x:400 y:500
-@sprite 角色名 move x:300 duration:0.5
+@sprite 角色名 show url:立绘.png position:left
+@sprite 角色名 show url:立绘.png x:70% y:100px
 @sprite 角色名 hide
 ```
 
@@ -190,12 +191,11 @@ NovaMark 支持 `//` 单行注释：
 |------|------|------|
 | `show` | - | 显示精灵 |
 | `hide` | - | 隐藏精灵 |
-| `move` | - | 移动精灵 |
 | `url` | 文件名 | 精灵图片 |
-| `x` | 数字 | X 坐标 |
-| `y` | 数字 | Y 坐标 |
+| `position` | 字符串 | 推荐 `left` / `right`，原样透传 |
+| `x` | 字符串/数字 | 平台自行解释 |
+| `y` | 字符串/数字 | 平台自行解释 |
 | `opacity` | 数字 | 透明度 (0-1) |
-| `duration` | 数字 | 动画时间（秒） |
 
 ---
 
@@ -277,36 +277,36 @@ NovaMark 支持 `//` 单行注释：
 
 ```nvm
 @check 条件表达式
-success
+@success
   // 成功时执行
-fail
+@fail
   // 失败时执行
-endcheck
+@endcheck
 ```
 
 **示例**:
 ```nvm
 @check roll("2d6") >= 8
-success
+@success
   林晓: 成功了！
-fail
+@fail
   林晓: 失败了...
-endcheck
+@endcheck
 
 @check has_item("key")
-success
+@success
   > 你打开了宝箱。
-fail
+@fail
   > 没有钥匙。
-endcheck
+@endcheck
 
 @check hp >= 50
-success
+@success
   林晓: 我还能坚持！
-fail
+@fail
   林晓: 我需要休息...
   @set hp = 50
-endcheck
+@endcheck
 ```
 
 ---

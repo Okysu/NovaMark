@@ -68,60 +68,60 @@ weight: 4
 
 ```nvm
 @check 条件表达式
-success
+@success
   // 条件为真时执行
-fail
+@fail
   // 条件为假时执行
-endcheck
+@endcheck
 ```
 
 ### 示例
 
 ```nvm
 @check hp >= 50
-success
+@success
   林晓: 我还能坚持！
-fail
+@fail
   林晓: 我需要休息...
   @set hp = 50
-endcheck
+@endcheck
 ```
 
 ### 骰子检定
 
 ```nvm
 @check roll("2d6") >= 8
-success
+@success
   > 你成功通过了检定！
   @set courage = courage + 5
-fail
+@fail
   > 检定失败...
   @set hp = hp - 10
-endcheck
+@endcheck
 ```
 
 ### 物品检查
 
 ```nvm
 @check has_item("key")
-success
+@success
   > 你用钥匙打开了门。
   @take key 1
   -> .inside
-fail
+@fail
   > 门锁着，你没有钥匙。
-endcheck
+@endcheck
 ```
 
 ### 标记检查
 
 ```nvm
 @check has_flag("met_spirit")
-success
+@success
   神秘精灵: 我们又见面了，年轻的旅人。
-fail
+@fail
   > 这片森林似乎隐藏着什么秘密...
-endcheck
+@endcheck
 ```
 
 ## 分支语句 (if/endif)

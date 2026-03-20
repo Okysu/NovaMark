@@ -57,10 +57,13 @@ private:
     Result<AstPtr> parse_front_matter();
     Result<AstPtr> parse_property_block();
     std::string parse_property_value();
+    std::string parse_inline_value();
     std::string parse_text_content();
     std::unique_ptr<InterpolatedTextNode> parse_interpolated_text(const std::string& text);
     
     Result<AstPtr> parse_expression();
+    Result<AstPtr> parse_or();
+    Result<AstPtr> parse_and();
     Result<AstPtr> parse_comparison();
     Result<AstPtr> parse_term();
     Result<AstPtr> parse_factor();
