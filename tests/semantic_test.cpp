@@ -257,40 +257,6 @@ TEST_F(SemanticTest, CheckWithMissingBranches) {
 }
 
 // ============================================
-// UI 组件测试
-// ============================================
-
-TEST_F(SemanticTest, UiTrackDefinition) {
-    auto result = analyze(
-        "@ui track hp_bar\n"
-        "content: \"HP: 100\"\n"
-        "@end\n"
-    );
-    EXPECT_TRUE(result.success);
-}
-
-TEST_F(SemanticTest, UiShowHide) {
-    auto result = analyze(
-        "@ui track hp_bar\n"
-        "content: \"HP\"\n"
-        "@end\n"
-        "#scene_test \"Test\"\n"
-        "@ui show hp_bar\n"
-        "@ui hide hp_bar\n"
-    );
-    EXPECT_TRUE(result.success);
-}
-
-TEST_F(SemanticTest, UndefinedUiComponent) {
-    auto result = analyze(
-        "#scene_test \"Test\"\n"
-        "@ui show undefined_component\n"
-    );
-    EXPECT_FALSE(result.success);
-    EXPECT_EQ(result.diagnostics.error_count(), 1u);
-}
-
-// ============================================
 // 完整场景测试
 // ============================================
 

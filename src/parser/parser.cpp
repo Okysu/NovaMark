@@ -428,9 +428,6 @@ Result<AstPtr> Parser::parse_directive() {
     if (directive == "wait") {
         return parse_wait_command();
     }
-    if (directive == "ui") {
-        return parse_ui_command();
-    }
     if (directive == "theme") {
         return parse_theme_def();
     }
@@ -1102,72 +1099,6 @@ Result<AstPtr> Parser::parse_wait_command() {
     if (check(TokenType::Newline)) advance();
     
     return Ok(AstPtr(new WaitNode(loc, seconds)));
-}
-
-Result<AstPtr> Parser::parse_ui_command() {
-    SourceLocation loc = current().location;
-    
-    if (!check(TokenType::Identifier)) {
-        return make_error<AstPtr>(ErrorKind::ExpectedToken, "expected 'show', 'hide', or 'track' after '@ui'");
-    }
-    
-    std::string action = current().value;
-    advance();
-    
-    if (action == "track") {
-        return parse_ui_track();
-    }
-    
-    if (action != "show" && action != "hide") {
-        return make_error<AstPtr>(ErrorKind::ExpectedToken, "expected 'show', 'hide', or 'track' after '@ui'");
-    }
-    
-    if (!check(TokenType::Identifier)) {
-        return make_error<AstPtr>(ErrorKind::ExpectedToken, "expected UI component name after '@ui " + action + "'");
-    }
-    std::string target = current().value;
-    advance();
-    
-    if (check(TokenType::Newline)) advance();
-    
-    auto ui_action = (action == "show") ? UiCommandNode::Action::Show : UiCommandNode::Action::Hide;
-    return Ok(AstPtr(new UiCommandNode(loc, ui_action, std::move(target))));
-}
-
-Result<AstPtr> Parser::parse_ui_track() {
-    SourceLocation loc = current().location;
-    
-    if (!check(TokenType::Identifier)) {
-        return make_error<AstPtr>(ErrorKind::ExpectedToken, "expected UI track name after '@ui track'");
-    }
-    std::string name = current().value;
-    advance();
-    
-    auto ui_track = std::make_unique<UiTrackNode>(loc, std::move(name));
-    
-    if (check(TokenType::Newline)) advance();
-    
-    while (!at_end() && check(TokenType::Identifier)) {
-        std::string key = current().value;
-        advance();
-        
-        if (!match(TokenType::Colon)) {
-            return make_error<AstPtr>(ErrorKind::ExpectedToken, "expected ':' after property key");
-        }
-        
-        std::string value = parse_property_value();
-        ui_track->add_property(std::move(key), std::move(value));
-        
-        if (check(TokenType::Newline)) advance();
-    }
-    
-    if (!match_end_directive()) {
-        return make_error<AstPtr>(ErrorKind::ExpectedToken, "expected '@end' to close '@ui track' block");
-    }
-    
-    if (check(TokenType::Newline)) advance();
-    
-    return Ok(AstPtr(ui_track.release()));
 }
 
 Result<AstPtr> Parser::parse_theme_def() {

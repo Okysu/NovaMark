@@ -90,14 +90,6 @@ const WaitNode* as_wait(const AstNode* node) {
     return dynamic_cast<const WaitNode*>(node);
 }
 
-const UiCommandNode* as_ui_cmd(const AstNode* node) {
-    return dynamic_cast<const UiCommandNode*>(node);
-}
-
-const UiTrackNode* as_ui_track(const AstNode* node) {
-    return dynamic_cast<const UiTrackNode*>(node);
-}
-
 const CheckCommandNode* as_check(const AstNode* node) {
     return dynamic_cast<const CheckCommandNode*>(node);
 }
@@ -134,6 +126,20 @@ const CallExprNode* as_call_expr(const AstNode* node) {
     return dynamic_cast<const CallExprNode*>(node);
 }
 
+std::string get_string_like_argument(const AstNode* node) {
+    if (const auto* id = as_identifier(node)) {
+        return id->name();
+    }
+
+    if (const auto* lit = as_literal(node)) {
+        if (lit->is_string()) {
+            return lit->as_string();
+        }
+    }
+
+    return "";
+}
+
 const DiceExprNode* as_dice(const AstNode* node) {
     return dynamic_cast<const DiceExprNode*>(node);
 }
@@ -150,10 +156,29 @@ const ChoiceOptionNode* as_choice_option(const AstNode* node) {
     return dynamic_cast<const ChoiceOptionNode*>(node);
 }
 
+const FrontMatterNode* as_front_matter(const AstNode* node) {
+    return dynamic_cast<const FrontMatterNode*>(node);
+}
+
 }
 
 NovaVM::NovaVM() {
     m_state.status = VMStatus::Running;
+}
+
+int NovaVM::consumeRuntimeStateChangeFlags() {
+    const int flags = m_runtimeStateChangeFlags;
+    m_runtimeStateChangeFlags = RuntimeStateChangeNone;
+    return flags;
+}
+
+void NovaVM::markRuntimeStateChanged(int flags) {
+    if (flags == RuntimeStateChangeNone) {
+        return;
+    }
+
+    ++m_runtimeStateVersion;
+    m_runtimeStateChangeFlags |= flags;
 }
 
 void NovaVM::consumeDialogue() {
@@ -203,17 +228,84 @@ bool NovaVM::loadSave(const GameState& state) {
     
     m_state.currentScene = m_currentScene;
     m_state.status = VMStatus::Running;
-    
+    markRuntimeStateChanged(RuntimeStateChangeVariables | RuntimeStateChangeInventory);
+
     return true;
 }
 
 void NovaVM::load(const ProgramNode* program) {
     m_program = program;
     buildSceneIndex();
+    buildDefinitionRegistry();
     m_statementIndex = 0;
     m_state.status = VMStatus::Running;
+    applyFrontMatterDefaults();
     
     executeGlobalStatements();
+    markRuntimeStateChanged(RuntimeStateChangeVariables | RuntimeStateChangeInventory);
+}
+
+void NovaVM::buildDefinitionRegistry() {
+    m_characterDefinitions.clear();
+    m_itemDefinitions.clear();
+
+    if (!m_program) return;
+
+    for (const auto& stmt : m_program->statements()) {
+        if (const auto* ch = as_char_def(stmt.get())) {
+            CharacterDefinition def;
+            def.id = ch->name();
+            for (const auto& prop : ch->properties()) {
+                if (prop.key == "color") {
+                    def.color = prop.value;
+                } else if (prop.key == "description") {
+                    def.description = prop.value;
+                }
+            }
+            m_characterDefinitions[ch->name()] = std::move(def);
+            continue;
+        }
+
+        if (const auto* item = as_item_def(stmt.get())) {
+            ItemDefinition def;
+            def.id = item->name();
+            for (const auto& prop : item->properties()) {
+                if (prop.key == "name") {
+                    def.name = prop.value;
+                } else if (prop.key == "description") {
+                    def.description = prop.value;
+                }
+            }
+            m_itemDefinitions[item->name()] = std::move(def);
+        }
+    }
+}
+
+void NovaVM::applyFrontMatterDefaults() {
+    m_state.textConfig = TextConfigState{};
+
+    if (!m_program) return;
+
+    for (const auto& stmt : m_program->statements()) {
+        const auto* frontMatter = as_front_matter(stmt.get());
+        if (!frontMatter) {
+            if (as_scene(stmt.get())) {
+                break;
+            }
+            continue;
+        }
+
+        for (const auto& prop : frontMatter->properties()) {
+            if (prop.key == "default_font") {
+                m_state.textConfig.defaultFont = prop.value;
+            } else if (prop.key == "default_font_size") {
+                m_state.textConfig.defaultFontSize = safe_stoi(prop.value, m_state.textConfig.defaultFontSize);
+            } else if (prop.key == "default_text_speed") {
+                m_state.textConfig.defaultTextSpeed = safe_stoi(prop.value, m_state.textConfig.defaultTextSpeed);
+            }
+        }
+        break;
+    }
 }
 
 void NovaVM::executeGlobalStatements() {
@@ -461,6 +553,7 @@ void NovaVM::reset() {
     m_currentScene.clear();
     m_statementIndex = 0;
     m_callStack.clear();
+    markRuntimeStateChanged(RuntimeStateChangeVariables | RuntimeStateChangeInventory);
 }
 
 void NovaVM::executeStatement(const AstNode* node) {
@@ -486,6 +579,7 @@ void NovaVM::executeStatement(const AstNode* node) {
             auto var = as_var_def(node);
             if (var && var->init_value()) {
                 m_variables.set(var->name(), evaluateExpression(var->init_value()));
+                markRuntimeStateChanged(RuntimeStateChangeVariables);
             }
             break;
         }
@@ -522,9 +616,6 @@ void NovaVM::executeStatement(const AstNode* node) {
         case NodeType::Wait:
             executeWait(as_wait(node));
             break;
-        case NodeType::UiCommand:
-            executeUiCommand(as_ui_cmd(node));
-            break;
         case NodeType::CheckCommand:
             executeCheck(as_check(node));
             break;
@@ -550,6 +641,10 @@ void NovaVM::executeDialogue(const DialogueNode* node) {
     diag.speaker = node->speaker();
     diag.emotion = node->emotion();
     diag.text = node->text();
+    auto it = m_characterDefinitions.find(diag.speaker);
+    if (it != m_characterDefinitions.end()) {
+        diag.color = it->second.color;
+    }
     m_state.dialogue = diag;
 }
 
@@ -609,16 +704,20 @@ void NovaVM::executeBranch(const BranchNode* node) {
 void NovaVM::executeSet(const SetCommandNode* node) {
     if (!node) return;
     m_variables.set(node->name(), evaluateExpression(node->value()));
+    markRuntimeStateChanged(RuntimeStateChangeVariables);
 }
 
 void NovaVM::executeGive(const GiveCommandNode* node) {
     if (!node) return;
     m_inventory.add(node->item(), node->count());
+    markRuntimeStateChanged(RuntimeStateChangeInventory);
 }
 
 void NovaVM::executeTake(const TakeCommandNode* node) {
     if (!node) return;
-    m_inventory.remove(node->item(), node->count());
+    if (m_inventory.remove(node->item(), node->count())) {
+        markRuntimeStateChanged(RuntimeStateChangeInventory);
+    }
 }
 
 void NovaVM::executeBg(const BgCommandNode* node) {
@@ -709,22 +808,6 @@ void NovaVM::executeWait(const WaitNode* node) {
     if (!node) return;
     if (m_delayCallback) {
         m_delayCallback(node->seconds());
-    }
-}
-
-void NovaVM::executeUiCommand(const UiCommandNode* node) {
-    if (!node) return;
-    
-    auto it = std::find_if(m_state.huds.begin(), m_state.huds.end(),
-        [&](const HudState& h) { return h.id == node->target(); });
-    
-    if (it != m_state.huds.end()) {
-        it->show = (node->action() == UiCommandNode::Action::Show);
-    } else {
-        HudState hud;
-        hud.id = node->target();
-        hud.show = (node->action() == UiCommandNode::Action::Show);
-        m_state.huds.push_back(hud);
     }
 }
 
@@ -834,20 +917,20 @@ VarValue NovaVM::evaluateFunctionCall(const CallExprNode* call) {
     const auto& args = call->arguments();
     
     if (name == "has_ending" && !args.empty()) {
-        auto id = as_identifier(args[0].get());
-        return id ? m_playthrough.hasEnding(id->name()) : false;
+        const std::string target = get_string_like_argument(args[0].get());
+        return !target.empty() ? m_playthrough.hasEnding(target) : false;
     }
     if (name == "has_flag" && !args.empty()) {
-        auto id = as_identifier(args[0].get());
-        return id ? m_playthrough.hasFlag(id->name()) : false;
+        const std::string target = get_string_like_argument(args[0].get());
+        return !target.empty() ? m_playthrough.hasFlag(target) : false;
     }
     if (name == "has_item" && !args.empty()) {
-        auto id = as_identifier(args[0].get());
-        return id ? m_inventory.has(id->name()) : false;
+        const std::string target = get_string_like_argument(args[0].get());
+        return !target.empty() ? m_inventory.has(target) : false;
     }
     if (name == "item_count" && !args.empty()) {
-        auto id = as_identifier(args[0].get());
-        return id ? static_cast<double>(m_inventory.count(id->name())) : 0.0;
+        const std::string target = get_string_like_argument(args[0].get());
+        return !target.empty() ? static_cast<double>(m_inventory.count(target)) : 0.0;
     }
     if (name == "roll" && !args.empty()) {
         auto lit = as_literal(args[0].get());

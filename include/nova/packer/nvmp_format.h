@@ -9,6 +9,7 @@ namespace nova {
 
 // NVMP 文件格式版本
 constexpr uint32_t NVMP_VERSION = 1;
+constexpr const char* NVMP_METADATA_PATH = "__nova/metadata.yaml";
 
 // 魔法数字 "NOVA"
 constexpr char NVMP_MAGIC[4] = {'N', 'O', 'V', 'A'};
@@ -71,7 +72,6 @@ enum class OpCode : uint8_t {
     NodeLabel = 22,
     NodeCheckCommand = 23,
     NodeWait = 24,
-    NodeUiCommand = 25,
     NodeThemeDef = 26,
     NodeFrontMatter = 27,
     NodeLiteral = 28,

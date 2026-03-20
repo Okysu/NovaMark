@@ -40,8 +40,6 @@ enum class NodeType {
     SpriteCommand,      // @sprite
     BgmCommand,         // @bgm
     SfxCommand,         // @sfx
-    UiCommand,          // @ui show/hide
-    UiTrack,            // @ui track ... @end
     GiveCommand,        // @give
     TakeCommand,        // @take
     SetCommand,         // @set
@@ -659,50 +657,6 @@ public:
 
 private:
     double m_seconds;
-};
-
-/// @brief @ui show/hide 命令节点
-class UiCommandNode : public AstNode {
-public:
-    enum class Action { Show, Hide };
-    
-    UiCommandNode(SourceLocation loc, Action action, std::string target)
-        : AstNode(std::move(loc)), m_action(action), m_target(std::move(target)) {}
-    
-    NodeType type() const override { return NodeType::UiCommand; }
-    
-    Action action() const { return m_action; }
-    const std::string& target() const { return m_target; }
-
-private:
-    Action m_action;
-    std::string m_target;
-};
-
-/// @brief @ui track 常驻UI追踪节点
-class UiTrackNode : public AstNode {
-public:
-    struct Property {
-        std::string key;
-        std::string value;
-    };
-    
-    UiTrackNode(SourceLocation loc, std::string name)
-        : AstNode(std::move(loc)), m_name(std::move(name)) {}
-    
-    NodeType type() const override { return NodeType::UiTrack; }
-    
-    const std::string& name() const { return m_name; }
-    std::vector<Property>& properties() { return m_properties; }
-    const std::vector<Property>& properties() const { return m_properties; }
-    
-    void add_property(std::string key, std::string value) {
-        m_properties.push_back({std::move(key), std::move(value)});
-    }
-
-private:
-    std::string m_name;
-    std::vector<Property> m_properties;
 };
 
 /// @brief @theme 主题定义节点

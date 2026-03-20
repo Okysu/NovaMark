@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NovaMark Player</title>
+    <link rel="icon" href="data:,">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -43,6 +44,7 @@
             
             <!-- VN 模式 -->
             <div id="vn-mode" class="game-mode">
+                <div id="vn-status-bar" class="status-bar hidden"></div>
                 <div id="vn-background"></div>
                 <div id="vn-sprites"></div>
                 <div id="vn-dialogue" class="hidden">
@@ -55,6 +57,7 @@
             
             <!-- Chat 模式 -->
             <div id="chat-mode" class="game-mode hidden">
+                <div id="chat-status-bar" class="chat-status-bar hidden"></div>
                 <div id="chat-messages"></div>
                 <div id="chat-input-area">
                     <div id="chat-choices"></div>

@@ -7,6 +7,12 @@
 
 namespace nova {
 
+struct TextConfigState {
+    std::string defaultFont = "sans-serif";
+    int defaultFontSize = 24;
+    int defaultTextSpeed = 50;
+};
+
 /// @brief 精灵状态
 struct SpriteState {
     std::string id;
@@ -29,16 +35,6 @@ struct SfxState {
     std::string path;
     bool loop = false;
     double volume = 1.0;
-};
-
-/// @brief HUD (常驻UI) 状态
-struct HudState {
-    std::string id;
-    bool show = true;
-    std::string content;
-    std::string icon;
-    std::string position;
-    std::string color;
 };
 
 /// @brief 对话状态
@@ -94,6 +90,8 @@ enum class VMStatus {
 /// @brief NovaMark 渲染状态（VM 输出给渲染器）
 struct NovaState {
     VMStatus status = VMStatus::Running;
+
+    TextConfigState textConfig;
     
     std::string currentScene;
     std::string currentLabel;
@@ -108,8 +106,6 @@ struct NovaState {
     std::vector<SfxState> sfx;
     
     std::vector<SpriteState> sprites;
-    
-    std::vector<HudState> huds;
     
     std::optional<DialogueState> dialogue;
     

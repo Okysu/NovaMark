@@ -315,6 +315,7 @@ int build_single_file(const CliConfig& config, const std::string& file) {
     Packer packer;
     packer.addScript(file);
     packer.setOutputPath(outputPath);
+    packer.setMetadata(meta);
     
     auto result = packer.pack();
     
@@ -364,6 +365,7 @@ int build_project(const CliConfig& config, const std::string& dir, const GameMet
         packer.setAssetDirectory(assetsPath.string());
     }
     packer.setOutputPath(outputPath);
+    packer.setMetadata(meta);
     
     auto result = packer.pack();
     

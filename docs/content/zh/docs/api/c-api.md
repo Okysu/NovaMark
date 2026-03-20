@@ -107,6 +107,25 @@ const char* nova_get_error(NovaVM* vm);
 
 获取最后的错误信息。
 
+### 运行时状态快照
+
+当前 Web/WASM 扩展接口提供统一运行时状态导出：
+
+```c
+const char* nova_export_runtime_state_json(void* vm, size_t* outSize);
+```
+
+该接口返回 JSON 字符串，包含：
+
+- `textConfig`
+- `variables`
+- `inventory`
+- `itemDefinitions`
+- `characterDefinitions`
+- `inventoryItems`
+
+适合 GUI 与调试工具一次性读取完整运行时状态。
+
 ## 回调
 
 ### nova_set_state_callback

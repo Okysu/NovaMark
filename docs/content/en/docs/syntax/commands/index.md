@@ -354,17 +354,6 @@ Parameter is wait time in seconds.
 
 ---
 
-### @ui - UI Control
-
-Control UI component visibility.
-
-```nvm
-@ui show inventory
-@ui hide hud
-```
-
----
-
 ## Expressions and Functions
 
 ### Arithmetic Operations

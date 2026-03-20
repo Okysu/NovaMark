@@ -1,5 +1,6 @@
 #include "nova/renderer/nova_c_api.h"
 #include "nova/renderer/nova_wasm_api.h"
+#include "nova/core/game_metadata.h"
 #include "nova/vm/vm.h"
 #include "nova/packer/nvmp_writer.h"
 #include "nova/packer/ast_serializer.h"
@@ -12,11 +13,13 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <cstdio>
 
 namespace {
 
 std::unique_ptr<nova::NovaVM> g_vm;
 std::unique_ptr<nova::NvmpReader> g_reader;
+nova::AstPtr g_program;
 
 } // namespace
 
@@ -26,38 +29,88 @@ void nova_wasm_set_reader(nova::NvmpReader* reader);
 
 EMSCRIPTEN_KEEPALIVE
 int nova_wasm_init() {
-    g_vm = std::make_unique<nova::NovaVM>();
-    g_reader = std::make_unique<nova::NvmpReader>();
-    nova_wasm_set_reader(g_reader.get());
-    return 0;
+    printf("[WASM] nova_wasm_init() called\n");
+    fflush(stdout);
+    
+    try {
+        g_program.reset();
+        g_vm = std::make_unique<nova::NovaVM>();
+        g_reader = std::make_unique<nova::NvmpReader>();
+        nova_wasm_set_reader(g_reader.get());
+        
+        printf("[WASM] nova_wasm_init() success, VM status: %d\n", 
+               static_cast<int>(g_vm->state().status));
+        fflush(stdout);
+        return 0;
+    } catch (const std::exception& e) {
+        printf("[WASM] nova_wasm_init() exception: %s\n", e.what());
+        fflush(stdout);
+        return -1;
+    } catch (...) {
+        printf("[WASM] nova_wasm_init() unknown exception\n");
+        fflush(stdout);
+        return -1;
+    }
 }
 
 EMSCRIPTEN_KEEPALIVE
 int nova_wasm_load_package(const unsigned char* data, size_t size) {
+    printf("[WASM] nova_wasm_load_package() called, size=%zu\n", size);
+    fflush(stdout);
+    
     if (!g_reader || !g_vm) {
+        printf("[WASM] ERROR: g_reader or g_vm is null\n");
+        fflush(stdout);
         return -1;
     }
     
+    printf("[WASM] Loading from buffer...\n");
+    fflush(stdout);
+    
     if (!g_reader->loadFromBuffer(std::vector<uint8_t>(data, data + size))) {
+        printf("[WASM] ERROR: loadFromBuffer failed\n");
+        fflush(stdout);
         return -1;
+    }
+
+    const nova::GameMetadata metadata = g_reader->readMetadata();
+    if (metadata.valid) {
+        nova::TextConfigState config;
+        config.defaultFont = metadata.default_font;
+        config.defaultFontSize = metadata.default_font_size;
+        config.defaultTextSpeed = metadata.default_text_speed;
+        g_vm->setTextConfig(config);
     }
     
     const auto& bytecode = g_reader->bytecode();
-    nova::AstDeserializer deserializer;
-    auto program = deserializer.deserialize(bytecode);
+    printf("[WASM] Bytecode size: %zu bytes\n", bytecode.size());
+    fflush(stdout);
     
-    if (!program) {
+    nova::AstDeserializer deserializer;
+    g_program = deserializer.deserialize(bytecode);
+    
+    if (!g_program) {
+        printf("[WASM] ERROR: deserialize returned null\n");
+        fflush(stdout);
         return -1;
     }
     
-    g_vm->load(program.get());
+    printf("[WASM] Deserialization success, loading into VM...\n");
+    fflush(stdout);
+    
+    g_vm->load(g_program);
+    
+    printf("[WASM] VM loaded, status: %d\n", 
+           static_cast<int>(g_vm->state().status));
+    fflush(stdout);
+    
     return 0;
 }
 
 EMSCRIPTEN_KEEPALIVE
 void nova_wasm_start() {
     if (g_vm) {
-        g_vm->run();
+        g_vm->step();
     }
 }
 
@@ -65,6 +118,13 @@ EMSCRIPTEN_KEEPALIVE
 void nova_wasm_next() {
     if (g_vm) {
         g_vm->step();
+    }
+}
+
+EMSCRIPTEN_KEEPALIVE
+void nova_wasm_consume_dialogue() {
+    if (g_vm) {
+        g_vm->consumeDialogue();
     }
 }
 
@@ -81,6 +141,36 @@ void nova_wasm_select_choice(int index) {
 EMSCRIPTEN_KEEPALIVE
 int nova_wasm_get_status() {
     return nova_get_status(g_vm.get());
+}
+
+EMSCRIPTEN_KEEPALIVE
+unsigned long long nova_wasm_get_runtime_state_version() {
+    return nova_get_runtime_state_version(g_vm.get());
+}
+
+EMSCRIPTEN_KEEPALIVE
+int nova_wasm_consume_runtime_state_change_flags() {
+    return nova_consume_runtime_state_change_flags(g_vm.get());
+}
+
+EMSCRIPTEN_KEEPALIVE
+const char* nova_wasm_get_default_font() {
+    return nova_get_default_font(g_vm.get());
+}
+
+EMSCRIPTEN_KEEPALIVE
+int nova_wasm_get_default_font_size() {
+    return nova_get_default_font_size(g_vm.get());
+}
+
+EMSCRIPTEN_KEEPALIVE
+int nova_wasm_get_default_text_speed() {
+    return nova_get_default_text_speed(g_vm.get());
+}
+
+EMSCRIPTEN_KEEPALIVE
+const char* nova_wasm_export_runtime_state_json(size_t* outSize) {
+    return nova_export_runtime_state_json(g_vm.get(), outSize);
 }
 
 EMSCRIPTEN_KEEPALIVE

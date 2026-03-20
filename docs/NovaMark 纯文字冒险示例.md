@@ -42,35 +42,11 @@ desc: "一根生锈的铁丝，很容易折断。"
 
 @end
 
-# **3\. 变量与 HUD (常驻 UI) 设置**
+# **3\. 变量与运行时状态设置**
 
 @var hp \= 20
 
 @var str \= 12 \# 力量属性
-
-@ui track hp\_bar
-
-content: "HP: {{hp}}"
-
-position: top\_left
-
-color: \#FF5555
-
-show: true
-
-@end
-
-@ui track money\_hud
-
-content: "金币: {{item\_count(gold\_coin)}}"
-
-position: top\_right
-
-color: \#FFD700
-
-show: true
-
-@end
 
 # **\----------------------------------------**
 

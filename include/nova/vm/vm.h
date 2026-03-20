@@ -5,6 +5,7 @@
 #include "nova/vm/inventory.h"
 #include "nova/vm/save_data.h"
 #include "nova/ast/ast_node.h"
+#include <cstdint>
 #include <memory>
 #include <functional>
 #include <vector>
@@ -20,10 +21,28 @@ struct SceneData {
     std::unordered_map<std::string, size_t> labels;
 };
 
+struct CharacterDefinition {
+    std::string id;
+    std::string color;
+    std::string description;
+};
+
+struct ItemDefinition {
+    std::string id;
+    std::string name;
+    std::string description;
+};
+
 /// @brief NovaMark 虚拟机
 class NovaVM {
 public:
     using ChoiceCallback = std::function<void(int)>;
+
+    enum RuntimeStateChangeFlag {
+        RuntimeStateChangeNone = 0,
+        RuntimeStateChangeVariables = 1 << 0,
+        RuntimeStateChangeInventory = 1 << 1
+    };
     
     NovaVM();
     ~NovaVM() = default;
@@ -34,6 +53,8 @@ public:
     
     /// @brief 获取当前渲染状态
     const NovaState& state() const { return m_state; }
+
+    void setTextConfig(const TextConfigState& config) { m_state.textConfig = config; }
 
     /// @brief 消费当前对话（渲染层展示后调用）
     void consumeDialogue();
@@ -90,6 +111,9 @@ public:
     /// @brief 背包管理器
     Inventory& inventory() { return m_inventory; }
     const Inventory& inventory() const { return m_inventory; }
+
+    const std::unordered_map<std::string, CharacterDefinition>& characterDefinitions() const { return m_characterDefinitions; }
+    const std::unordered_map<std::string, ItemDefinition>& itemDefinitions() const { return m_itemDefinitions; }
     
     /// @brief 周目状态
     PlaythroughState& playthrough() { return m_playthrough; }
@@ -107,6 +131,9 @@ public:
         m_delayCallback = std::move(callback);
     }
 
+    uint64_t runtimeStateVersion() const { return m_runtimeStateVersion; }
+    int consumeRuntimeStateChangeFlags();
+
 private:
     NovaState m_state;
     VariableManager m_variables;
@@ -116,6 +143,8 @@ private:
     
     const ProgramNode* m_program = nullptr;
     std::unordered_map<std::string, SceneData> m_scenes;
+    std::unordered_map<std::string, CharacterDefinition> m_characterDefinitions;
+    std::unordered_map<std::string, ItemDefinition> m_itemDefinitions;
 
     std::vector<std::string> m_scene_order;
     std::unordered_map<std::string, size_t> m_scene_order_index;
@@ -126,9 +155,13 @@ private:
     std::vector<std::pair<std::string, size_t>> m_callStack;
     
     std::function<void(double)> m_delayCallback;
+    uint64_t m_runtimeStateVersion = 0;
+    int m_runtimeStateChangeFlags = RuntimeStateChangeNone;
     
     void buildSceneIndex();
+    void buildDefinitionRegistry();
     void executeGlobalStatements();
+    void applyFrontMatterDefaults();
     void executeStatement(const AstNode* node);
     void executeDialogue(const DialogueNode* node);
     void executeNarrator(const NarratorNode* node);
@@ -146,7 +179,6 @@ private:
     void executeFlag(const FlagNode* node);
     void executeSave(const SaveNode* node);
     void executeWait(const WaitNode* node);
-    void executeUiCommand(const UiCommandNode* node);
     void executeCheck(const CheckCommandNode* node);
     
     VarValue evaluateExpression(const AstNode* expr);
@@ -155,6 +187,7 @@ private:
     std::string evaluateAsString(const AstNode* expr);
     VarValue evaluateFunctionCall(const CallExprNode* call);
     double evaluateDiceRoll(const std::string& expr);
+    void markRuntimeStateChanged(int flags);
 };
 
 } // namespace nova

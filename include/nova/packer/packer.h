@@ -4,6 +4,7 @@
 #include "nova/packer/ast_serializer.h"
 #include "nova/packer/asset_bundler.h"
 #include "nova/ast/ast_node.h"
+#include "nova/core/game_metadata.h"
 #include "nova/core/result.h"
 #include <string>
 #include <vector>
@@ -36,6 +37,8 @@ public:
     
     /// @brief 设置输出路径
     void setOutputPath(const std::string& path);
+
+    void setMetadata(const GameMetadata& metadata);
     
     /// @brief 执行打包
     PackResult pack();
@@ -47,6 +50,7 @@ private:
     std::vector<std::string> m_scripts;
     std::string m_assetDir;
     std::string m_outputPath;
+    GameMetadata m_metadata;
     std::string m_error;
     
     bool collectScripts(const std::string& path);

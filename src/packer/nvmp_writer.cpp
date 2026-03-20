@@ -3,6 +3,22 @@
 #include <cstring>
 #include <algorithm>
 
+namespace {
+
+uint64_t hash_path_for_nvmp(const std::string& path) {
+    std::string normalized = path;
+    std::transform(normalized.begin(), normalized.end(), normalized.begin(), ::tolower);
+    std::replace(normalized.begin(), normalized.end(), '\\', '/');
+
+    uint64_t hash = 5381;
+    for (char c : normalized) {
+        hash = ((hash << 5) + hash) + static_cast<uint64_t>(c);
+    }
+    return hash;
+}
+
+}
+
 namespace nova {
 
 NvmpWriter::NvmpWriter() {}
@@ -14,6 +30,10 @@ void NvmpWriter::setBytecode(std::vector<uint8_t> bytecode) {
 void NvmpWriter::setAssets(const AssetBundler& bundler) {
     m_index = bundler.buildIndex(0);
     m_dataSection = bundler.buildDataSection();
+}
+
+void NvmpWriter::setMetadata(const GameMetadata& metadata) {
+    m_metadata = metadata;
 }
 
 bool NvmpWriter::writeToFile(const std::string& path) {
@@ -34,33 +54,51 @@ bool NvmpWriter::writeToFile(const std::string& path) {
 
 std::vector<uint8_t> NvmpWriter::writeToBuffer() {
     std::vector<uint8_t> out;
-    
+
+    std::vector<NvmpIndexEntry> finalIndex = m_index;
+    std::vector<uint8_t> finalDataSection = m_dataSection;
+
+    if (m_metadata.valid) {
+        std::string metadataYaml = m_metadata.to_yaml();
+        std::vector<uint8_t> metadataBytes(metadataYaml.begin(), metadataYaml.end());
+
+        NvmpIndexEntry metadataEntry{};
+        metadataEntry.nameHash = hash_path_for_nvmp(NVMP_METADATA_PATH);
+        metadataEntry.offset = finalDataSection.size();
+        metadataEntry.length = static_cast<uint32_t>(metadataBytes.size());
+        metadataEntry.originalLength = static_cast<uint32_t>(metadataBytes.size());
+        metadataEntry.type = AssetType::Other;
+
+        finalIndex.push_back(metadataEntry);
+        finalDataSection.insert(finalDataSection.end(), metadataBytes.begin(), metadataBytes.end());
+    }
+     
     uint64_t headerSize = sizeof(NvmpHeader);
-    uint64_t indexSize = m_index.size() * sizeof(NvmpIndexEntry);
+    uint64_t indexSize = finalIndex.size() * sizeof(NvmpIndexEntry);
     uint64_t astSize = m_bytecode.size();
-    uint64_t dataSize = m_dataSection.size();
+    uint64_t dataSize = finalDataSection.size();
     
     NvmpHeader header;
     std::memcpy(header.magic, NVMP_MAGIC, 4);
     header.version = NVMP_VERSION;
     header.flags = 0;
-    header.indexCount = static_cast<uint32_t>(m_index.size());
+    header.indexCount = static_cast<uint32_t>(finalIndex.size());
     header.indexOffset = headerSize;
     header.astOffset = headerSize + indexSize;
     header.dataOffset = header.astOffset + astSize;
     
     uint64_t totalSize = headerSize + indexSize + astSize + dataSize;
     out.reserve(totalSize);
-    
+     
     writeHeader(out, header);
-    writeIndex(out, m_index);
+    writeIndex(out, finalIndex);
     writeBytecode(out);
-    writeData(out);
-    
-    for (auto& entry : m_index) {
+    out.insert(out.end(), finalDataSection.begin(), finalDataSection.end());
+     
+    for (auto& entry : finalIndex) {
         entry.offset += header.astOffset + astSize;
     }
-    
+     
     return out;
 }
 
@@ -223,6 +261,18 @@ std::vector<std::string> NvmpReader::listAssets() const {
     std::vector<std::string> names;
     names.reserve(m_index.size());
     return names;
+}
+
+GameMetadata NvmpReader::readMetadata() const {
+    GameMetadata meta;
+
+    std::vector<uint8_t> metadataBytes;
+    if (!getAsset(NVMP_METADATA_PATH, metadataBytes) || metadataBytes.empty()) {
+        return meta;
+    }
+
+    std::string yaml(metadataBytes.begin(), metadataBytes.end());
+    return GameMetadata::from_project_file(yaml);
 }
 
 uint64_t NvmpReader::hashPath(const std::string& path) const {

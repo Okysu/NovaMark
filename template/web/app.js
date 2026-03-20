@@ -1,7 +1,319 @@
 let renderer = null;
 let saveData = null;
+let lastChatSignature = null;
+let isEndingShown = false;
+
+/**
+ * 打字机效果类
+ * 基于 textConfig.defaultTextSpeed 实现逐字显示
+ */
+class TypewriterEffect {
+    constructor() {
+        this.element = null;
+        this.text = '';
+        this.currentIndex = 0;
+        this.isTyping = false;
+        this.timer = null;
+        this.onComplete = null;
+        // 默认速度：50ms/字符（对应 textSpeed = 50）
+        // textSpeed 越小越快，0 = 瞬间显示
+        this.speed = 50;
+    }
+
+    /**
+     * 开始打字效果
+     * @param {HTMLElement} element - 目标 DOM 元素
+     * @param {string} text - 完整文本
+     * @param {number} textSpeed - 文字速度（毫秒/字符），0 表示瞬间显示
+     * @param {Function} onComplete - 完成回调
+     */
+    start(element, text, textSpeed, onComplete) {
+        this.stop();
+        this.element = element;
+        this.text = text;
+        this.currentIndex = 0;
+        this.isTyping = true;
+        this.onComplete = onComplete;
+        this.speed = textSpeed > 0 ? textSpeed : 0;
+
+        // 速度为 0 时瞬间显示
+        if (this.speed === 0) {
+            this.element.textContent = this.text;
+            this.isTyping = false;
+            if (this.onComplete) this.onComplete();
+            return;
+        }
+
+        this.element.textContent = '';
+        this.tick();
+    }
+
+    tick() {
+        if (!this.isTyping) return;
+
+        if (this.currentIndex < this.text.length) {
+            this.currentIndex++;
+            this.element.textContent = this.text.slice(0, this.currentIndex);
+            this.timer = setTimeout(() => this.tick(), this.speed);
+        } else {
+            this.isTyping = false;
+            if (this.onComplete) this.onComplete();
+        }
+    }
+
+    /**
+     * 立即补全当前文字
+     * @returns {boolean} 是否执行了补全操作
+     */
+    complete() {
+        if (!this.isTyping) return false;
+
+        if (this.timer) {
+            clearTimeout(this.timer);
+            this.timer = null;
+        }
+        this.element.textContent = this.text;
+        this.isTyping = false;
+        if (this.onComplete) this.onComplete();
+        return true;
+    }
+
+    stop() {
+        if (this.timer) {
+            clearTimeout(this.timer);
+            this.timer = null;
+        }
+        this.isTyping = false;
+    }
+
+    isInProgress() {
+        return this.isTyping;
+    }
+}
+
+// 全局打字机实例
+const typewriter = new TypewriterEffect();
 
 const $ = id => document.getElementById(id);
+
+function getDebugChoices() {
+    if (!renderer || !renderer.hasChoices()) {
+        return [];
+    }
+
+    const count = renderer.getChoiceCount();
+    const choices = [];
+    for (let i = 0; i < count; i++) {
+        choices.push({
+            index: i,
+            text: renderer.getChoiceText(i),
+            disabled: renderer.isChoiceDisabled(i)
+        });
+    }
+    return choices;
+}
+
+function escapeHtml(value) {
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function buildStatusChips(runtimeState) {
+    if (!runtimeState) {
+        return [];
+    }
+
+    const chips = [];
+    const numbers = runtimeState.variables?.numbers || {};
+    const strings = runtimeState.variables?.strings || {};
+    const bools = runtimeState.variables?.bools || {};
+    const inventory = runtimeState.inventory || {};
+    const inventoryItems = Array.isArray(runtimeState.inventoryItems) ? runtimeState.inventoryItems : [];
+
+    for (const [key, value] of Object.entries(numbers)) {
+        chips.push({ label: key, value: String(value) });
+    }
+    for (const [key, value] of Object.entries(strings)) {
+        chips.push({ label: key, value: String(value) });
+    }
+    for (const [key, value] of Object.entries(bools)) {
+        chips.push({ label: key, value: value ? 'true' : 'false' });
+    }
+    if (inventoryItems.length > 0) {
+        for (const item of inventoryItems) {
+            chips.push({ label: item.name || item.id, value: String(item.count) });
+        }
+    } else {
+        for (const [key, value] of Object.entries(inventory)) {
+            chips.push({ label: `item:${key}`, value: String(value) });
+        }
+    }
+    return chips;
+}
+
+function renderStatusBar() {
+    if (!renderer) {
+        return;
+    }
+
+    const runtimeState = renderer.getRuntimeState();
+    const chips = buildStatusChips(runtimeState);
+    const html = chips.map(chip => (
+        `<div class="status-chip"><span class="status-chip-label">${escapeHtml(chip.label)}</span><span class="status-chip-value">${escapeHtml(chip.value)}</span></div>`
+    )).join('');
+
+    const vnBar = $('vn-status-bar');
+    const chatBar = $('chat-status-bar');
+    vnBar.innerHTML = html;
+    chatBar.innerHTML = html;
+    vnBar.classList.toggle('hidden', chips.length === 0 || renderer.mode !== 'vn');
+    chatBar.classList.toggle('hidden', chips.length === 0 || renderer.mode !== 'chat');
+}
+
+function getDebugSnapshot() {
+    if (!renderer) {
+        return null;
+    }
+
+    const snapshot = {
+        mode: renderer.mode,
+        status: renderer.getStatus(),
+        isEnded: renderer.isEnded(),
+        hasDialogue: renderer.hasDialogue(),
+        hasChoices: renderer.hasChoices(),
+        textConfig: renderer.getTextConfig(),
+        runtimeState: renderer.getRuntimeState(),
+        background: renderer.getBackground(),
+        bgm: renderer.getBgm(),
+        dialogue: null,
+        choices: getDebugChoices(),
+        sprites: []
+    };
+
+    if (renderer.hasDialogue()) {
+        snapshot.dialogue = {
+            speaker: renderer.getDialogueSpeaker(),
+            text: renderer.getDialogueText(),
+            color: renderer.getDialogueColor()
+        };
+    }
+
+    const spriteCount = renderer.getSpriteCount();
+    for (let i = 0; i < spriteCount; i++) {
+        snapshot.sprites.push({
+            url: renderer.getSpriteUrl(i),
+            x: renderer.getSpriteX(i),
+            y: renderer.getSpriteY(i),
+            opacity: renderer.getSpriteOpacity(i),
+            zIndex: renderer.getSpriteZIndex(i)
+        });
+    }
+
+    return snapshot;
+}
+
+function installDebugAPI() {
+    if (typeof window === 'undefined') {
+        return;
+    }
+
+    window.novaDebug = {
+        status() {
+            if (!renderer) {
+                return null;
+            }
+
+            return {
+                mode: renderer.mode,
+                status: renderer.getStatus(),
+                isEnded: renderer.isEnded(),
+                hasDialogue: renderer.hasDialogue(),
+                hasChoices: renderer.hasChoices(),
+                textConfig: renderer.getTextConfig(),
+                runtimeState: renderer.getRuntimeState()
+            };
+        },
+
+        snapshot() {
+            return getDebugSnapshot();
+        },
+
+        runtimeState() {
+            if (!renderer) {
+                return null;
+            }
+            return renderer.getRuntimeState();
+        },
+
+        choices() {
+            return getDebugChoices();
+        },
+
+        render() {
+            if (!renderer) {
+                return false;
+            }
+            renderGame();
+            return true;
+        },
+
+        step() {
+            if (!renderer || renderer.isEnded()) {
+                return false;
+            }
+            renderer.step();
+            return this.snapshot();
+        },
+
+        consume() {
+            if (!renderer || !renderer.hasDialogue()) {
+                return false;
+            }
+            renderer.consumeDialogue();
+            return this.snapshot();
+        },
+
+        advance() {
+            if (!renderer || renderer.isEnded()) {
+                return false;
+            }
+            if (renderer.hasChoices()) {
+                return this.snapshot();
+            }
+            if (renderer.hasDialogue()) {
+                renderer.consumeDialogue();
+            }
+            renderer.step();
+            renderGame();
+            return this.snapshot();
+        },
+
+        select(index) {
+            if (!renderer || !renderer.hasChoices()) {
+                return false;
+            }
+            if (index < 0 || index >= renderer.getChoiceCount()) {
+                return false;
+            }
+            renderer.selectChoice(index);
+            return this.snapshot();
+        },
+
+        choose(index) {
+            if (!renderer || !renderer.hasChoices()) {
+                return false;
+            }
+            handleChoice(index);
+            return this.snapshot();
+        }
+    };
+}
+
+installDebugAPI();
 
 document.addEventListener('DOMContentLoaded', () => {
     const nvmpInput = $('nvmp-file');
@@ -35,12 +347,16 @@ document.addEventListener('DOMContentLoaded', () => {
             renderer = new NovaRenderer();
             await renderer.init(nvmpData);
             
+            lastChatSignature = null;
+            isEndingShown = false;
+            
             if (saveData) {
                 renderer.importSave(saveData);
             }
             
             showGameScreen();
             renderer.start();
+            
             renderGame();
             
         } catch (err) {
@@ -57,6 +373,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     $('vn-dialogue').addEventListener('click', handleAdvance);
     $('vn-background').addEventListener('click', handleAdvance);
+    $('chat-messages').addEventListener('click', handleAdvance);
     
     $('save-btn').addEventListener('click', handleSave);
     $('menu-btn').addEventListener('click', () => $('menu-overlay').classList.remove('hidden'));
@@ -95,18 +412,28 @@ function setMode(mode) {
     
     $('vn-mode').classList.toggle('hidden', mode !== 'vn');
     $('chat-mode').classList.toggle('hidden', mode !== 'chat');
-    
-    if (mode === 'chat') {
-        $('chat-messages').innerHTML = '';
-    }
-    
+
     renderGame();
 }
 
 function handleAdvance() {
     if (!renderer || renderer.isEnded()) return;
     if (renderer.hasChoices()) return;
+
+    if (typewriter.isInProgress()) {
+        typewriter.complete();
+        return;
+    }
     
+    if (chatTypewriter.isInProgress()) {
+        chatTypewriter.complete();
+        return;
+    }
+
+    if (renderer.hasDialogue()) {
+        renderer.consumeDialogue();
+    }
+
     renderer.step();
     renderGame();
 }
@@ -114,12 +441,21 @@ function handleAdvance() {
 function handleChoice(index) {
     if (!renderer) return;
     
+    typewriter.stop();
+    chatTypewriter.stop();
+    
     if (renderer.mode === 'chat') {
         const choiceText = renderer.getChoiceText(index);
         addChatMessage(choiceText, 'player');
     }
     
     renderer.selectChoice(index);
+
+    if (renderer.hasDialogue()) {
+        renderer.consumeDialogue();
+    }
+
+    renderer.step();
     renderGame();
 }
 
@@ -146,6 +482,8 @@ async function renderGame() {
     } else {
         await renderChatMode();
     }
+
+    renderStatusBar();
     
     const bgm = renderer.getBgm();
     if (bgm) {
@@ -154,10 +492,14 @@ async function renderGame() {
         renderer.stopBgm();
     }
     
-    if (renderer.isEnded()) {
+    if (renderer.isEnded() && !isEndingShown) {
+        isEndingShown = true;
         showEnding();
     }
 }
+
+// 当前对话签名，用于检测对话是否变化
+let currentDialogueSignature = null;
 
 async function renderVNMode() {
     const bg = renderer.getBackground();
@@ -194,13 +536,37 @@ async function renderVNMode() {
         const speaker = renderer.getDialogueSpeaker();
         const text = renderer.getDialogueText();
         const color = renderer.getDialogueColor();
-        
-        $('vn-speaker').textContent = speaker;
-        $('vn-speaker').style.color = color || '#fff';
-        $('vn-text').textContent = text;
-        $('vn-indicator').classList.toggle('hidden', renderer.hasChoices());
+        const signature = `${speaker}\0${text}\0${color}`;
+
+        if (speaker) {
+            $('vn-speaker').textContent = speaker;
+            $('vn-speaker').style.color = color || '#fff';
+            $('vn-speaker').classList.remove('hidden');
+        } else {
+            $('vn-speaker').textContent = '';
+            $('vn-speaker').classList.add('hidden');
+        }
+
+        // 检测对话是否变化，变化时启动打字机效果
+        if (signature !== currentDialogueSignature) {
+            currentDialogueSignature = signature;
+            const textConfig = renderer.getTextConfig();
+            typewriter.start(
+                $('vn-text'),
+                text,
+                textConfig.defaultTextSpeed || 50,
+                () => {
+                    $('vn-indicator').classList.toggle('hidden', renderer.hasChoices());
+                }
+            );
+        } else if (!typewriter.isInProgress()) {
+            // 打字机已完成，显示指示器
+            $('vn-indicator').classList.toggle('hidden', renderer.hasChoices());
+        }
     } else {
         dialogueDiv.classList.add('hidden');
+        currentDialogueSignature = null;
+        typewriter.stop();
     }
     
     const choicesDiv = $('vn-choices');
@@ -223,16 +589,42 @@ async function renderVNMode() {
     }
 }
 
+const chatTypewriter = new TypewriterEffect();
+
 async function renderChatMode() {
     if (renderer.hasDialogue()) {
         const speaker = renderer.getDialogueSpeaker();
         const text = renderer.getDialogueText();
         const color = renderer.getDialogueColor();
+        const signature = `${speaker}\u0000${text}\u0000${color}`;
         
-        if (speaker) {
-            addChatMessage(text, 'dialogue', speaker, color);
-        } else {
-            addChatMessage(text, 'narrator');
+        if (signature !== lastChatSignature) {
+            lastChatSignature = signature;
+            
+            const messagesDiv = $('chat-messages');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = speaker ? 'chat-message dialogue' : 'chat-message narrator';
+            
+            if (speaker) {
+                const speakerDiv = document.createElement('div');
+                speakerDiv.className = 'speaker';
+                speakerDiv.textContent = speaker;
+                if (color) speakerDiv.style.color = color;
+                msgDiv.appendChild(speakerDiv);
+            }
+            
+            const textDiv = document.createElement('div');
+            msgDiv.appendChild(textDiv);
+            messagesDiv.appendChild(msgDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            
+            const textConfig = renderer.getTextConfig();
+            chatTypewriter.start(
+                textDiv,
+                text,
+                textConfig.defaultTextSpeed || 50,
+                null
+            );
         }
     }
     

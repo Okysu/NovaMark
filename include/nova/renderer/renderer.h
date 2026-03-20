@@ -34,9 +34,6 @@ public:
     virtual void showChoice(const ChoiceState& choice) = 0;
     virtual void hideChoice() = 0;
     
-    virtual void showHud(const HudState& hud) = 0;
-    virtual void hideHud(const std::string& id) = 0;
-    
     using ClickCallback = std::function<void(double x, double y)>;
     using ChoiceCallback = std::function<void(const std::string& choiceId)>;
     
@@ -62,8 +59,6 @@ public:
     void hideDialogue() override {}
     void showChoice(const ChoiceState&) override {}
     void hideChoice() override {}
-    void showHud(const HudState&) override {}
-    void hideHud(const std::string&) override {}
     void setOnClick(ClickCallback) override {}
     void setOnChoice(ChoiceCallback) override {}
 };

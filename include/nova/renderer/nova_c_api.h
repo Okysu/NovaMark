@@ -26,20 +26,17 @@ typedef struct {
 } NovaSprite;
 
 typedef struct {
-    const char* id;
-    int show;
-    const char* content;
-    const char* icon;
-    double x;
-    double y;
-} NovaHud;
-
-typedef struct {
     int isShow;
     const char* name;
     const char* text;
     const char* color;
 } NovaDialogue;
+
+typedef struct {
+    const char* defaultFont;
+    int defaultFontSize;
+    int defaultTextSpeed;
+} NovaTextConfig;
 
 typedef struct {
     const char* id;
@@ -53,9 +50,6 @@ typedef struct {
     
     const NovaSprite* sprites;
     size_t spriteCount;
-    
-    const NovaHud* huds;
-    size_t hudCount;
     
     NovaDialogue dialogue;
     int hasDialogue;
@@ -75,6 +69,7 @@ NOVA_API void nova_next(NovaVM* vm);
 NOVA_API void nova_make_choice(NovaVM* vm, const char* choiceId);
 
 NOVA_API NovaState nova_get_state(NovaVM* vm);
+NOVA_API NovaTextConfig nova_get_text_config(NovaVM* vm);
 
 NOVA_API const char* nova_get_error(NovaVM* vm);
 

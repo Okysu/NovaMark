@@ -139,6 +139,26 @@ TEST_F(VMTest, VMLoadProgram) {
     EXPECT_NE(vm.state().status, VMStatus::Ended);
 }
 
+TEST_F(VMTest, VMReadsDefaultTextConfigFromFrontMatter) {
+    auto result = parse(
+        "---\n"
+        "default_font: SourceHanSansCN-Regular.ttf\n"
+        "default_font_size: 28\n"
+        "default_text_speed: 60\n"
+        "---\n"
+        "#scene_start \"Start\"\n"
+        "> Hello\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+
+    NovaVM vm;
+    vm.load(result.unwrap());
+
+    EXPECT_EQ(vm.state().textConfig.defaultFont, "SourceHanSansCN-Regular.ttf");
+    EXPECT_EQ(vm.state().textConfig.defaultFontSize, 28);
+    EXPECT_EQ(vm.state().textConfig.defaultTextSpeed, 60);
+}
+
 TEST_F(VMTest, VMExecuteNarrator) {
     auto result = parse(
         "#scene_start \"Start\"\n"
@@ -168,6 +188,44 @@ TEST_F(VMTest, VMExecuteDialogue) {
     EXPECT_TRUE(vm.state().dialogue.has_value());
     EXPECT_EQ(vm.state().dialogue->speaker, "林晓");
     EXPECT_EQ(vm.state().dialogue->text, "你好");
+}
+
+TEST_F(VMTest, VMDialogueColorInheritsFromCharacterDefinition) {
+    auto result = parse(
+        "@char 林晓\n"
+        "color: #E8A0BF\n"
+        "@end\n"
+        "#scene_start \"Start\"\n"
+        "林晓: 你好\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+
+    NovaVM vm;
+    vm.load(result.unwrap());
+    vm.step();
+
+    ASSERT_TRUE(vm.state().dialogue.has_value());
+    EXPECT_EQ(vm.state().dialogue->color, "#E8A0BF");
+}
+
+TEST_F(VMTest, VMBuildsItemDefinitionRegistry) {
+    auto result = parse(
+        "@item healing_potion\n"
+        "name: 治疗药水\n"
+        "description: 恢复生命值\n"
+        "@end\n"
+        "#scene_start \"Start\"\n"
+        "> Hello\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+
+    NovaVM vm;
+    vm.load(result.unwrap());
+
+    const auto& items = vm.itemDefinitions();
+    ASSERT_TRUE(items.count("healing_potion"));
+    EXPECT_EQ(items.at("healing_potion").name, "治疗药水");
+    EXPECT_EQ(items.at("healing_potion").description, "恢复生命值");
 }
 
 TEST_F(VMTest, VMExecuteVarDef) {
@@ -399,6 +457,21 @@ TEST_F(VMTest, VMFunctionHasItem) {
     EXPECT_TRUE(vm.variables().asBool("has_key"));
 }
 
+TEST_F(VMTest, VMFunctionHasItemWithStringLiteral) {
+    auto result = parse(
+        "@give magic_stone 1\n"
+        "@var can_use_stone = has_item(\"magic_stone\")\n"
+        "#scene_start \"Start\"\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+
+    NovaVM vm;
+    vm.load(result.unwrap());
+    vm.run();
+
+    EXPECT_TRUE(vm.variables().asBool("can_use_stone"));
+}
+
 TEST_F(VMTest, VMFunctionItemCount) {
     auto result = parse(
         "@give gold 50\n"
@@ -412,6 +485,21 @@ TEST_F(VMTest, VMFunctionItemCount) {
     vm.run();
     
     EXPECT_DOUBLE_EQ(vm.variables().asNumber("coins"), 50.0);
+}
+
+TEST_F(VMTest, VMFunctionItemCountWithStringLiteral) {
+    auto result = parse(
+        "@give magic_stone 2\n"
+        "@var stone_count = item_count(\"magic_stone\")\n"
+        "#scene_start \"Start\"\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+
+    NovaVM vm;
+    vm.load(result.unwrap());
+    vm.run();
+
+    EXPECT_DOUBLE_EQ(vm.variables().asNumber("stone_count"), 2.0);
 }
 
 // ============================================

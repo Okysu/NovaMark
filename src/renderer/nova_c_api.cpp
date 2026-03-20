@@ -10,10 +10,10 @@
 struct NovaVM {
     nova::NovaVM vm;
     std::string lastError;
+    std::string textConfigFont;
     NovaStateCallback stateCallback = nullptr;
     void* callbackUserData = nullptr;
     std::vector<NovaSprite> spriteBuffer;
-    std::vector<NovaHud> hudBuffer;
     std::vector<NovaChoice> choiceBuffer;
 };
 
@@ -114,21 +114,6 @@ NovaState nova_get_state(NovaVM* vm) {
     state.sprites = vm->spriteBuffer.data();
     state.spriteCount = vm->spriteBuffer.size();
     
-    vm->hudBuffer.clear();
-    vm->hudBuffer.reserve(novaState.huds.size());
-    
-    for (const auto& hud : novaState.huds) {
-        NovaHud h = {};
-        h.id = hud.id.c_str();
-        h.show = hud.show ? 1 : 0;
-        h.content = hud.content.c_str();
-        h.icon = hud.icon.c_str();
-        vm->hudBuffer.push_back(h);
-    }
-    
-    state.huds = vm->hudBuffer.data();
-    state.hudCount = vm->hudBuffer.size();
-    
     state.hasDialogue = novaState.dialogue.has_value() ? 1 : 0;
     if (novaState.dialogue) {
         state.dialogue.isShow = novaState.dialogue->isShow ? 1 : 0;
@@ -155,6 +140,18 @@ NovaState nova_get_state(NovaVM* vm) {
     state.choiceCount = vm->choiceBuffer.size();
     
     return state;
+}
+
+NovaTextConfig nova_get_text_config(NovaVM* vm) {
+    NovaTextConfig config = {};
+
+    const auto& textConfig = vm->vm.state().textConfig;
+    vm->textConfigFont = textConfig.defaultFont;
+
+    config.defaultFont = vm->textConfigFont.c_str();
+    config.defaultFontSize = textConfig.defaultFontSize;
+    config.defaultTextSpeed = textConfig.defaultTextSpeed;
+    return config;
 }
 
 const char* nova_get_error(NovaVM* vm) {

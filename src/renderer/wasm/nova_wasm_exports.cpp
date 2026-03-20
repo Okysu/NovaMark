@@ -5,6 +5,7 @@
 #include "nova/vm/game_state.h"
 #include "nova/vm/save_data.h"
 #include "nova/packer/nvmp_writer.h"
+#include <nlohmann/json.hpp>
 #include <cstring>
 #include <cstdlib>
 #include <memory>
@@ -25,14 +26,14 @@ void nova_wasm_set_reader(nova::NvmpReader* reader);
 
 // ========== 资源访问 API ==========
 
-size_t nova_get_asset_size(void* vm, const char* name) {
+size_t nova_get_asset_size(void*, const char* name) {
     if (!g_current_reader || !name) return 0;
     
     std::vector<uint8_t> data;
     return g_current_reader->getAsset(name, data) ? data.size() : 0;
 }
 
-int nova_get_asset_bytes(void* vm, const char* name, 
+int nova_get_asset_bytes(void*, const char* name, 
                           unsigned char* buffer, size_t bufferSize) {
     if (!g_current_reader || !name || !buffer) return -1;
     
@@ -44,7 +45,7 @@ int nova_get_asset_bytes(void* vm, const char* name,
     return static_cast<int>(copySize);
 }
 
-int nova_has_asset(void* vm, const char* name) {
+int nova_has_asset(void*, const char* name) {
     if (!g_current_reader || !name) return 0;
     
     std::vector<uint8_t> data;
@@ -125,6 +126,16 @@ int nova_get_status(void* vm) {
     return 3;
 }
 
+unsigned long long nova_get_runtime_state_version(void* vm) {
+    auto* nova_vm = cast_vm(vm);
+    return nova_vm ? static_cast<unsigned long long>(nova_vm->runtimeStateVersion()) : 0ULL;
+}
+
+int nova_consume_runtime_state_change_flags(void* vm) {
+    auto* nova_vm = cast_vm(vm);
+    return nova_vm ? nova_vm->consumeRuntimeStateChangeFlags() : 0;
+}
+
 int nova_is_ended(void* vm) {
     auto* nova_vm = cast_vm(vm);
     return (!nova_vm || nova_vm->state().status == nova::VMStatus::Ended) ? 1 : 0;
@@ -134,6 +145,104 @@ const char* nova_get_ending_id(void* vm) {
     auto* nova_vm = cast_vm(vm);
     if (!nova_vm || !nova_vm->state().ending.has_value()) return nullptr;
     return nova_vm->state().ending->c_str();
+}
+
+const char* nova_get_default_font(void* vm) {
+    auto* nova_vm = cast_vm(vm);
+    if (!nova_vm) return "sans-serif";
+    return nova_vm->state().textConfig.defaultFont.c_str();
+}
+
+int nova_get_default_font_size(void* vm) {
+    auto* nova_vm = cast_vm(vm);
+    if (!nova_vm) return 24;
+    return nova_vm->state().textConfig.defaultFontSize;
+}
+
+int nova_get_default_text_speed(void* vm) {
+    auto* nova_vm = cast_vm(vm);
+    if (!nova_vm) return 50;
+    return nova_vm->state().textConfig.defaultTextSpeed;
+}
+
+const char* nova_export_runtime_state_json(void* vm, size_t* outSize) {
+    auto* nova_vm = cast_vm(vm);
+    if (!outSize) {
+        return nullptr;
+    }
+
+    *outSize = 0;
+    if (!nova_vm) {
+        return nullptr;
+    }
+
+    nlohmann::json json;
+
+    const auto& state = nova_vm->state();
+    json["status"] = static_cast<int>(state.status);
+    json["currentScene"] = state.currentScene;
+    json["currentLabel"] = state.currentLabel;
+    json["textConfig"] = {
+        {"defaultFont", state.textConfig.defaultFont},
+        {"defaultFontSize", state.textConfig.defaultFontSize},
+        {"defaultTextSpeed", state.textConfig.defaultTextSpeed}
+    };
+
+    json["variables"] = {
+        {"numbers", nova_vm->variables().getAllNumbers()},
+        {"strings", nova_vm->variables().getAllStrings()},
+        {"bools", nova_vm->variables().getAllBools()}
+    };
+
+    json["inventory"] = nova_vm->inventory().getAllItems();
+
+    json["itemDefinitions"] = nlohmann::json::object();
+    for (const auto& [id, item] : nova_vm->itemDefinitions()) {
+        json["itemDefinitions"][id] = {
+            {"id", item.id},
+            {"name", item.name},
+            {"description", item.description}
+        };
+    }
+
+    json["characterDefinitions"] = nlohmann::json::object();
+    for (const auto& [id, ch] : nova_vm->characterDefinitions()) {
+        json["characterDefinitions"][id] = {
+            {"id", ch.id},
+            {"color", ch.color},
+            {"description", ch.description}
+        };
+    }
+
+    json["inventoryItems"] = nlohmann::json::array();
+    for (const auto& [id, count] : nova_vm->inventory().getAllItems()) {
+        auto it = nova_vm->itemDefinitions().find(id);
+        if (it != nova_vm->itemDefinitions().end()) {
+            json["inventoryItems"].push_back({
+                {"id", id},
+                {"name", it->second.name},
+                {"description", it->second.description},
+                {"count", count}
+            });
+        } else {
+            json["inventoryItems"].push_back({
+                {"id", id},
+                {"name", id},
+                {"description", ""},
+                {"count", count}
+            });
+        }
+    }
+
+    std::string text = json.dump();
+    char* result = static_cast<char*>(std::malloc(text.size() + 1));
+    if (!result) {
+        return nullptr;
+    }
+
+    std::memcpy(result, text.c_str(), text.size() + 1);
+    *outSize = text.size();
+    return result;
 }
 
 void nova_wasm_set_reader(nova::NvmpReader* reader) {

@@ -81,14 +81,6 @@ protected:
         return dynamic_cast<const WaitNode*>(node);
     }
     
-    const UiCommandNode* as_ui_command(const AstNode* node) {
-        return dynamic_cast<const UiCommandNode*>(node);
-    }
-    
-    const UiTrackNode* as_ui_track(const AstNode* node) {
-        return dynamic_cast<const UiTrackNode*>(node);
-    }
-    
     const ThemeDefNode* as_theme_def(const AstNode* node) {
         return dynamic_cast<const ThemeDefNode*>(node);
     }
@@ -905,51 +897,6 @@ TEST_F(ParserTest, WaitCommandWithNumber) {
 TEST_F(ParserTest, WaitCommandWithText) {
     auto result = parse("@wait 2s\n");
     ASSERT_TRUE(result.is_ok());
-}
-
-// ============================================
-// UI Command Tests
-// ============================================
-
-TEST_F(ParserTest, UiShowCommand) {
-    auto result = parse("@ui show hp_bar\n");
-    ASSERT_TRUE(result.is_ok());
-    auto program = as_program(result.unwrap());
-    ASSERT_EQ(program->statements().size(), 1u);
-    
-    auto ui_cmd = as_ui_command(program->statements()[0].get());
-    ASSERT_NE(ui_cmd, nullptr);
-    EXPECT_EQ(ui_cmd->action(), UiCommandNode::Action::Show);
-    EXPECT_EQ(ui_cmd->target(), "hp_bar");
-}
-
-TEST_F(ParserTest, UiHideCommand) {
-    auto result = parse("@ui hide money_hud\n");
-    ASSERT_TRUE(result.is_ok());
-    auto program = as_program(result.unwrap());
-    
-    auto ui_cmd = as_ui_command(program->statements()[0].get());
-    ASSERT_NE(ui_cmd, nullptr);
-    EXPECT_EQ(ui_cmd->action(), UiCommandNode::Action::Hide);
-    EXPECT_EQ(ui_cmd->target(), "money_hud");
-}
-
-TEST_F(ParserTest, UiTrackCommand) {
-    auto result = parse(
-        "@ui track hp_bar\n"
-        "content: \"HP: {{hp}}\"\n"
-        "position: top_left\n"
-        "color: #FF5555\n"
-        "@end\n"
-    );
-    ASSERT_TRUE(result.is_ok());
-    auto program = as_program(result.unwrap());
-    ASSERT_EQ(program->statements().size(), 1u);
-    
-    auto ui_track = as_ui_track(program->statements()[0].get());
-    ASSERT_NE(ui_track, nullptr);
-    EXPECT_EQ(ui_track->name(), "hp_bar");
-    ASSERT_EQ(ui_track->properties().size(), 3u);
 }
 
 // ============================================

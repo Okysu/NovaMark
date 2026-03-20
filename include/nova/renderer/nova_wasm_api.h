@@ -86,6 +86,18 @@ NOVA_WASM_API int nova_is_ended(void* vm);
 /// @return 结局 ID，NULL 表示无结局
 NOVA_WASM_API const char* nova_get_ending_id(void* vm);
 
+NOVA_WASM_API const char* nova_get_default_font(void* vm);
+
+NOVA_WASM_API int nova_get_default_font_size(void* vm);
+
+NOVA_WASM_API int nova_get_default_text_speed(void* vm);
+
+NOVA_WASM_API const char* nova_export_runtime_state_json(void* vm, size_t* outSize);
+
+NOVA_WASM_API unsigned long long nova_get_runtime_state_version(void* vm);
+
+NOVA_WASM_API int nova_consume_runtime_state_change_flags(void* vm);
+
 #ifdef __cplusplus
 }
 #endif

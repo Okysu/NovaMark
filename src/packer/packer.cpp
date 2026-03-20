@@ -27,6 +27,10 @@ void Packer::setOutputPath(const std::string& path) {
     m_outputPath = path;
 }
 
+void Packer::setMetadata(const GameMetadata& metadata) {
+    m_metadata = metadata;
+}
+
 PackResult Packer::pack() {
     PackResult result;
     result.success = false;
@@ -100,6 +104,7 @@ PackResult Packer::pack() {
     NvmpWriter writer;
     writer.setBytecode(std::move(bytecode));
     writer.setAssets(bundler);
+    writer.setMetadata(m_metadata);
     
     if (!writer.writeToFile(m_outputPath)) {
         m_error = writer.error();

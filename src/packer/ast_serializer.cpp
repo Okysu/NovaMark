@@ -102,9 +102,6 @@ void AstSerializer::serializeNode(const AstNode* node) {
         case NodeType::Wait:
             serializeWait(dynamic_cast<const WaitNode*>(node));
             break;
-        case NodeType::UiCommand:
-            serializeUiCommand(dynamic_cast<const UiCommandNode*>(node));
-            break;
         case NodeType::ThemeDef:
             serializeThemeDef(dynamic_cast<const ThemeDefNode*>(node));
             break;
@@ -339,12 +336,6 @@ void AstSerializer::serializeWait(const WaitNode* node) {
     m_writer.writeDouble(node->seconds());
 }
 
-void AstSerializer::serializeUiCommand(const UiCommandNode* node) {
-    m_writer.writeByte(static_cast<uint8_t>(OpCode::NodeUiCommand));
-    m_writer.writeByte(static_cast<uint8_t>(node->action()));
-    m_writer.writeString(node->target());
-}
-
 void AstSerializer::serializeThemeDef(const ThemeDefNode* node) {
     m_writer.writeByte(static_cast<uint8_t>(OpCode::NodeThemeDef));
     m_writer.writeString(node->name());
@@ -551,8 +542,6 @@ std::unique_ptr<AstNode> AstDeserializer::deserializeNode() {
             return deserializeCheckCommand();
         case OpCode::NodeWait:
             return deserializeWait();
-        case OpCode::NodeUiCommand:
-            return deserializeUiCommand();
         case OpCode::NodeThemeDef:
             return deserializeThemeDef();
         case OpCode::NodeFrontMatter:
@@ -810,13 +799,6 @@ std::unique_ptr<CheckCommandNode> AstDeserializer::deserializeCheckCommand() {
 std::unique_ptr<WaitNode> AstDeserializer::deserializeWait() {
     double seconds = m_reader->readDouble();
     return std::make_unique<WaitNode>(SourceLocation{}, seconds);
-}
-
-std::unique_ptr<UiCommandNode> AstDeserializer::deserializeUiCommand() {
-    uint8_t actionByte = m_reader->readByte();
-    auto action = static_cast<UiCommandNode::Action>(actionByte);
-    std::string target = m_reader->readString();
-    return std::make_unique<UiCommandNode>(SourceLocation{}, action, std::move(target));
 }
 
 std::unique_ptr<ThemeDefNode> AstDeserializer::deserializeThemeDef() {

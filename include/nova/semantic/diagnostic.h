@@ -20,7 +20,6 @@ enum class SemanticError {
     UndefinedCharacter,
     UndefinedItem,
     UndefinedLabel,
-    UndefinedUiComponent,
     DuplicateScene,
     DuplicateVariable,
     DuplicateCharacter,

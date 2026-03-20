@@ -5,7 +5,6 @@ class NovaRenderer {
         this.audioContext = null;
         this.currentBgm = null;
         this.currentBgmUrl = null;
-        this.sfxPool = new Map();
         this.assetCache = new Map();
         this.imageCache = new Map();
     }
@@ -13,39 +12,61 @@ class NovaRenderer {
     async init(nvmpData) {
         const runtime = await createNovaRuntime();
         this.vm = runtime;
-        
+
         runtime._nova_wasm_init();
-        
+
         const dataPtr = runtime._malloc(nvmpData.byteLength);
-        runtime.HEAPU8.set(new Uint8Array(nvmpData), dataPtr);
-        
+        this.writeBytes(dataPtr, new Uint8Array(nvmpData));
+
         const result = runtime._nova_wasm_load_package(dataPtr, nvmpData.byteLength);
         runtime._free(dataPtr);
-        
+
         if (result !== 0) {
-            throw new Error('Failed to load game package');
+            throw new Error('Failed to load game package (code: ' + result + ')');
         }
-        
-        this.vm = runtime;
     }
 
     start() {
         this.vm._nova_wasm_start();
-        this.render();
     }
 
     step() {
         this.vm._nova_wasm_next();
-        this.render();
+    }
+
+    consumeDialogue() {
+        this.vm._nova_wasm_consume_dialogue();
     }
 
     selectChoice(index) {
         this.vm._nova_wasm_select_choice(index);
-        this.render();
     }
 
     getStatus() {
         return this.vm._nova_wasm_get_status();
+    }
+
+    getTextConfig() {
+        return {
+            defaultFont: this.vm.UTF8ToString(this.vm._nova_wasm_get_default_font()),
+            defaultFontSize: this.vm._nova_wasm_get_default_font_size(),
+            defaultTextSpeed: this.vm._nova_wasm_get_default_text_speed()
+        };
+    }
+
+    getRuntimeState() {
+        const sizePtr = this.vm._malloc(4);
+        const jsonPtr = this.vm._nova_wasm_export_runtime_state_json(sizePtr);
+        const size = this.vm.getValue(sizePtr, 'i32');
+        this.vm._free(sizePtr);
+
+        if (!jsonPtr || size <= 0) {
+            return null;
+        }
+
+        const jsonText = this.vm.UTF8ToString(jsonPtr);
+        this.vm._nova_wasm_free(jsonPtr);
+        return JSON.parse(jsonText);
     }
 
     isEnded() {
@@ -56,28 +77,28 @@ class NovaRenderer {
         if (this.assetCache.has(name)) {
             return this.assetCache.get(name);
         }
-        
+
         const namePtr = this.allocateString(name);
         const size = this.vm._nova_wasm_get_asset_size(namePtr);
-        
+
         if (size === 0) {
             this.vm._free(namePtr);
             return null;
         }
-        
+
         const bufferPtr = this.vm._malloc(size);
         const bytesRead = this.vm._nova_wasm_get_asset_bytes(namePtr, bufferPtr, size);
-        
+
         this.vm._free(namePtr);
-        
+
         if (bytesRead <= 0) {
             this.vm._free(bufferPtr);
             return null;
         }
-        
-        const bytes = this.vm.HEAPU8.slice(bufferPtr, bufferPtr + bytesRead);
+
+        const bytes = this.readBytes(bufferPtr, bytesRead);
         this.vm._free(bufferPtr);
-        
+
         this.assetCache.set(name, bytes);
         return bytes;
     }
@@ -86,13 +107,13 @@ class NovaRenderer {
         if (this.imageCache.has(assetName)) {
             return this.imageCache.get(assetName);
         }
-        
+
         const bytes = await this.getAssetBytes(assetName);
         if (!bytes) return null;
-        
+
         const blob = new Blob([bytes], { type: this.getMimeType(assetName) });
         const url = URL.createObjectURL(blob);
-        
+
         this.imageCache.set(assetName, url);
         return url;
     }
@@ -113,14 +134,26 @@ class NovaRenderer {
     }
 
     allocateString(str) {
-        const len = lengthBytesUTF8(str) + 1;
+        const len = this.vm.lengthBytesUTF8(str) + 1;
         const ptr = this.vm._malloc(len);
-        stringToUTF8(str, ptr, len);
+        this.vm.stringToUTF8(str, ptr, len);
         return ptr;
     }
 
+    writeBytes(ptr, bytes) {
+        this.vm.writeArrayToMemory(bytes, ptr);
+    }
+
+    readBytes(ptr, length) {
+        return this.vm.HEAPU8.slice(ptr, ptr + length);
+    }
+
     getString(ptr) {
-        return UTF8ToString(ptr);
+        if (!ptr) {
+            return '';
+        }
+
+        return this.vm.UTF8ToString(ptr);
     }
 
     getBackground() {
@@ -197,27 +230,27 @@ class NovaRenderer {
 
     async playBgm(assetName, loop, volume) {
         if (this.currentBgmUrl === assetName) return;
-        
+
         if (this.currentBgm) {
             this.currentBgm.pause();
             this.currentBgm = null;
         }
-        
+
         const bytes = await this.getAssetBytes(assetName);
         if (!bytes) return;
-        
+
         if (!this.audioContext) {
             this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
         }
-        
+
         const blob = new Blob([bytes], { type: this.getMimeType(assetName) });
         const url = URL.createObjectURL(blob);
-        
+
         this.currentBgm = new Audio(url);
         this.currentBgm.loop = loop;
         this.currentBgm.volume = volume;
         this.currentBgmUrl = assetName;
-        
+
         try {
             await this.currentBgm.play();
         } catch (e) {
@@ -237,17 +270,17 @@ class NovaRenderer {
     async playSfx(assetName) {
         const bytes = await this.getAssetBytes(assetName);
         if (!bytes) return;
-        
+
         if (!this.audioContext) {
             this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
         }
-        
+
         const blob = new Blob([bytes], { type: this.getMimeType(assetName) });
         const url = URL.createObjectURL(blob);
-        
+
         const sfx = new Audio(url);
         sfx.volume = 1.0;
-        
+
         try {
             await sfx.play();
         } catch (e) {
@@ -258,18 +291,18 @@ class NovaRenderer {
     exportSave() {
         const sizePtr = this.vm._malloc(4);
         const jsonPtr = this.vm._nova_wasm_export_save_json(sizePtr);
-        
+
         if (!jsonPtr) {
             this.vm._free(sizePtr);
             return null;
         }
-        
+
         const size = this.vm.getValue(sizePtr, 'i32');
         const json = this.getString(jsonPtr);
-        
+
         this.vm._free(sizePtr);
         this.vm._nova_wasm_free(jsonPtr);
-        
+
         return json;
     }
 
@@ -277,19 +310,12 @@ class NovaRenderer {
         const jsonPtr = this.allocateString(json);
         const result = this.vm._nova_wasm_import_save_json(jsonPtr, json.length);
         this.vm._free(jsonPtr);
-        
-        if (result === 0) {
-            this.render();
-            return true;
-        }
-        return false;
+
+        return result === 0;
     }
 
     setMode(mode) {
         this.mode = mode;
-    }
-
-    render() {
     }
 }
 

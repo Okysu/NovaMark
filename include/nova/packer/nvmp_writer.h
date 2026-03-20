@@ -3,6 +3,7 @@
 #include "nova/packer/nvmp_format.h"
 #include "nova/packer/ast_serializer.h"
 #include "nova/packer/asset_bundler.h"
+#include "nova/core/game_metadata.h"
 #include <string>
 #include <vector>
 
@@ -18,6 +19,8 @@ public:
     
     /// @brief 设置资源打包器
     void setAssets(const AssetBundler& bundler);
+
+    void setMetadata(const GameMetadata& metadata);
     
     /// @brief 写入到文件
     bool writeToFile(const std::string& path);
@@ -32,6 +35,7 @@ private:
     std::vector<uint8_t> m_bytecode;
     std::vector<NvmpIndexEntry> m_index;
     std::vector<uint8_t> m_dataSection;
+    GameMetadata m_metadata;
     std::string m_error;
     
     void writeHeader(std::vector<uint8_t>& out, const NvmpHeader& header);
@@ -59,6 +63,8 @@ public:
     
     /// @brief 获取所有资源名称
     std::vector<std::string> listAssets() const;
+
+    GameMetadata readMetadata() const;
     
     /// @brief 获取错误信息
     const std::string& error() const { return m_error; }

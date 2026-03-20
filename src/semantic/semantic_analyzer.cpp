@@ -26,10 +26,6 @@ const LabelNode* as_label(const AstNode* node) {
     return dynamic_cast<const LabelNode*>(node);
 }
 
-const UiTrackNode* as_ui_track(const AstNode* node) {
-    return dynamic_cast<const UiTrackNode*>(node);
-}
-
 const ThemeDefNode* as_theme_def(const AstNode* node) {
     return dynamic_cast<const ThemeDefNode*>(node);
 }
@@ -64,10 +60,6 @@ const GiveCommandNode* as_give_cmd(const AstNode* node) {
 
 const TakeCommandNode* as_take_cmd(const AstNode* node) {
     return dynamic_cast<const TakeCommandNode*>(node);
-}
-
-const UiCommandNode* as_ui_cmd(const AstNode* node) {
-    return dynamic_cast<const UiCommandNode*>(node);
 }
 
 const CheckCommandNode* as_check_cmd(const AstNode* node) {
@@ -189,19 +181,6 @@ void SemanticAnalyzer::collect_from_node(const AstNode* node) {
             break;
         }
         
-        case NodeType::UiTrack: {
-            auto ui = as_ui_track(node);
-            if (m_symbols.exists(ui->name())) {
-                m_diagnostics.error(SemanticError::DuplicateVariable,
-                    "duplicate UI component: " + ui->name(),
-                    ui->location());
-            } else {
-                m_symbols.define(ui->name(), SymbolKind::UiComponent,
-                                ui->location());
-            }
-            break;
-        }
-        
         case NodeType::ThemeDef: {
             auto theme = as_theme_def(node);
             if (m_symbols.exists(theme->name())) {
@@ -294,18 +273,6 @@ void SemanticAnalyzer::check_node_references(const AstNode* node) {
         case NodeType::TakeCommand: {
             auto take = as_take_cmd(node);
             check_item_ref(take->item(), take->location());
-            break;
-        }
-        
-        case NodeType::UiCommand: {
-            auto ui = as_ui_cmd(node);
-            if (!m_symbols.exists(ui->target())) {
-                m_diagnostics.error(SemanticError::UndefinedUiComponent,
-                    "undefined UI component: " + ui->target(),
-                    ui->location());
-            } else {
-                m_symbols.mark_used(ui->target());
-            }
             break;
         }
         

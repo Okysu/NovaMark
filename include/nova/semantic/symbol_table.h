@@ -16,7 +16,6 @@ enum class SymbolKind {
     Character,
     Item,
     Label,
-    UiComponent,
     Theme
 };
 

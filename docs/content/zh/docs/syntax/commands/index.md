@@ -354,17 +354,6 @@ endcheck
 
 ---
 
-### @ui - UI 控制
-
-控制 UI 组件显示/隐藏。
-
-```nvm
-@ui show inventory
-@ui hide hud
-```
-
----
-
 ## 表达式与函数
 
 ### 算术运算

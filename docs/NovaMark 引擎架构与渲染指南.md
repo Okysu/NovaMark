@@ -71,12 +71,7 @@ interface NovaState {
     id: string; url: string; x: number; y: number; opacity: number; zIndex: number;  
   }\>;  
     
-  // 3\. 常驻 UI (HUD)  
-  huds: Array\<{  
-    id: string; show: boolean; content: string; icon: string; x: number; y: number;  
-  }\>;  
-    
-  // 4\. 对话与选择  
+  // 3\. 对话与选择  
   dialogue: { isShow: boolean; name: string; text: string; color: string } | null;  
   choices: Array\<{ id: string; text: string; disabled: boolean }\>;  
 }
