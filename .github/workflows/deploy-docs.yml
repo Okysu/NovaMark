@@ -28,8 +28,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          submodules: recursive
           fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Hugo Module Cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            /tmp/hugo_cache
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-hugo-${{ hashFiles('docs/go.mod') }}
+          restore-keys: |
+            ${{ runner.os }}-hugo-
 
       - name: Setup Hugo
         uses: peaceiris/actions-hugo@v2
@@ -43,6 +57,7 @@ jobs:
 
       - name: Build with Hugo
         run: |
+          hugo mod tidy
           hugo --gc --minify \
             --baseURL "${{ steps.pages.outputs.base_url }}/"
 

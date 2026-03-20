@@ -121,6 +121,12 @@
 },
 {
   "directory": "C:/Users/10423/Code/NovaMark",
+  "command": "C:\\PROGRA~1\\MIB055~1\\18\\COMMUN~1\\VC\\Tools\\MSVC\\1450~1.357\\bin\\Hostx64\\x64\\cl.exe  /nologo /TP -DNOVA_EXPORTS -IC:\\Users\\10423\\Code\\NovaMark\\include -external:IC:\\Users\\10423\\Code\\NovaMark\\vcpkg_installed\\x64-windows\\include -external:W0 /DWIN32 /D_WINDOWS /GR /EHsc /Zi /Ob0 /Od /RTC1 -std:c++17 -MDd /W4 /utf-8 /Fosrc\\renderer\\CMakeFiles\\nova-renderer.dir\\nova_c_api.cpp.obj /Fdsrc\\renderer\\CMakeFiles\\nova-renderer.dir\\nova-renderer.pdb /FS -c C:\\Users\\10423\\Code\\NovaMark\\src\\renderer\\nova_c_api.cpp",
+  "file": "C:/Users/10423/Code/NovaMark/src/renderer/nova_c_api.cpp",
+  "output": "C:/Users/10423/Code/NovaMark/src/renderer/CMakeFiles/nova-renderer.dir/nova_c_api.cpp.obj"
+},
+{
+  "directory": "C:/Users/10423/Code/NovaMark",
   "command": "C:\\PROGRA~1\\MIB055~1\\18\\COMMUN~1\\VC\\Tools\\MSVC\\1450~1.357\\bin\\Hostx64\\x64\\cl.exe  /nologo /TP -IC:\\Users\\10423\\Code\\NovaMark\\include -external:IC:\\Users\\10423\\Code\\NovaMark\\vcpkg_installed\\x64-windows\\include -external:W0 /DWIN32 /D_WINDOWS /GR /EHsc /Zi /Ob0 /Od /RTC1 -std:c++17 -MDd /W4 /utf-8 /Fosrc\\cli\\CMakeFiles\\nova-cli.dir\\main.cpp.obj /Fdsrc\\cli\\CMakeFiles\\nova-cli.dir\\ /FS -c C:\\Users\\10423\\Code\\NovaMark\\src\\cli\\main.cpp",
   "file": "C:/Users/10423/Code/NovaMark/src/cli/main.cpp",
   "output": "C:/Users/10423/Code/NovaMark/src/cli/CMakeFiles/nova-cli.dir/main.cpp.obj"

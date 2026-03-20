@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NovaMark Player</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <!-- 启动画面 -->
+        <div id="start-screen" class="screen">
+            <div class="start-content">
+                <h1>NovaMark</h1>
+                <p>Interactive Fiction & Visual Novel Engine</p>
+                
+                <div class="file-inputs">
+                    <div class="input-group">
+                        <label for="nvmp-file">Select Game Package (.nvmp)</label>
+                        <input type="file" id="nvmp-file" accept=".nvmp">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="save-file">Load Save (optional)</label>
+                        <input type="file" id="save-file" accept=".json">
+                    </div>
+                </div>
+                
+                <button id="start-btn" disabled>Start Game</button>
+                
+                <div id="loading" class="hidden">Loading...</div>
+                <div id="error" class="hidden"></div>
+            </div>
+        </div>
+        
+        <!-- 游戏画面 -->
+        <div id="game-screen" class="screen hidden">
+            <!-- 模式切换 -->
+            <div id="mode-switch">
+                <button id="vn-mode-btn" class="active">VN Mode</button>
+                <button id="chat-mode-btn">Chat Mode</button>
+            </div>
+            
+            <!-- VN 模式 -->
+            <div id="vn-mode" class="game-mode">
+                <div id="vn-background"></div>
+                <div id="vn-sprites"></div>
+                <div id="vn-dialogue" class="hidden">
+                    <div id="vn-speaker"></div>
+                    <div id="vn-text"></div>
+                    <div id="vn-indicator">▼</div>
+                </div>
+                <div id="vn-choices" class="hidden"></div>
+            </div>
+            
+            <!-- Chat 模式 -->
+            <div id="chat-mode" class="game-mode hidden">
+                <div id="chat-messages"></div>
+                <div id="chat-input-area">
+                    <div id="chat-choices"></div>
+                </div>
+            </div>
+            
+            <!-- 菜单 -->
+            <div id="game-menu">
+                <button id="save-btn">Save</button>
+                <button id="menu-btn">Menu</button>
+            </div>
+        </div>
+        
+        <!-- 菜单覆盖层 -->
+        <div id="menu-overlay" class="overlay hidden">
+            <div class="menu-content">
+                <h2>Menu</h2>
+                <button id="resume-btn">Resume</button>
+                <button id="save-menu-btn">Save Game</button>
+                <button id="load-menu-btn">Load Save</button>
+                <button id="new-game-btn">New Game</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="nova.js"></script>
+    <script src="nova_renderer.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

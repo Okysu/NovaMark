@@ -89,6 +89,8 @@ out/
 release/
 debug/
 dist/
+docs/public/
+docs/resources/
 
 # ----------------------------------------------------------
 # vcpkg
