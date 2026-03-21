@@ -22,12 +22,11 @@ struct SpriteState {
     std::string position;
     double opacity = 1.0;
     int zIndex = 0;
-    std::optional<std::string> animation;
 
     bool operator==(const SpriteState& other) const {
         return id == other.id && url == other.url && x == other.x && y == other.y &&
                position == other.position &&
-               opacity == other.opacity && zIndex == other.zIndex && animation == other.animation;
+               opacity == other.opacity && zIndex == other.zIndex;
     }
 };
 
@@ -84,8 +83,6 @@ struct ChoiceState {
 enum class VMStatus {
     Running,
     WaitingChoice,
-    WaitingInput,
-    WaitingDelay,
     Ended
 };
 
@@ -114,8 +111,6 @@ struct NovaState {
     std::optional<ChoiceState> choice;
     
     std::optional<std::string> ending;
-    
-    std::string saveLabel;
     
     void clear() {
         status = VMStatus::Running;

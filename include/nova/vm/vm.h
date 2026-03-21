@@ -58,9 +58,6 @@ public:
 
     void setTextConfig(const TextConfigState& config) { m_state.textConfig = config; }
 
-    /// @brief 消费当前对话（渲染层展示后调用）
-    void consumeDialogue();
-    
     /// @brief 捕获当前游戏状态
     GameState captureState() const;
     
@@ -73,17 +70,11 @@ public:
     /// @brief 执行一步（直到需要用户输入）
     void step();
     
-    /// @brief 执行一步（advance 的别名，用于 C API）
-    void advance() { step(); }
-    
-    /// @brief 执行到下一个等待点
-    void run();
-    
-    /// @brief 选择选项（按索引）
-    void selectChoice(int index);
+    /// @brief 推进到下一个离散阻塞点（对话 / 选择 / 结局 / 场景切换）
+    void advance();
     
     /// @brief 选择选项（按 ID）
-    bool selectChoiceById(const std::string& choiceId);
+    bool choose(const std::string& choiceId);
     
     /// @brief 获取当前场景名
     const std::string& currentScene() const { return m_currentScene; }
@@ -128,11 +119,6 @@ public:
     /// @brief 重置 VM
     void reset();
     
-    /// @brief 设置延迟回调
-    void setDelayCallback(std::function<void(double)> callback) {
-        m_delayCallback = std::move(callback);
-    }
-
     uint64_t runtimeStateVersion() const { return m_runtimeStateVersion; }
     int consumeRuntimeStateChangeFlags();
 
@@ -155,8 +141,7 @@ private:
     size_t m_statementIndex = 0;
     
     std::vector<std::pair<std::string, size_t>> m_callStack;
-    
-    std::function<void(double)> m_delayCallback;
+
     uint64_t m_runtimeStateVersion = 0;
     int m_runtimeStateChangeFlags = RuntimeStateChangeNone;
     
@@ -179,7 +164,6 @@ private:
     void executeSfx(const SfxCommandNode* node);
     void executeEnding(const EndingNode* node);
     void executeFlag(const FlagNode* node);
-    void executeWait(const WaitNode* node);
     void executeCheck(const CheckCommandNode* node);
     
     VarValue evaluateExpression(const AstNode* expr);

@@ -64,9 +64,8 @@ NOVA_API void nova_destroy(NovaVM* vm);
 NOVA_API int nova_load_package(NovaVM* vm, const char* path);
 NOVA_API int nova_load_from_buffer(NovaVM* vm, const unsigned char* data, size_t size);
 
-NOVA_API void nova_start(NovaVM* vm);
-NOVA_API void nova_next(NovaVM* vm);
-NOVA_API void nova_make_choice(NovaVM* vm, const char* choiceId);
+NOVA_API void nova_advance(NovaVM* vm);
+NOVA_API void nova_choose(NovaVM* vm, const char* choiceId);
 
 NOVA_API NovaState nova_get_state(NovaVM* vm);
 NOVA_API NovaTextConfig nova_get_text_config(NovaVM* vm);
@@ -76,8 +75,8 @@ NOVA_API const char* nova_get_error(NovaVM* vm);
 typedef void (*NovaStateCallback)(NovaState state, void* userData);
 NOVA_API void nova_set_state_callback(NovaVM* vm, NovaStateCallback callback, void* userData);
 
-NOVA_API int nova_save_game(NovaVM* vm, const char* path);
-NOVA_API int nova_load_game(NovaVM* vm, const char* path);
+NOVA_API int nova_save_snapshot_file(NovaVM* vm, const char* path);
+NOVA_API int nova_load_snapshot_file(NovaVM* vm, const char* path);
 
 NOVA_API size_t nova_get_variable_count(NovaVM* vm);
 NOVA_API const char* nova_get_variable_name(NovaVM* vm, size_t index);

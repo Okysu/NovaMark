@@ -71,9 +71,9 @@ NOVA_WASM_API const char* nova_get_current_scene(void* vm);
 /// @return 标签名（不需要释放，内部管理）
 NOVA_WASM_API const char* nova_get_current_label(void* vm);
 
-/// @brief 获取游戏状态（Running/WaitingChoice/Ended 等）
+/// @brief 获取游戏状态（Running/WaitingChoice/Ended）
 /// @param vm VM 实例
-/// @return 状态码：0=Running, 1=WaitingChoice, 2=WaitingInput, 3=Ended
+/// @return 状态码：0=Running, 1=WaitingChoice, 2=Ended
 NOVA_WASM_API int nova_get_status(void* vm);
 
 /// @brief 检查游戏是否结束

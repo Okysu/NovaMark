@@ -82,10 +82,6 @@ const FlagNode* as_flag(const AstNode* node) {
     return dynamic_cast<const FlagNode*>(node);
 }
 
-const WaitNode* as_wait(const AstNode* node) {
-    return dynamic_cast<const WaitNode*>(node);
-}
-
 const CheckCommandNode* as_check(const AstNode* node) {
     return dynamic_cast<const CheckCommandNode*>(node);
 }
@@ -179,10 +175,6 @@ void NovaVM::markRuntimeStateChanged(int flags) {
 
     ++m_runtimeStateVersion;
     m_runtimeStateChangeFlags |= flags;
-}
-
-void NovaVM::consumeDialogue() {
-    m_state.clearDialogue();
 }
 
 GameState NovaVM::captureState() const {
@@ -398,9 +390,13 @@ void NovaVM::buildSceneIndex() {
     }
 }
 
-void NovaVM::step() {
+void NovaVM::advance() {
     if (m_state.status == VMStatus::Ended) return;
     if (m_state.status == VMStatus::WaitingChoice) return;
+
+    if (m_state.dialogue) {
+        m_state.clearDialogue();
+    }
     
     m_state.sfx.clear();
     
@@ -462,7 +458,6 @@ void NovaVM::step() {
         executeStatement(stmt.get());
         
         if (m_state.status == VMStatus::WaitingChoice ||
-            m_state.status == VMStatus::WaitingDelay ||
             m_state.status == VMStatus::Ended) {
             return;
         }
@@ -477,38 +472,36 @@ void NovaVM::step() {
     }
 }
 
-void NovaVM::run() {
-    while (m_state.status == VMStatus::Running) {
-        step();
-    }
-}
+namespace {
+void select_choice_by_index(nova::NovaVM& vm, int index) {
+    auto& state = const_cast<nova::NovaState&>(vm.state());
+    if (state.status != nova::VMStatus::WaitingChoice || !state.choice) return;
 
-void NovaVM::selectChoice(int index) {
-    if (m_state.status != VMStatus::WaitingChoice || !m_state.choice) return;
-    
-    if (index < 0 || index >= static_cast<int>(m_state.choice->options.size())) return;
-    
-    ChoiceOption opt = m_state.choice->options[index];
-    m_state.clearChoice();
-    m_state.clearDialogue();  // 清除旧对话，避免重复显示
-    m_state.status = VMStatus::Running;
-    
+    if (index < 0 || index >= static_cast<int>(state.choice->options.size())) return;
+
+    nova::ChoiceOption opt = state.choice->options[index];
+    state.clearChoice();
+    state.clearDialogue();
+    state.status = nova::VMStatus::Running;
+
     if (!opt.target.empty() && opt.target[0] == '.') {
-        jumpToLabel(opt.target.substr(1));
+        vm.jumpToLabel(opt.target.substr(1));
     } else {
-        jumpToScene(opt.target);
+        vm.jumpToScene(opt.target);
     }
 }
+}
 
-bool NovaVM::selectChoiceById(const std::string& choiceId) {
+bool NovaVM::choose(const std::string& choiceId) {
     if (m_state.status != VMStatus::WaitingChoice || !m_state.choice) return false;
-    
+
     for (int i = 0; i < static_cast<int>(m_state.choice->options.size()); ++i) {
         if (m_state.choice->options[i].id == choiceId) {
-            selectChoice(i);
+            select_choice_by_index(*this, i);
             return true;
         }
     }
+
     return false;
 }
 
@@ -634,9 +627,6 @@ void NovaVM::executeStatement(const AstNode* node) {
             break;
         case NodeType::Flag:
             executeFlag(as_flag(node));
-            break;
-        case NodeType::Wait:
-            executeWait(as_wait(node));
             break;
         case NodeType::CheckCommand:
             executeCheck(as_check(node));
@@ -822,13 +812,6 @@ void NovaVM::executeEnding(const EndingNode* node) {
 void NovaVM::executeFlag(const FlagNode* node) {
     if (!node) return;
     m_playthrough.setFlag(node->name());
-}
-
-void NovaVM::executeWait(const WaitNode* node) {
-    if (!node) return;
-    if (m_delayCallback) {
-        m_delayCallback(node->seconds());
-    }
 }
 
 void NovaVM::executeCheck(const CheckCommandNode* node) {

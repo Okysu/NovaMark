@@ -261,34 +261,11 @@ function installDebugAPI() {
             return true;
         },
 
-        step() {
-            if (!renderer || renderer.isEnded()) {
-                return false;
-            }
-            renderer.step();
-            return this.snapshot();
-        },
-
-        consume() {
-            if (!renderer || !renderer.hasDialogue()) {
-                return false;
-            }
-            renderer.consumeDialogue();
-            return this.snapshot();
-        },
-
         advance() {
             if (!renderer || renderer.isEnded()) {
                 return false;
             }
-            if (renderer.hasChoices()) {
-                return this.snapshot();
-            }
-            if (renderer.hasDialogue()) {
-                renderer.consumeDialogue();
-            }
-            renderer.step();
-            renderGame();
+            renderer.advance();
             return this.snapshot();
         },
 
@@ -355,7 +332,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             showGameScreen();
-            renderer.start();
+            renderer.advance();
             
             renderGame();
             
@@ -430,11 +407,7 @@ function handleAdvance() {
         return;
     }
 
-    if (renderer.hasDialogue()) {
-        renderer.consumeDialogue();
-    }
-
-    renderer.step();
+    renderer.advance();
     renderGame();
 }
 
@@ -451,11 +424,7 @@ function handleChoice(index) {
     
     renderer.selectChoice(index);
 
-    if (renderer.hasDialogue()) {
-        renderer.consumeDialogue();
-    }
-
-    renderer.step();
+    renderer.advance();
     renderGame();
 }
 

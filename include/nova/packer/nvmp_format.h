@@ -71,7 +71,6 @@ enum class OpCode : uint8_t {
     NodeFlag = 21,
     NodeLabel = 22,
     NodeCheckCommand = 23,
-    NodeWait = 24,
     NodeThemeDef = 26,
     NodeFrontMatter = 27,
     NodeLiteral = 28,

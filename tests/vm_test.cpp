@@ -187,7 +187,7 @@ TEST_F(VMTest, VMExecuteNarrator) {
     
     NovaVM vm;
     vm.load(result.unwrap());
-    vm.step();
+    vm.advance();
     
     EXPECT_TRUE(vm.state().dialogue.has_value());
     EXPECT_EQ(vm.state().dialogue->text, "Hello World");
@@ -202,7 +202,7 @@ TEST_F(VMTest, VMExecuteDialogue) {
     
     NovaVM vm;
     vm.load(result.unwrap());
-    vm.step();
+    vm.advance();
     
     EXPECT_TRUE(vm.state().dialogue.has_value());
     EXPECT_EQ(vm.state().dialogue->speaker, "林晓");
@@ -221,7 +221,7 @@ TEST_F(VMTest, VMDialogueColorInheritsFromCharacterDefinition) {
 
     NovaVM vm;
     vm.load(result.unwrap());
-    vm.step();
+    vm.advance();
 
     ASSERT_TRUE(vm.state().dialogue.has_value());
     EXPECT_EQ(vm.state().dialogue->color, "#E8A0BF");
@@ -256,7 +256,7 @@ TEST_F(VMTest, VMExecuteVarDef) {
     
     NovaVM vm;
     vm.load(result.unwrap());
-    vm.run();
+    vm.advance();
     
     EXPECT_TRUE(vm.variables().exists("hp"));
     EXPECT_DOUBLE_EQ(vm.variables().asNumber("hp"), 100.0);
@@ -272,7 +272,7 @@ TEST_F(VMTest, VMExecuteSetCommand) {
     
     NovaVM vm;
     vm.load(result.unwrap());
-    vm.run();
+    vm.advance();
     
     EXPECT_DOUBLE_EQ(vm.variables().asNumber("gold"), 100.0);
 }
@@ -288,7 +288,7 @@ TEST_F(VMTest, VMExecuteGiveTake) {
     
     NovaVM vm;
     vm.load(result.unwrap());
-    vm.run();
+    vm.advance();
     
     EXPECT_TRUE(vm.inventory().has("sword"));
     EXPECT_EQ(vm.inventory().count("coin"), 30);
@@ -305,8 +305,8 @@ TEST_F(VMTest, VMExecuteJump) {
     
     NovaVM vm;
     vm.load(result.unwrap());
-    vm.step();
-    vm.step();
+    vm.advance();
+    vm.advance();
     
     EXPECT_EQ(vm.state().currentScene, "scene_next");
     EXPECT_TRUE(vm.state().dialogue.has_value());
@@ -328,7 +328,7 @@ TEST_F(VMTest, VMExecuteChoice) {
     
     NovaVM vm;
     vm.load(result.unwrap());
-    vm.step();
+    vm.advance();
     
     EXPECT_EQ(vm.state().status, VMStatus::WaitingChoice);
     EXPECT_TRUE(vm.state().choice.has_value());
@@ -347,12 +347,14 @@ TEST_F(VMTest, VMSelectChoice) {
     
     NovaVM vm;
     vm.load(result.unwrap());
-    vm.step();
+    vm.advance();
     
     EXPECT_EQ(vm.state().status, VMStatus::WaitingChoice);
     
-    vm.selectChoice(0);
-    vm.step();
+    ASSERT_TRUE(vm.state().choice.has_value());
+    ASSERT_FALSE(vm.state().choice->options.empty());
+    vm.choose(vm.state().choice->options[0].id);
+    vm.advance();
     
     EXPECT_EQ(vm.state().status, VMStatus::Running);
     EXPECT_TRUE(vm.state().dialogue.has_value());
@@ -371,7 +373,7 @@ TEST_F(VMTest, VMJumpToLabelAcceptsDotPrefix) {
     vm.load(result.unwrap());
 
     ASSERT_TRUE(vm.jumpToLabel(".a"));
-    vm.step();
+    vm.advance();
     EXPECT_TRUE(vm.state().dialogue.has_value());
     EXPECT_EQ(vm.state().dialogue->text, "Hit");
 }
@@ -388,12 +390,12 @@ TEST_F(VMTest, VMContinuesToNextSceneInOrder) {
     NovaVM vm;
     vm.load(result.unwrap());
 
-    vm.step();
+    vm.advance();
     EXPECT_EQ(vm.state().currentScene, "scene_a");
     EXPECT_TRUE(vm.state().dialogue.has_value());
     EXPECT_EQ(vm.state().dialogue->text, "In A");
 
-    vm.step();
+    vm.advance();
     EXPECT_EQ(vm.state().currentScene, "scene_b");
     EXPECT_TRUE(vm.state().dialogue.has_value());
     EXPECT_EQ(vm.state().dialogue->text, "In B");
@@ -411,7 +413,7 @@ TEST_F(VMTest, VMExecuteBranchTrue) {
     
     NovaVM vm;
     vm.load(result.unwrap());
-    vm.run();
+    vm.advance();
     
     EXPECT_TRUE(vm.state().dialogue.has_value());
     EXPECT_EQ(vm.state().dialogue->text, "True branch");
@@ -426,7 +428,7 @@ TEST_F(VMTest, VMExecuteBgCommand) {
     
     NovaVM vm;
     vm.load(result.unwrap());
-    vm.run();
+    vm.advance();
     
     EXPECT_TRUE(vm.state().bg.has_value());
 }
@@ -440,7 +442,7 @@ TEST_F(VMTest, VMExecuteEnding) {
     
     NovaVM vm;
     vm.load(result.unwrap());
-    vm.run();
+    vm.advance();
     
     EXPECT_TRUE(vm.playthrough().hasEnding("bad_ending"));
     EXPECT_TRUE(vm.state().ending.has_value());
@@ -456,7 +458,7 @@ TEST_F(VMTest, VMExecuteFlag) {
     
     NovaVM vm;
     vm.load(result.unwrap());
-    vm.run();
+    vm.advance();
     
     EXPECT_TRUE(vm.playthrough().hasFlag("chest_opened"));
 }
@@ -471,7 +473,7 @@ TEST_F(VMTest, VMFunctionHasItem) {
     
     NovaVM vm;
     vm.load(result.unwrap());
-    vm.run();
+    vm.advance();
     
     EXPECT_TRUE(vm.variables().asBool("has_key"));
 }
@@ -486,7 +488,7 @@ TEST_F(VMTest, VMFunctionHasItemWithStringLiteral) {
 
     NovaVM vm;
     vm.load(result.unwrap());
-    vm.run();
+    vm.advance();
 
     EXPECT_TRUE(vm.variables().asBool("can_use_stone"));
 }
@@ -501,7 +503,7 @@ TEST_F(VMTest, VMFunctionItemCount) {
     
     NovaVM vm;
     vm.load(result.unwrap());
-    vm.run();
+    vm.advance();
     
     EXPECT_DOUBLE_EQ(vm.variables().asNumber("coins"), 50.0);
 }
@@ -516,7 +518,7 @@ TEST_F(VMTest, VMFunctionItemCountWithStringLiteral) {
 
     NovaVM vm;
     vm.load(result.unwrap());
-    vm.run();
+    vm.advance();
 
     EXPECT_DOUBLE_EQ(vm.variables().asNumber("stone_count"), 2.0);
 }
@@ -531,7 +533,7 @@ TEST_F(VMTest, VMFunctionHasFlag) {
 
     NovaVM vm;
     vm.load(result.unwrap());
-    vm.run();
+    vm.advance();
 
     EXPECT_TRUE(vm.variables().asBool("met"));
 }
@@ -545,7 +547,7 @@ TEST_F(VMTest, VMFunctionHasEnding) {
 
     NovaVM vm;
     vm.load(result.unwrap());
-    vm.run();
+    vm.advance();
 
     EXPECT_TRUE(vm.playthrough().hasEnding("good_end"));
 }
@@ -560,7 +562,7 @@ TEST_F(VMTest, VMFunctionRandomRange) {
 
     NovaVM vm;
     vm.load(result.unwrap());
-    vm.run();
+    vm.advance();
 
     double value = vm.variables().asNumber("r");
     EXPECT_GE(value, 1.0);
@@ -576,7 +578,7 @@ TEST_F(VMTest, VMFunctionChanceReturnsBool) {
 
     NovaVM vm;
     vm.load(result.unwrap());
-    vm.run();
+    vm.advance();
 
     EXPECT_TRUE(vm.variables().exists("lucky"));
 }
@@ -593,7 +595,7 @@ TEST_F(VMTest, VMLogicalAndOrExpressions) {
 
     NovaVM vm;
     vm.load(result.unwrap());
-    vm.run();
+    vm.advance();
 
     EXPECT_TRUE(vm.variables().asBool("ok"));
 }
@@ -612,12 +614,11 @@ TEST_F(VMTest, VMDialogueUsesSpriteDefaultAndEmotionSprite) {
 
     NovaVM vm;
     vm.load(result.unwrap());
-    vm.step();
+    vm.advance();
     ASSERT_FALSE(vm.state().sprites.empty());
     EXPECT_EQ(vm.state().sprites.front().url, "linxiao_default.png");
 
-    vm.consumeDialogue();
-    vm.step();
+        vm.advance();
     ASSERT_FALSE(vm.state().sprites.empty());
     EXPECT_EQ(vm.state().sprites.front().url, "linxiao_happy.png");
 }
@@ -649,7 +650,7 @@ TEST_F(VMTest, VMSpritePositionStringPassThrough) {
 
     NovaVM vm;
     vm.load(result.unwrap());
-    vm.run();
+    vm.advance();
 
     ASSERT_FALSE(vm.state().sprites.empty());
     EXPECT_EQ(vm.state().sprites.front().position, "left");
@@ -778,7 +779,7 @@ TEST_F(VMTest, SaveToFileAndLoad) {
     save.label = "Test";
     save.state = state;
     
-    std::string filepath = "test_save.json";
+    std::string filepath = "test_save.nvs";
     ASSERT_TRUE(GameStateSerializer::saveToFile(filepath, save));
     
     SaveData loaded;
@@ -789,6 +790,42 @@ TEST_F(VMTest, SaveToFileAndLoad) {
     EXPECT_DOUBLE_EQ(loaded.state.numberVariables["test_var"], 123.0);
     
     std::remove(filepath.c_str());
+}
+
+TEST_F(VMTest, SerializeSaveDataBinary) {
+    GameState state;
+    state.currentScene = "binary_scene";
+    state.statementIndex = 7;
+    state.numberVariables = {{"hp", 88.0}};
+    state.stringVariables = {{"name", "BinaryHero"}};
+    state.boolVariables = {{"alive", true}};
+    state.inventory = {{"potion", 2}};
+    state.triggeredEndings = {"true_end"};
+    state.flags = {"opened_gate"};
+
+    SaveData save;
+    save.saveId = "save_bin";
+    save.label = "Binary Save";
+    save.screenshot = "binary.png";
+    save.timestamp = std::chrono::system_clock::now();
+    save.state = state;
+
+    auto bytes = GameStateSerializer::serializeSaveBinary(save);
+    ASSERT_FALSE(bytes.empty());
+
+    SaveData restored;
+    ASSERT_TRUE(GameStateSerializer::deserializeSaveBinary(bytes, restored));
+    EXPECT_EQ(restored.saveId, "save_bin");
+    EXPECT_EQ(restored.label, "Binary Save");
+    EXPECT_EQ(restored.screenshot, "binary.png");
+    EXPECT_EQ(restored.state.currentScene, "binary_scene");
+    EXPECT_EQ(restored.state.statementIndex, 7u);
+    EXPECT_DOUBLE_EQ(restored.state.numberVariables["hp"], 88.0);
+    EXPECT_EQ(restored.state.stringVariables["name"], "BinaryHero");
+    EXPECT_TRUE(restored.state.boolVariables["alive"]);
+    EXPECT_EQ(restored.state.inventory["potion"], 2);
+    EXPECT_TRUE(restored.state.triggeredEndings.count("true_end"));
+    EXPECT_TRUE(restored.state.flags.count("opened_gate"));
 }
 
 // ============================================
@@ -1004,16 +1041,16 @@ TEST_F(VMTest, VMStatusTransitions) {
     vm.load(result.unwrap());
     EXPECT_EQ(vm.state().status, VMStatus::Running);
     
-    vm.step();
+    vm.advance();
     EXPECT_EQ(vm.state().status, VMStatus::Running);
     EXPECT_TRUE(vm.state().dialogue.has_value());
     EXPECT_EQ(vm.state().dialogue->text, "First");
     
-    vm.step();
+    vm.advance();
     EXPECT_EQ(vm.state().status, VMStatus::Running);
     EXPECT_EQ(vm.state().dialogue->text, "Second");
     
-    vm.step();
+    vm.advance();
     EXPECT_EQ(vm.state().status, VMStatus::Ended);
     EXPECT_TRUE(vm.state().ending.has_value());
     EXPECT_EQ(*vm.state().ending, "test_end");
@@ -1032,13 +1069,15 @@ TEST_F(VMTest, VMWaitingChoiceTransition) {
     NovaVM vm;
     vm.load(result.unwrap());
     
-    vm.step();
+    vm.advance();
     EXPECT_EQ(vm.state().status, VMStatus::WaitingChoice);
     EXPECT_TRUE(vm.state().choice.has_value());
     EXPECT_EQ(vm.state().choice->options.size(), 1);
     
-    vm.selectChoice(0);
-    vm.step();
+    ASSERT_TRUE(vm.state().choice.has_value());
+    ASSERT_FALSE(vm.state().choice->options.empty());
+    vm.choose(vm.state().choice->options[0].id);
+    vm.advance();
     EXPECT_EQ(vm.state().status, VMStatus::Running);
 }
 
@@ -1051,7 +1090,7 @@ TEST_F(VMTest, VMReset) {
     
     NovaVM vm;
     vm.load(result.unwrap());
-    vm.step();
+    vm.advance();
     
     EXPECT_TRUE(vm.state().dialogue.has_value());
     
@@ -1078,7 +1117,7 @@ TEST_F(VMTest, VMCaptureState) {
     
     NovaVM vm;
     vm.load(result.unwrap());
-    vm.run();
+    vm.advance();
     
     auto state = vm.captureState();
     EXPECT_EQ(state.currentScene, "scene_forest");
@@ -1102,12 +1141,12 @@ TEST_F(VMTest, VMLoadSaveRestoresState) {
     
     NovaVM vm;
     vm.load(result.unwrap());
-    vm.run();
+    vm.advance();
     
     EXPECT_EQ(vm.currentScene(), "scene_dungeon");
     
     vm.jumpToLabel("hall");
-    vm.step();
+    vm.advance();
     
     auto savedState = vm.captureState();
     EXPECT_EQ(savedState.currentScene, "scene_dungeon");
@@ -1130,7 +1169,7 @@ TEST_F(VMTest, VMLoadSaveWithEndingsAndFlags) {
     
     NovaVM vm;
     vm.load(result.unwrap());
-    vm.step();
+    vm.advance();
     
     vm.playthrough().triggerEnding("good_ending");
     vm.playthrough().setFlag("met_king");
@@ -1141,10 +1180,37 @@ TEST_F(VMTest, VMLoadSaveWithEndingsAndFlags) {
     
     NovaVM vm2;
     vm2.load(result.unwrap());
-    vm2.step();
+    vm2.advance();
     EXPECT_TRUE(vm2.loadSave(savedState));
     EXPECT_TRUE(vm2.playthrough().hasEnding("good_ending"));
     EXPECT_TRUE(vm2.playthrough().hasFlag("met_king"));
+}
+
+TEST_F(VMTest, VMChooseById) {
+    auto result = parse(
+        "#scene_start \"Start\"\n"
+        "? Choose:\n"
+        "- [Left] -> .left\n"
+        "- [Right] -> .right\n"
+        ".left\n"
+        "> Left path\n"
+        ".right\n"
+        "> Right path\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+
+    NovaVM vm;
+    vm.load(result.unwrap());
+    vm.advance();
+    ASSERT_TRUE(vm.state().choice.has_value());
+    ASSERT_GE(vm.state().choice->options.size(), 2u);
+
+    const std::string choiceId = vm.state().choice->options[1].id;
+    EXPECT_TRUE(vm.choose(choiceId));
+    vm.advance();
+
+    ASSERT_TRUE(vm.state().dialogue.has_value());
+    EXPECT_EQ(vm.state().dialogue->text, "Right path");
 }
 
 // ============================================
@@ -1162,7 +1228,7 @@ TEST_F(VMTest, VMDivisionByZero) {
     
     NovaVM vm;
     vm.load(result.unwrap());
-    vm.run();
+    vm.advance();
     
     EXPECT_DOUBLE_EQ(vm.variables().asNumber("result"), 0.0);
 }
@@ -1178,7 +1244,7 @@ TEST_F(VMTest, VMModuloByZero) {
     
     NovaVM vm;
     vm.load(result.unwrap());
-    vm.run();
+    vm.advance();
     
     EXPECT_DOUBLE_EQ(vm.variables().asNumber("result"), 0.0);
 }
@@ -1194,7 +1260,7 @@ TEST_F(VMTest, VMInvalidDiceExpression) {
     
     NovaVM vm;
     vm.load(result.unwrap());
-    vm.run();
+    vm.advance();
     
     EXPECT_NO_THROW(vm.variables().asNumber("r1"));
     EXPECT_NO_THROW(vm.variables().asNumber("r2"));
@@ -1213,17 +1279,16 @@ TEST_F(VMTest, VMSelectChoiceInvalidIndex) {
     
     NovaVM vm;
     vm.load(result.unwrap());
-    vm.step();
+    vm.advance();
     
     EXPECT_EQ(vm.state().status, VMStatus::WaitingChoice);
     
-    vm.selectChoice(-1);
+    EXPECT_FALSE(vm.choose("missing_choice"));
     EXPECT_EQ(vm.state().status, VMStatus::WaitingChoice);
-    
-    vm.selectChoice(999);
-    EXPECT_EQ(vm.state().status, VMStatus::WaitingChoice);
-    
-    vm.selectChoice(0);
+
+    ASSERT_TRUE(vm.state().choice.has_value());
+    ASSERT_FALSE(vm.state().choice->options.empty());
+    EXPECT_TRUE(vm.choose(vm.state().choice->options[0].id));
     EXPECT_EQ(vm.state().status, VMStatus::Running);
 }
 
@@ -1236,7 +1301,7 @@ TEST_F(VMTest, VMJumpToInvalidLabel) {
     
     NovaVM vm;
     vm.load(result.unwrap());
-    vm.step();
+    vm.advance();
     
     EXPECT_FALSE(vm.jumpToLabel("nonexistent"));
     EXPECT_EQ(vm.currentScene(), "scene_start");
@@ -1251,7 +1316,7 @@ TEST_F(VMTest, VMJumpToInvalidScene) {
     
     NovaVM vm;
     vm.load(result.unwrap());
-    vm.step();
+    vm.advance();
     
     EXPECT_FALSE(vm.jumpToScene("nonexistent_scene"));
     EXPECT_EQ(vm.currentScene(), "scene_start");
@@ -1279,16 +1344,17 @@ TEST_F(VMTest, VMMultiSceneWithLabels) {
     NovaVM vm;
     vm.load(result.unwrap());
     
-    vm.step();
+    vm.advance();
     EXPECT_EQ(vm.currentScene(), "scene_intro");
     EXPECT_EQ(vm.state().dialogue->text, "Welcome");
-    vm.consumeDialogue();
-    
-    vm.step();
+        
+    vm.advance();
     EXPECT_EQ(vm.state().status, VMStatus::WaitingChoice);
     
-    vm.selectChoice(0);
-    vm.step();
+    ASSERT_TRUE(vm.state().choice.has_value());
+    ASSERT_FALSE(vm.state().choice->options.empty());
+    vm.choose(vm.state().choice->options[0].id);
+    vm.advance();
     EXPECT_EQ(vm.currentScene(), "scene_forest");
     EXPECT_EQ(vm.state().dialogue->text, "In the forest.");
 }
@@ -1307,16 +1373,16 @@ TEST_F(VMTest, VMSceneAutoContinue) {
     NovaVM vm;
     vm.load(result.unwrap());
     
-    vm.step();
+    vm.advance();
     EXPECT_EQ(vm.currentScene(), "scene_a");
     
-    vm.step();
+    vm.advance();
     EXPECT_EQ(vm.currentScene(), "scene_b");
     
-    vm.step();
+    vm.advance();
     EXPECT_EQ(vm.currentScene(), "scene_c");
     
-    vm.step();
+    vm.advance();
     EXPECT_EQ(vm.state().status, VMStatus::Ended);
 }
 
@@ -1335,22 +1401,20 @@ TEST_F(VMTest, VMCallAndReturn) {
     NovaVM vm;
     vm.load(result.unwrap());
     
-    vm.step();
+    vm.advance();
     EXPECT_EQ(vm.currentScene(), "scene_main");
     EXPECT_EQ(vm.state().dialogue->text, "Starting");
-    vm.consumeDialogue();
-    
-    vm.step();
+        
+    vm.advance();
     EXPECT_EQ(vm.currentScene(), "scene_shop");
     
-    vm.step();
+    vm.advance();
     EXPECT_EQ(vm.state().dialogue->text, "In shop");
-    vm.consumeDialogue();
-    
-    vm.step();
+        
+    vm.advance();
     EXPECT_EQ(vm.currentScene(), "scene_main");
     
-    vm.step();
+    vm.advance();
     EXPECT_EQ(vm.state().dialogue->text, "Back to main");
 }
 
@@ -1373,7 +1437,7 @@ TEST_F(VMTest, VMExpressionEvaluation) {
     
     NovaVM vm;
     vm.load(result.unwrap());
-    vm.run();
+    vm.advance();
     
     EXPECT_DOUBLE_EQ(vm.variables().asNumber("sum"), 13.0);
     EXPECT_DOUBLE_EQ(vm.variables().asNumber("diff"), 7.0);
@@ -1396,7 +1460,7 @@ TEST_F(VMTest, VMComparisonExpressions) {
     
     NovaVM vm;
     vm.load(result.unwrap());
-    vm.run();
+    vm.advance();
     
     EXPECT_TRUE(vm.variables().asBool("gt"));
     EXPECT_TRUE(vm.variables().asBool("lt"));
@@ -1415,7 +1479,7 @@ TEST_F(VMTest, VMLogicalExpressions) {
     
     NovaVM vm;
     vm.load(result.unwrap());
-    vm.run();
+    vm.advance();
     
     EXPECT_TRUE(vm.variables().asBool("not_result"));
 }

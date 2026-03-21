@@ -32,7 +32,6 @@ enum class NodeType {
     Call,               // @call 调用
     Return,             // @return 返回
     Label,              // .label 子场景标签
-    Wait,               // @wait 等待
     
     // 指令
     BgCommand,          // @bg
@@ -628,20 +627,6 @@ private:
     AstPtr m_condition;
     std::vector<AstPtr> m_success_branch;
     std::vector<AstPtr> m_failure_branch;
-};
-
-/// @brief @wait 等待节点
-class WaitNode : public AstNode {
-public:
-    WaitNode(SourceLocation loc, double seconds)
-        : AstNode(std::move(loc)), m_seconds(seconds) {}
-    
-    NodeType type() const override { return NodeType::Wait; }
-    
-    double seconds() const { return m_seconds; }
-
-private:
-    double m_seconds;
 };
 
 /// @brief @theme 主题定义节点

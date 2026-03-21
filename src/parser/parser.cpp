@@ -417,9 +417,6 @@ Result<AstPtr> Parser::parse_directive() {
     if (directive == "check") {
         return parse_check_command();
     }
-    if (directive == "wait") {
-        return parse_wait_command();
-    }
     if (directive == "theme") {
         return parse_theme_def();
     }
@@ -1158,37 +1155,6 @@ Result<AstPtr> Parser::parse_check_command() {
     if (check(TokenType::Newline)) advance();
     
     return Ok(AstPtr(check_cmd.release()));
-}
-
-Result<AstPtr> Parser::parse_wait_command() {
-    SourceLocation loc = current().location;
-    
-    double seconds = 0.0;
-    if (check(TokenType::NumberLiteral)) {
-        seconds = std::stod(current().value);
-        advance();
-        if (check(TokenType::Identifier)) {
-            std::string unit = current().value;
-            advance();
-            if (unit == "ms") {
-                seconds /= 1000.0;
-            }
-        }
-    } else if (check(TokenType::Text) || check(TokenType::Identifier)) {
-        std::string val = current().value;
-        advance();
-        if (val.size() > 0) {
-            size_t pos = 0;
-            while (pos < val.size() && !std::isdigit(static_cast<unsigned char>(val[pos]))) pos++;
-            if (pos < val.size()) {
-                seconds = std::stod(val.substr(pos));
-            }
-        }
-    }
-    
-    if (check(TokenType::Newline)) advance();
-    
-    return Ok(AstPtr(new WaitNode(loc, seconds)));
 }
 
 Result<AstPtr> Parser::parse_theme_def() {

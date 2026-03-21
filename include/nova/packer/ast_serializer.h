@@ -46,7 +46,6 @@ private:
     void serializeFlag(const FlagNode* node);
     void serializeLabel(const LabelNode* node);
     void serializeCheckCommand(const CheckCommandNode* node);
-    void serializeWait(const WaitNode* node);
     void serializeThemeDef(const ThemeDefNode* node);
     void serializeFrontMatter(const FrontMatterNode* node);
     
@@ -102,7 +101,6 @@ private:
     std::unique_ptr<FlagNode> deserializeFlag();
     std::unique_ptr<LabelNode> deserializeLabel();
     std::unique_ptr<CheckCommandNode> deserializeCheckCommand();
-    std::unique_ptr<WaitNode> deserializeWait();
     std::unique_ptr<ThemeDefNode> deserializeThemeDef();
     std::unique_ptr<FrontMatterNode> deserializeFrontMatter();
     

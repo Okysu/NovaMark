@@ -87,8 +87,8 @@ int main(int argc, char* argv[]) {
         return 1;
     }
     
-    // 开始游戏
-    nova_start(vm);
+    // 推进到第一个可交互状态
+    nova_advance(vm);
     
     // 获取初始状态
     NovaState state = nova_get_state(vm);
@@ -114,17 +114,17 @@ int main(int argc, char* argv[]) {
                     NovaChoice* ch = (NovaChoice*)&state.choices[choice];
                     if (!ch->disabled) {
                         printf("选择: %s\n\n", ch->text);
-                        nova_make_choice(vm, ch->id);
+                        nova_choose(vm, ch->id);
                     } else {
                         printf("该选项不可用\n");
                     }
                 }
             }
         } else {
-            // 等待用户点击继续
+            // 等待用户继续推进
             printf("按 Enter 继续...");
             fgets(input, sizeof(input), stdin);
-            nova_next(vm);
+            nova_advance(vm);
         }
     }
     
@@ -174,9 +174,8 @@ gcc -o c_api_example c_api_example.c \
 
 | 函数 | 说明 |
 |------|------|
-| `void nova_start(NovaVM* vm)` | 开始游戏 |
-| `void nova_next(NovaVM* vm)` | 前进一步 |
-| `void nova_make_choice(NovaVM* vm, const char* choiceId)` | 选择选项 |
+| `void nova_advance(NovaVM* vm)` | 推进到下一个离散阻塞点 |
+| `void nova_choose(NovaVM* vm, const char* choiceId)` | 选择选项 |
 
 ### 状态获取
 
@@ -195,8 +194,8 @@ gcc -o c_api_example c_api_example.c \
 
 | 函数 | 说明 |
 |------|------|
-| `int nova_save_game(NovaVM* vm, const char* path)` | 保存游戏 |
-| `int nova_load_game(NovaVM* vm, const char* path)` | 加载存档 |
+| `int nova_save_snapshot_file(NovaVM* vm, const char* path)` | 保存当前运行时快照到文件 |
+| `int nova_load_snapshot_file(NovaVM* vm, const char* path)` | 从快照文件恢复运行时状态 |
 
 ### 变量和背包
 

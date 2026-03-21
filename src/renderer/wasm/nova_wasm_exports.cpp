@@ -119,11 +119,9 @@ int nova_get_status(void* vm) {
     switch (nova_vm->state().status) {
         case nova::VMStatus::Running:       return 0;
         case nova::VMStatus::WaitingChoice: return 1;
-        case nova::VMStatus::WaitingInput:  return 2;
-        case nova::VMStatus::WaitingDelay:  return 2;
-        case nova::VMStatus::Ended:         return 3;
+        case nova::VMStatus::Ended:         return 2;
     }
-    return 3;
+    return 2;
 }
 
 unsigned long long nova_get_runtime_state_version(void* vm) {

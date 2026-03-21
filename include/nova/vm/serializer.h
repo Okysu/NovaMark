@@ -28,6 +28,10 @@ public:
     
     /// @brief 从文件加载存档
     static bool loadFromFile(const std::string& path, SaveData& save);
+
+    static std::vector<uint8_t> serializeSaveBinary(const SaveData& save);
+
+    static bool deserializeSaveBinary(const std::vector<uint8_t>& data, SaveData& save);
     
     /// @brief 从 VM 组件构建游戏状态
     static GameState captureState(

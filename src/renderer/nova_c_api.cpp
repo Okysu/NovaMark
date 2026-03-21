@@ -58,11 +58,7 @@ int nova_load_from_buffer(NovaVM* vm, const unsigned char* data, size_t size) {
     return 1;
 }
 
-void nova_start(NovaVM* vm) {
-    vm->vm.run();
-}
-
-void nova_next(NovaVM* vm) {
+void nova_advance(NovaVM* vm) {
     vm->vm.advance();
     
     if (vm->stateCallback) {
@@ -71,9 +67,9 @@ void nova_next(NovaVM* vm) {
     }
 }
 
-void nova_make_choice(NovaVM* vm, const char* choiceId) {
+void nova_choose(NovaVM* vm, const char* choiceId) {
     if (choiceId) {
-        vm->vm.selectChoiceById(std::string(choiceId));
+        vm->vm.choose(std::string(choiceId));
         
         if (vm->stateCallback) {
             NovaState state = nova_get_state(vm);
@@ -163,16 +159,10 @@ void nova_set_state_callback(NovaVM* vm, NovaStateCallback callback, void* userD
     vm->callbackUserData = userData;
 }
 
-int nova_save_game(NovaVM* vm, const char* path) {
+int nova_save_snapshot_file(NovaVM* vm, const char* path) {
     if (!path) return 0;
-    
-    nova::GameState state;
-    state.currentScene = vm->vm.currentScene();
-    state.statementIndex = vm->vm.statementIndex();
-    state.numberVariables = vm->vm.variables().getAllNumbers();
-    state.stringVariables = vm->vm.variables().getAllStrings();
-    state.boolVariables = vm->vm.variables().getAllBools();
-    state.inventory = vm->vm.inventory().getAllItems();
+
+    nova::GameState state = vm->vm.captureState();
     
     nova::SaveData save;
     save.saveId = "save_0";
@@ -182,7 +172,7 @@ int nova_save_game(NovaVM* vm, const char* path) {
     return nova::GameStateSerializer::saveToFile(std::string(path), save) ? 1 : 0;
 }
 
-int nova_load_game(NovaVM* vm, const char* path) {
+int nova_load_snapshot_file(NovaVM* vm, const char* path) {
     if (!path) return 0;
     
     nova::SaveData save;
@@ -190,26 +180,7 @@ int nova_load_game(NovaVM* vm, const char* path) {
         return 0;
     }
     
-    std::string scene = save.state.currentScene;
-    size_t index = save.state.statementIndex;
-    
-    for (const auto& [name, value] : save.state.numberVariables) {
-        vm->vm.variables().set(name, value);
-    }
-    for (const auto& [name, value] : save.state.stringVariables) {
-        vm->vm.variables().set(name, value);
-    }
-    for (const auto& [name, value] : save.state.boolVariables) {
-        vm->vm.variables().set(name, value);
-    }
-    
-    for (const auto& [itemId, count] : save.state.inventory) {
-        vm->vm.inventory().add(itemId, count);
-    }
-    
-    vm->vm.jumpToScene(scene);
-    
-    return 1;
+    return vm->vm.loadSave(save.state) ? 1 : 0;
 }
 
 size_t nova_get_variable_count(NovaVM* vm) {

@@ -51,7 +51,6 @@ private:
     Result<AstPtr> parse_flag_command();
     Result<AstPtr> parse_label();
     Result<AstPtr> parse_check_command();
-    Result<AstPtr> parse_wait_command();
     Result<AstPtr> parse_theme_def();
     Result<AstPtr> parse_front_matter();
     Result<AstPtr> parse_property_block();

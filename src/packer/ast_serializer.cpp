@@ -96,9 +96,6 @@ void AstSerializer::serializeNode(const AstNode* node) {
         case NodeType::CheckCommand:
             serializeCheckCommand(dynamic_cast<const CheckCommandNode*>(node));
             break;
-        case NodeType::Wait:
-            serializeWait(dynamic_cast<const WaitNode*>(node));
-            break;
         case NodeType::ThemeDef:
             serializeThemeDef(dynamic_cast<const ThemeDefNode*>(node));
             break;
@@ -326,11 +323,6 @@ void AstSerializer::serializeCheckCommand(const CheckCommandNode* node) {
     }
 }
 
-void AstSerializer::serializeWait(const WaitNode* node) {
-    m_writer.writeByte(static_cast<uint8_t>(OpCode::NodeWait));
-    m_writer.writeDouble(node->seconds());
-}
-
 void AstSerializer::serializeThemeDef(const ThemeDefNode* node) {
     m_writer.writeByte(static_cast<uint8_t>(OpCode::NodeThemeDef));
     m_writer.writeString(node->name());
@@ -533,8 +525,6 @@ std::unique_ptr<AstNode> AstDeserializer::deserializeNode() {
             return deserializeLabel();
         case OpCode::NodeCheckCommand:
             return deserializeCheckCommand();
-        case OpCode::NodeWait:
-            return deserializeWait();
         case OpCode::NodeThemeDef:
             return deserializeThemeDef();
         case OpCode::NodeFrontMatter:
@@ -782,11 +772,6 @@ std::unique_ptr<CheckCommandNode> AstDeserializer::deserializeCheckCommand() {
     }
     
     return node;
-}
-
-std::unique_ptr<WaitNode> AstDeserializer::deserializeWait() {
-    double seconds = m_reader->readDouble();
-    return std::make_unique<WaitNode>(SourceLocation{}, seconds);
 }
 
 std::unique_ptr<ThemeDefNode> AstDeserializer::deserializeThemeDef() {

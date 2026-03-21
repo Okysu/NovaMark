@@ -108,32 +108,18 @@ int nova_wasm_load_package(const unsigned char* data, size_t size) {
 }
 
 EMSCRIPTEN_KEEPALIVE
-void nova_wasm_start() {
+void nova_wasm_advance() {
     if (g_vm) {
-        g_vm->step();
+        g_vm->advance();
     }
 }
 
 EMSCRIPTEN_KEEPALIVE
-void nova_wasm_next() {
-    if (g_vm) {
-        g_vm->step();
-    }
-}
-
-EMSCRIPTEN_KEEPALIVE
-void nova_wasm_consume_dialogue() {
-    if (g_vm) {
-        g_vm->consumeDialogue();
-    }
-}
-
-EMSCRIPTEN_KEEPALIVE
-void nova_wasm_select_choice(int index) {
+void nova_wasm_choose(int index) {
     if (g_vm && g_vm->state().choice.has_value()) {
         const auto& options = g_vm->state().choice->options;
         if (index >= 0 && static_cast<size_t>(index) < options.size()) {
-            g_vm->selectChoice(index);
+            g_vm->choose(options[index].id);
         }
     }
 }

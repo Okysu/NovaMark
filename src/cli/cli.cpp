@@ -485,7 +485,6 @@ int do_run(const CliConfig& config) {
                 std::cout << "\n** " << state.dialogue->speaker << " **\n";
             }
             std::cout << state.dialogue->text << "\n\n";
-            vm.consumeDialogue();
         }
         
         if (state.choice && state.choice->isShow) {
@@ -561,8 +560,8 @@ int do_run(const CliConfig& config) {
             try {
                 int choice = std::stoi(input);
                 if (choice >= 0 && choice < static_cast<int>(state.choice->options.size())) {
-                    vm.selectChoice(choice);
-                    vm.step();
+                    vm.choose(state.choice->options[choice].id);
+                    vm.advance();
                 }
             } catch (...) {
                 std::cout << "Invalid input. Enter a number, S to save, L to load, or Q to quit.\n\n";
@@ -597,7 +596,7 @@ int do_run(const CliConfig& config) {
                 break;
             }
             
-            vm.step();
+            vm.advance();
         }
         
         std::cout << "\n";

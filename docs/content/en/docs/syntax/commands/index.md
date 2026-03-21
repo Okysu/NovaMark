@@ -332,18 +332,6 @@ Trigger a game ending.
 
 ---
 
-### @wait - Wait
-
-Pause execution for a duration.
-
-```nvm
-@wait 1.5
-```
-
-Parameter is wait time in seconds.
-
----
-
 ## Expressions and Functions
 
 ### Arithmetic Operations

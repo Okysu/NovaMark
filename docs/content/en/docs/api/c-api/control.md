@@ -42,30 +42,22 @@ int nova_load_from_buffer(NovaVM* vm, const unsigned char* data, size_t size);
 
 **Returns**: 1 on success, 0 on failure
 
-## nova_start
+## nova_advance
 
-Start the game from the beginning.
-
-```c
-void nova_start(NovaVM* vm);
-```
-
-## nova_next
-
-Advance the game by one step.
+Advance the VM to the next discrete blocking point.
 
 ```c
-void nova_next(NovaVM* vm);
+void nova_advance(NovaVM* vm);
 ```
 
-Call this when the player clicks to continue (after dialogue or narration).
+Call this when the host wants the story to continue.
 
-## nova_make_choice
+## nova_choose
 
 Make a choice selection.
 
 ```c
-void nova_make_choice(NovaVM* vm, const char* choiceId);
+void nova_choose(NovaVM* vm, const char* choiceId);
 ```
 
 **Parameters**:
@@ -75,7 +67,7 @@ void nova_make_choice(NovaVM* vm, const char* choiceId);
 **Example**:
 ```c
 // Player selected choice 0
-nova_make_choice(vm, "0");
+nova_choose(vm, "0");
 ```
 
 ## nova_get_error

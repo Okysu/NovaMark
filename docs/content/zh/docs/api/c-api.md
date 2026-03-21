@@ -59,26 +59,18 @@ int nova_load_from_buffer(NovaVM* vm, const unsigned char* data, size_t size);
 
 ## 游戏控制
 
-### nova_start
+### nova_advance
 
 ```c
-void nova_start(NovaVM* vm);
+void nova_advance(NovaVM* vm);
 ```
 
-从第一个场景开始游戏。
+推进到下一个离散阻塞点（如对话、选择或结局）。
 
-### nova_next
-
-```c
-void nova_next(NovaVM* vm);
-```
-
-前进到下一条语句。
-
-### nova_make_choice
+### nova_choose
 
 ```c
-void nova_make_choice(NovaVM* vm, const char* choiceId);
+void nova_choose(NovaVM* vm, const char* choiceId);
 ```
 
 选择选项。
@@ -140,21 +132,26 @@ typedef void (*NovaStateCallback)(NovaState state, void* userData);
 
 ## 存档
 
-### nova_save_game
+NovaMark 当前将存档分为两层：
+
+- **正式文件存档**：使用二进制格式，供玩家和产品环境使用
+- **JSON 导入导出**：保留给 Web/WASM 调试、测试和开发工具使用
+
+### nova_save_snapshot_file
 
 ```c
-int nova_save_game(NovaVM* vm, const char* path);
+int nova_save_snapshot_file(NovaVM* vm, const char* path);
 ```
 
-保存游戏状态到文件。
+将当前运行时快照以**二进制格式**保存到文件。
 
-### nova_load_game
+### nova_load_snapshot_file
 
 ```c
-int nova_load_game(NovaVM* vm, const char* path);
+int nova_load_snapshot_file(NovaVM* vm, const char* path);
 ```
 
-从文件加载游戏状态。
+从**二进制快照文件**恢复运行时状态。
 
 ## 变量和背包
 

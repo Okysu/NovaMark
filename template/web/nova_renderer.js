@@ -26,20 +26,12 @@ class NovaRenderer {
         }
     }
 
-    start() {
-        this.vm._nova_wasm_start();
-    }
-
-    step() {
-        this.vm._nova_wasm_next();
-    }
-
-    consumeDialogue() {
-        this.vm._nova_wasm_consume_dialogue();
+    advance() {
+        this.vm._nova_wasm_advance();
     }
 
     selectChoice(index) {
-        this.vm._nova_wasm_select_choice(index);
+        this.vm._nova_wasm_choose(index);
     }
 
     getStatus() {

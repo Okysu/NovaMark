@@ -77,10 +77,6 @@ protected:
         return dynamic_cast<const CheckCommandNode*>(node);
     }
     
-    const WaitNode* as_wait(const AstNode* node) {
-        return dynamic_cast<const WaitNode*>(node);
-    }
-    
     const ThemeDefNode* as_theme_def(const AstNode* node) {
         return dynamic_cast<const ThemeDefNode*>(node);
     }
@@ -908,26 +904,6 @@ TEST_F(ParserTest, RollWithModifier) {
     auto bin = as_binary_expr(var_def->init_value());
     ASSERT_NE(bin, nullptr);
     EXPECT_EQ(bin->op(), "+");
-}
-
-// ============================================
-// Wait Command Tests
-// ============================================
-
-TEST_F(ParserTest, WaitCommandWithNumber) {
-    auto result = parse("@wait 1.5\n");
-    ASSERT_TRUE(result.is_ok());
-    auto program = as_program(result.unwrap());
-    ASSERT_EQ(program->statements().size(), 1u);
-    
-    auto wait = as_wait(program->statements()[0].get());
-    ASSERT_NE(wait, nullptr);
-    EXPECT_DOUBLE_EQ(wait->seconds(), 1.5);
-}
-
-TEST_F(ParserTest, WaitCommandWithText) {
-    auto result = parse("@wait 2s\n");
-    ASSERT_TRUE(result.is_ok());
 }
 
 // ============================================

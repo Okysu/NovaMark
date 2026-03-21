@@ -59,26 +59,18 @@ Load a game package from memory buffer.
 
 ## Game Control
 
-### nova_start
+### nova_advance
 
 ```c
-void nova_start(NovaVM* vm);
+void nova_advance(NovaVM* vm);
 ```
 
-Start the game from the first scene.
+Advance to the next discrete blocking point (dialogue, choice, ending, etc.).
 
-### nova_next
-
-```c
-void nova_next(NovaVM* vm);
-```
-
-Advance to the next statement.
-
-### nova_make_choice
+### nova_choose
 
 ```c
-void nova_make_choice(NovaVM* vm, const char* choiceId);
+void nova_choose(NovaVM* vm, const char* choiceId);
 ```
 
 Select a choice option.
@@ -121,21 +113,26 @@ Set a callback to be notified when game state changes.
 
 ## Save/Load
 
-### nova_save_game
+NovaMark now separates save functionality into two layers:
+
+- **official save files**: binary format for players and shipped products
+- **JSON import/export**: retained for Web/WASM debugging, tests, and developer tools
+
+### nova_save_snapshot_file
 
 ```c
-int nova_save_game(NovaVM* vm, const char* path);
+int nova_save_snapshot_file(NovaVM* vm, const char* path);
 ```
 
-Save game state to file.
+Save the current runtime snapshot to a **binary file**.
 
-### nova_load_game
+### nova_load_snapshot_file
 
 ```c
-int nova_load_game(NovaVM* vm, const char* path);
+int nova_load_snapshot_file(NovaVM* vm, const char* path);
 ```
 
-Load game state from file.
+Restore runtime state from a **binary snapshot file**.
 
 ## Variables and Inventory
 
