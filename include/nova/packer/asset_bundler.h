@@ -5,6 +5,7 @@
 #include <vector>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 
 namespace nova {
 
@@ -15,6 +16,9 @@ public:
     
     /// @brief 添加资源目录
     void addDirectory(const std::string& path);
+
+    /// @brief 设置资源根目录，用于生成相对资源键
+    void setRootDirectory(const std::string& path);
     
     /// @brief 添加单个资源文件
     void addFile(const std::string& path);
@@ -40,9 +44,13 @@ public:
 private:
     std::unordered_map<std::string, std::vector<uint8_t>> m_assets;
     std::unordered_set<std::string> m_addedPaths;
-    
+    std::string m_rootDir;
+
+    std::vector<std::pair<std::string, const std::vector<uint8_t>*>> orderedAssets() const;
+     
     AssetType detectAssetType(const std::string& path) const;
     std::string normalizePath(const std::string& path) const;
+    std::string makeAssetKey(const std::string& path) const;
     bool readFile(const std::string& path, std::vector<uint8_t>& out) const;
     uint64_t hashPath(const std::string& path) const;
 };

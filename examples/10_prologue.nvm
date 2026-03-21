@@ -1,0 +1,136 @@
+#scene_prologue "序章：雨落在旧港城"
+
+@bg rainy_street.jpg transition:fade
+@bgm rain.ogg loop:true volume:0.35
+
+> 夜里十点四十七分，港城的电车停在终点站后，雨还没有停。
+> 沈砚抱着刚清点完的旧书，从巷口朝书店走去，鞋底踩过积水，街灯像被揉皱的金箔。
+
+沈砚: 这雨下得像有人故意把城市留在昨天。
+
+> 街对面的玻璃窗上映出一个模糊人影，像是在等他，又像只是雨水的误会。
+
+? 你先注意到什么？
+- [巷口那盏忽明忽暗的路灯] -> .watch_lamp
+- [书店门缝里透出的微弱亮光] -> .watch_shop
+- [街边邮箱上压着的蓝色明信片] -> .watch_postcard
+
+.watch_lamp
+> 路灯在雨丝间轻轻颤动，像有人隔着雾朝你眨眼。
+@set courage = courage + 1
+沈砚: 今晚的光怎么都不像真的。
+-> .enter_shop
+
+.watch_shop
+> 书店门内的灯并不稳定，忽明忽暗，像在提醒你快点进去。
+@set memory = memory + 1
+沈砚: 老板不会又把总闸忘在半开状态吧。
+-> .enter_shop
+
+.watch_postcard
+@give blue_postcard 1
+> 你把那张蓝色明信片从邮箱上拿起，纸张被潮气浸得有些发软。
+> 背面只写了一句话：别让灯灭掉。
+@set trust = trust + 1
+沈砚: 谁会把这种东西留在这里？
+-> .enter_shop
+
+.enter_shop
+@bg bookshop_night.jpg transition:fade
+@sprite 沈砚 show url:shenyan_pensive.png position:left
+
+> 书店的门铃没有响，像是声音先一步被屋里厚重的纸页吸走了。
+> 书架深处传来一阵短暂的风声，明明窗都关着，柜台上的台灯却自行亮了起来。
+
+沈砚: 老板？你还在吗？
+
+> 回应他的只有木质地板极轻的一声“咔哒”。
+> 柜台抽屉半开着，里面躺着一把旧黄铜钥匙，还有一封没有封口的账本纸。
+
+? 你要怎么做？
+- [先查看抽屉里的东西] -> .inspect_drawer
+- [沿着书架深处去找人] -> .search_shelves
+- [回头确认门有没有锁上] -> .check_door
+
+.inspect_drawer
+@give brass_key 1
+@set memory = memory + 1
+@sprite 沈砚 show url:shenyan_normal.png position:left
+> 你拿起黄铜钥匙，钥匙柄冰凉，像刚从海水里捞起。
+> 账本纸上只记着一行潦草字迹：“零点前，去潮汐图书馆。”
+沈砚: 图书馆？港城早就没有这地方了。
+-> .hear_steps
+
+.search_shelves
+@set courage = courage + 1
+@sprite 沈砚 show url:shenyan_pensive.png position:left
+> 你沿着两排旧书之间的窄道往里走，闻到一股潮湿纸张和海风混在一起的味道。
+> 最深处的地板上，摆着一盏没有点燃的航海灯。
+沈砚: 像是谁特意留给我的。
+-> .hear_steps
+
+.check_door
+@set trust = trust - 1
+@sprite 沈砚 show url:shenyan_determined.png position:left
+> 你回身推门，门却纹丝不动；玻璃外仍是那条雨夜街道，却远得像隔着一层海。
+沈砚: ……这就不好笑了。
+-> .hear_steps
+
+.hear_steps
+> 楼上忽然传来清晰的脚步声，一下、两下，停在楼梯拐角。
+@sfx bell.ogg
+@sprite 祁星 show url:qixing_mysterious.png position:right
+
+祁星: 你果然来了。
+
+> 少女撑着一把没沾到半滴雨的深蓝长伞，站在楼梯半层，像从某一页没被读完的故事里走出来。
+
+沈砚: 你是谁？为什么会在这里？
+祁星: 解释起来很长，但时间已经不多了。零点前，灯塔书要被归还。
+
+? 你对祁星的反应是？
+- [相信她，问她要去哪里] -> .trust_qixing
+- [质疑她，追问她怎么知道你的名字] -> .question_qixing
+- [先把蓝色明信片拿给她看] -> .show_postcard if has_item("blue_postcard")
+
+.trust_qixing
+@set trust = trust + 2
+祁星: 去一座只在涨潮时出现的图书馆。你已经在门口了。
+沈砚: 如果这是玩笑，那成本也太高了。
+-> .hidden_door
+
+.question_qixing
+@set courage = courage + 1
+@set trust = trust - 1
+祁星: 因为三年前那个夜晚，你把名字写在借书单最后一栏，却没写归还日期。
+沈砚: 我从没来过这地方。
+祁星: 你只是忘了。
+-> .hidden_door
+
+.show_postcard
+@set trust = trust + 2
+@set promise = promise + 1
+祁星: 原来它真的又回到你手里了。
+祁星: 那说明馆长仍然相信你会来。
+沈砚: 你们到底在等我做什么？
+-> .hidden_door
+
+.hidden_door
+> 祁星把伞尖轻轻点在楼梯下那面旧地图上，墙纸像沾了水一样慢慢卷起，露出一扇狭窄木门。
+> 门框上刻着一圈已经磨损的字：借走故事的人，也要学会把故事送回海里。
+@bg corridor.jpg transition:fade
+
+if has_item("brass_key")
+沈砚: 所以这把钥匙，真的是给我的。
+祁星: 开门吧。门只认得还记得自己来路的人。
+-> scene_tide_library
+else
+祁星: 你还少一样东西。先回柜台，把属于你的钥匙带上。
+-> .return_drawer
+endif
+
+.return_drawer
+> 你匆匆折返柜台，在抽屉最里面摸到了那把黄铜钥匙。
+@give brass_key 1
+沈砚: 好，现在可以了。
+-> scene_tide_library

@@ -1,0 +1,73 @@
+#scene_memory "第二章：回航记录"
+
+@bg harbour_dawn.jpg
+@bgm ocean_waves.ogg loop:true volume:0.28
+@sprite 沈砚 show url:shenyan_pensive.png position:left
+
+> 那是一个风很大的早晨，码头边停着一艘小型调查船。海平线刚刚发白，像有人在黑暗尽头划开一道细线。
+> 年轻一点的你站在登船口，手里紧紧攥着一封信。
+
+沈砚: 我想起来了……那天是哥哥失联后的第七天。
+
+> 祁星站在你身边，没有打断，只是静静看着记忆继续展开。
+
+? 你决定先看哪一段记忆？
+- [自己为什么来到图书馆] -> .see_arrival
+- [那封没有寄出的信写了什么] -> .see_letter
+- [船出海之前发生了什么] -> .see_departure
+
+.see_arrival
+@set memory = memory + 1
+> 你看见自己在前一晚走进潮汐图书馆，请求馆长替你保存一段记忆。
+> 你说：如果明天的结果太糟，我可能没有办法再继续正常生活。
+馆长: 所以你把一部分自己寄存在这里。
+-> .memory_merge
+
+.see_letter
+@set trust = trust + 1
+> 信纸上写着：
+> “哥，如果你真的没有回来，我会继续活下去，但我不知道该怎么原谅海，也不知道该怎么原谅自己。”
+> “如果有一天我能再去看海，希望那时我不是为了告别。”
+-> .memory_merge
+
+.see_departure
+@set courage = courage + 1
+@bg sea_dawn.jpg transition:fade
+> 船员们在低声确认天气和航线，你却始终站在原地。
+> 直到有人把一枚旧船灯递给你，说：灯亮的时候，就还有人等着回家。
+@set promise = promise + 1
+-> .memory_merge
+
+.memory_merge
+> 三段记忆像潮水汇到一起，你终于看清那天真正发生的事：
+> 你没有登船。你把信留在图书馆，把灯留给别人，然后转身逃开了码头。
+> 那之后你一直告诉自己，是时间替你遗忘了真相。
+
+沈砚: 不是忘了……是我不敢承认。
+祁星: 你怕的从来不是失去，而是自己在那个时刻选择了退后。
+
+? 面对这段记忆，你要怎么做？
+- [承认那时的怯懦，但不再逃避] -> .accept_past
+- [坚持说谁都会害怕，不必苛责自己] -> .defend_past
+- [沉默，把书合上] -> .close_book
+
+.accept_past
+@set courage = courage + 2
+@set memory = memory + 2
+沈砚: 是，我退缩了。我怕看见最后结果，也怕以后每一天都只能靠那一刻活着。
+沈砚: 但如果一直不承认，我就永远走不出去。
+-> scene_lighthouse_path
+
+.defend_past
+@set trust = trust - 1
+@set memory = memory + 1
+沈砚: 那种情况，谁都会逃。谁都不可能在所有时刻都勇敢。
+祁星: 我没有说你必须完美。我只是问你，是否愿意把这件事真正放回自己的人生里。
+-> scene_lighthouse_path
+
+.close_book
+@set trust = trust - 2
+> 你把书页重重合上，海雾却没有散去，反而更深了。
+沈砚: 我现在还不想看了。
+祁星: 可潮水已经涨到门边，今晚不能什么都不选。
+-> scene_lighthouse_path

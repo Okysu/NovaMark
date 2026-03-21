@@ -50,7 +50,10 @@ class NovaRenderer {
         return {
             defaultFont: this.vm.UTF8ToString(this.vm._nova_wasm_get_default_font()),
             defaultFontSize: this.vm._nova_wasm_get_default_font_size(),
-            defaultTextSpeed: this.vm._nova_wasm_get_default_text_speed()
+            defaultTextSpeed: this.vm._nova_wasm_get_default_text_speed(),
+            baseBgPath: this.getString(this.vm._nova_wasm_get_base_bg_path()),
+            baseSpritePath: this.getString(this.vm._nova_wasm_get_base_sprite_path()),
+            baseAudioPath: this.getString(this.vm._nova_wasm_get_base_audio_path())
         };
     }
 
@@ -73,12 +76,22 @@ class NovaRenderer {
         return this.getStatus() === 3;
     }
 
-    async getAssetBytes(name) {
+    async getAssetBytes(name, category = null) {
         if (this.assetCache.has(name)) {
             return this.assetCache.get(name);
         }
 
-        const namePtr = this.allocateString(name);
+        const cacheKey = category ? `${category}:${name}` : name;
+        if (this.assetCache.has(cacheKey)) {
+            return this.assetCache.get(cacheKey);
+        }
+
+        const resolvedName = this.resolveAssetName(name, category);
+        if (this.assetCache.has(resolvedName)) {
+            return this.assetCache.get(resolvedName);
+        }
+
+        const namePtr = this.allocateString(resolvedName);
         const size = this.vm._nova_wasm_get_asset_size(namePtr);
 
         if (size === 0) {
@@ -100,21 +113,58 @@ class NovaRenderer {
         this.vm._free(bufferPtr);
 
         this.assetCache.set(name, bytes);
+        this.assetCache.set(cacheKey, bytes);
+        this.assetCache.set(resolvedName, bytes);
         return bytes;
     }
 
-    async getImageUrl(assetName) {
-        if (this.imageCache.has(assetName)) {
-            return this.imageCache.get(assetName);
+    resolveAssetName(name, category = null) {
+        if (!name) return name;
+        if (name.includes('/')) return name;
+
+        const ext = name.split('.').pop().toLowerCase();
+        const textConfig = this.getTextConfig();
+        const trimPrefix = (value, fallback) => {
+            const normalized = (value || fallback || '').replace(/^assets\//, '');
+            return normalized.endsWith('/') ? normalized : normalized + '/';
+        };
+
+        if (category === 'bg') {
+            return trimPrefix(textConfig.baseBgPath, 'bg/') + name;
         }
 
-        const bytes = await this.getAssetBytes(assetName);
+        if (category === 'sprite') {
+            return trimPrefix(textConfig.baseSpritePath, 'sprites/') + name;
+        }
+
+        if (category === 'audio') {
+            return trimPrefix(textConfig.baseAudioPath, 'audio/') + name;
+        }
+
+        if (['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext)) {
+            return trimPrefix(textConfig.baseBgPath, 'bg/') + name;
+        }
+
+        if (['mp3', 'ogg', 'wav', 'flac'].includes(ext)) {
+            return trimPrefix(textConfig.baseAudioPath, 'audio/') + name;
+        }
+
+        return name;
+    }
+
+    async getImageUrl(assetName, category = null) {
+        const cacheKey = category ? `${category}:${assetName}` : assetName;
+        if (this.imageCache.has(cacheKey)) {
+            return this.imageCache.get(cacheKey);
+        }
+
+        const bytes = await this.getAssetBytes(assetName, category);
         if (!bytes) return null;
 
         const blob = new Blob([bytes], { type: this.getMimeType(assetName) });
         const url = URL.createObjectURL(blob);
 
-        this.imageCache.set(assetName, url);
+        this.imageCache.set(cacheKey, url);
         return url;
     }
 
@@ -236,7 +286,7 @@ class NovaRenderer {
             this.currentBgm = null;
         }
 
-        const bytes = await this.getAssetBytes(assetName);
+        const bytes = await this.getAssetBytes(assetName, 'audio');
         if (!bytes) return;
 
         if (!this.audioContext) {

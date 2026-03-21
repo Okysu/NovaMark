@@ -40,7 +40,6 @@ private:
     void serializeSetCommand(const SetCommandNode* node);
     void serializeGiveCommand(const GiveCommandNode* node);
     void serializeTakeCommand(const TakeCommandNode* node);
-    void serializeSave(const SaveNode* node);
     void serializeCall(const CallNode* node);
     void serializeReturn(const ReturnNode* node);
     void serializeEnding(const EndingNode* node);
@@ -97,7 +96,6 @@ private:
     std::unique_ptr<SetCommandNode> deserializeSetCommand();
     std::unique_ptr<GiveCommandNode> deserializeGiveCommand();
     std::unique_ptr<TakeCommandNode> deserializeTakeCommand();
-    std::unique_ptr<SaveNode> deserializeSave();
     std::unique_ptr<CallNode> deserializeCall();
     std::unique_ptr<ReturnNode> deserializeReturn();
     std::unique_ptr<EndingNode> deserializeEnding();

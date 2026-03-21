@@ -1,0 +1,87 @@
+#scene_tide_library "第一章：潮汐图书馆"
+
+@bg library_interior.jpg transition:fade
+@bgm ocean_waves.ogg loop:true volume:0.2
+@sprite 沈砚 show url:shenyan_normal.png position:left
+@sprite 馆长 show url:curator_solemn.png position:right
+
+> 门后没有楼梯，只有一条缓缓向下延展的长廊。
+> 长廊尽头，是一座巨大的圆形阅览厅。半透明的穹顶之外不是天空，而是缓慢移动的深海光影。
+> 书架像码头一样一层层向外延伸，每一本书脊都带着细小的银色编号。
+
+馆长: 欢迎回来，沈砚。
+
+> 说话的人站在服务台后，像已在那里等了很多很多年。
+
+沈砚: 你们都认识我，可我什么都不记得。
+馆长: 记忆不是消失，只是被你暂存进了书里。今晚你要决定，是取回它，还是把它继续留在海上。
+
+@give tide_map 1
+> 馆长将一张潮汐地图推到你面前。纸上的线条正缓慢游移，像一片会呼吸的海岸。
+
+? 你先从哪里开始找回线索？
+- [借阅大厅最深处的旧目录柜] -> .catalog_hall
+- [通往侧馆的窄门] -> .side_annex
+- [穹顶下的观潮钟] -> .tide_clock
+
+.catalog_hall
+@set memory = memory + 2
+@bg bookshop_night.jpg transition:fade
+> 你拉开目录柜最顶层的抽屉，里面没有卡片，只有一张张写着日期的借阅单。
+> 其中一张日期停在三年前的六月十七日，借阅者一栏写着：沈砚。
+> 借出书目一栏只写了四个字——《回航记录》。
+沈砚: 我真的来过。
+祁星: 那天夜里海雾很重，你是一个人来的。
+-> .library_crossroad
+
+.side_annex
+@set visited_annex = 1
+@set courage = courage + 2
+@bg corridor.jpg transition:fade
+> 侧馆的灯比主厅暗得多，书架尽头有一面落地窗，窗外却不是海，而是安静的港城清晨。
+> 你看见三年前的自己站在旧堤岸上，正把什么东西交给一个看不清脸的人。
+沈砚: 那是……我？
+祁星: 侧馆只展示已经发生、但还没有被承认的事。
+-> .library_crossroad
+
+.tide_clock
+@set listened_bell = 1
+@set trust = trust + 1
+@sfx bell.ogg
+> 观潮钟悬在穹顶正下方，没有指针，只有一圈一圈缓慢亮起的刻度。
+> 当你伸手碰到钟身时，耳边响起很轻的一声钟鸣，像从极远的海面传来。
+> 你忽然想起一段被遗忘的话：“如果我回不来，就替我把灯留到天亮。”
+@set memory = memory + 1
+-> .library_crossroad
+
+.library_crossroad
+馆长: 你已经听见潮声了。接下来，你要去找那本书。
+馆长: 它被放在只会向诚实的人打开的阅览室里。
+
+? 你此刻更想知道什么？
+- [追问祁星和自己的关系] -> .ask_qixing_relation
+- [询问《回航记录》为什么重要] -> .ask_book_reason
+- [直接前往阅览室] -> .go_reading_room
+
+.ask_qixing_relation
+@set trust = trust + 1
+沈砚: 祁星，你到底是谁？
+祁星: 我是你没能寄出的那封回信。
+沈砚: ……这答案比谜语还糟。
+祁星: 可它是真的。等你看完那本书，就会明白。
+-> .go_reading_room
+
+.ask_book_reason
+@set memory = memory + 1
+馆长: 因为那不是普通的书，那是你借走的一段夜晚。
+馆长: 书页里保存着一个决定。你曾请求图书馆替你保管，直到你有勇气再看它一次。
+-> .go_reading_room
+
+.go_reading_room
+> 阅览室的门像潮水一样向两侧退开。室内只有一张长桌，一盏绿罩台灯，以及桌中央那本深蓝封面的书。
+
+@bg harbour_dawn.jpg transition:fade
+@sprite 祁星 show url:qixing_gentle.png position:right
+
+> 你翻开第一页，纸页上没有文字，只有海边的风声。
+> 下一秒，整个房间像被海雾没过，你站在三年前的清晨码头上。

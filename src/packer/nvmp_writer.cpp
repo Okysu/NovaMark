@@ -89,15 +89,15 @@ std::vector<uint8_t> NvmpWriter::writeToBuffer() {
     
     uint64_t totalSize = headerSize + indexSize + astSize + dataSize;
     out.reserve(totalSize);
+
+    for (auto& entry : finalIndex) {
+        entry.offset += header.astOffset + astSize;
+    }
      
     writeHeader(out, header);
     writeIndex(out, finalIndex);
     writeBytecode(out);
     out.insert(out.end(), finalDataSection.begin(), finalDataSection.end());
-     
-    for (auto& entry : finalIndex) {
-        entry.offset += header.astOffset + astSize;
-    }
      
     return out;
 }

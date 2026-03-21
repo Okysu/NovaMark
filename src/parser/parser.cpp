@@ -402,9 +402,6 @@ Result<AstPtr> Parser::parse_directive() {
     if (directive == "take") {
         return parse_take_command();
     }
-    if (directive == "save") {
-        return parse_save_command();
-    }
     if (directive == "call") {
         return parse_call_command();
     }
@@ -1016,20 +1013,6 @@ Result<AstPtr> Parser::parse_take_command() {
     if (check(TokenType::Newline)) advance();
     
     return Ok(AstPtr(new TakeCommandNode(loc, std::move(item), count)));
-}
-
-Result<AstPtr> Parser::parse_save_command() {
-    SourceLocation loc = current().location;
-    
-    std::string label;
-    if (check(TokenType::StringLiteral)) {
-        label = current().value;
-        advance();
-    }
-    
-    if (check(TokenType::Newline)) advance();
-    
-    return Ok(AstPtr(new SaveNode(loc, std::move(label))));
 }
 
 Result<AstPtr> Parser::parse_call_command() {

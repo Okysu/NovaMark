@@ -45,7 +45,6 @@ private:
     Result<AstPtr> parse_set_command();
     Result<AstPtr> parse_give_command();
     Result<AstPtr> parse_take_command();
-    Result<AstPtr> parse_save_command();
     Result<AstPtr> parse_call_command();
     Result<AstPtr> parse_return_command();
     Result<AstPtr> parse_ending_command();

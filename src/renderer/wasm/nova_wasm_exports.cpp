@@ -165,6 +165,24 @@ int nova_get_default_text_speed(void* vm) {
     return nova_vm->state().textConfig.defaultTextSpeed;
 }
 
+const char* nova_get_base_bg_path(void*) {
+    static std::string value;
+    value = g_current_reader ? g_current_reader->readMetadata().base_bg_path : "";
+    return value.c_str();
+}
+
+const char* nova_get_base_sprite_path(void*) {
+    static std::string value;
+    value = g_current_reader ? g_current_reader->readMetadata().base_sprite_path : "";
+    return value.c_str();
+}
+
+const char* nova_get_base_audio_path(void*) {
+    static std::string value;
+    value = g_current_reader ? g_current_reader->readMetadata().base_audio_path : "";
+    return value.c_str();
+}
+
 const char* nova_export_runtime_state_json(void* vm, size_t* outSize) {
     auto* nova_vm = cast_vm(vm);
     if (!outSize) {

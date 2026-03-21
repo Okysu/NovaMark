@@ -500,11 +500,32 @@ async function renderGame() {
 
 // 当前对话签名，用于检测对话是否变化
 let currentDialogueSignature = null;
+let previousSpriteKeys = new Set();
+
+function getSpriteOwner(url, runtimeState) {
+    if (!url || !runtimeState?.characterDefinitions) return null;
+    const defs = runtimeState.characterDefinitions;
+    for (const [id, def] of Object.entries(defs)) {
+        const sprites = def?.sprites || {};
+        for (const spriteUrl of Object.values(sprites)) {
+            if (spriteUrl === url) {
+                return id;
+            }
+        }
+    }
+    return null;
+}
+
+function getSpriteLane(x) {
+    if (x <= 25) return 'left';
+    if (x >= 75) return 'right';
+    return 'center';
+}
 
 async function renderVNMode() {
     const bg = renderer.getBackground();
     if (bg) {
-        const url = await renderer.getImageUrl(bg);
+        const url = await renderer.getImageUrl(bg, 'bg');
         if (url) {
             $('vn-background').style.backgroundImage = `url(${url})`;
         }
@@ -514,20 +535,36 @@ async function renderVNMode() {
     
     const spritesDiv = $('vn-sprites');
     spritesDiv.innerHTML = '';
+    const runtimeState = renderer.getRuntimeState();
+    const currentSpeaker = renderer.getDialogueSpeaker();
+    const currentSpriteKeys = new Set();
     
     const spriteCount = renderer.getSpriteCount();
     for (let i = 0; i < spriteCount; i++) {
-        const url = await renderer.getImageUrl(renderer.getSpriteUrl(i));
+        const spriteAsset = renderer.getSpriteUrl(i);
+        const url = await renderer.getImageUrl(spriteAsset, 'sprite');
         if (!url) continue;
-        
+         
         const img = document.createElement('img');
         img.src = url;
         img.className = 'vn-sprite';
-        img.style.left = `${renderer.getSpriteX(i)}%`;
+        const lane = getSpriteLane(renderer.getSpriteX(i));
+        const owner = getSpriteOwner(spriteAsset, runtimeState);
+        const isSpeaking = owner && currentSpeaker && owner === currentSpeaker;
+        const spriteKey = `${owner || 'unknown'}:${spriteAsset}:${lane}`;
+        currentSpriteKeys.add(spriteKey);
+
+        img.classList.add(`vn-sprite--${lane}`);
+        img.classList.toggle('is-speaking', Boolean(isSpeaking));
+        img.classList.toggle('is-dimmed', Boolean(currentSpeaker && owner && owner !== currentSpeaker));
+        img.classList.toggle('is-entering', !previousSpriteKeys.has(spriteKey));
+        img.classList.toggle('is-forward', Boolean(isSpeaking));
+        img.dataset.owner = owner || '';
         img.style.opacity = renderer.getSpriteOpacity(i);
         img.style.zIndex = renderer.getSpriteZIndex(i);
         spritesDiv.appendChild(img);
     }
+    previousSpriteKeys = currentSpriteKeys;
     
     const dialogueDiv = $('vn-dialogue');
     if (renderer.hasDialogue()) {

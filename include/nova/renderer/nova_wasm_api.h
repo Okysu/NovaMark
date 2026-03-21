@@ -92,6 +92,12 @@ NOVA_WASM_API int nova_get_default_font_size(void* vm);
 
 NOVA_WASM_API int nova_get_default_text_speed(void* vm);
 
+NOVA_WASM_API const char* nova_get_base_bg_path(void* vm);
+
+NOVA_WASM_API const char* nova_get_base_sprite_path(void* vm);
+
+NOVA_WASM_API const char* nova_get_base_audio_path(void* vm);
+
 NOVA_WASM_API const char* nova_export_runtime_state_json(void* vm, size_t* outSize);
 
 NOVA_WASM_API unsigned long long nova_get_runtime_state_version(void* vm);

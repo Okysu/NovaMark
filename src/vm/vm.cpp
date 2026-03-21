@@ -82,10 +82,6 @@ const FlagNode* as_flag(const AstNode* node) {
     return dynamic_cast<const FlagNode*>(node);
 }
 
-const SaveNode* as_save(const AstNode* node) {
-    return dynamic_cast<const SaveNode*>(node);
-}
-
 const WaitNode* as_wait(const AstNode* node) {
     return dynamic_cast<const WaitNode*>(node);
 }
@@ -639,9 +635,6 @@ void NovaVM::executeStatement(const AstNode* node) {
         case NodeType::Flag:
             executeFlag(as_flag(node));
             break;
-        case NodeType::Save:
-            executeSave(as_save(node));
-            break;
         case NodeType::Wait:
             executeWait(as_wait(node));
             break;
@@ -829,23 +822,6 @@ void NovaVM::executeEnding(const EndingNode* node) {
 void NovaVM::executeFlag(const FlagNode* node) {
     if (!node) return;
     m_playthrough.setFlag(node->name());
-}
-
-void NovaVM::executeSave(const SaveNode* node) {
-    if (!node) return;
-    
-    GameState state;
-    state.currentScene = m_currentScene;
-    state.statementIndex = m_statementIndex;
-    state.callStack = m_callStack;
-    state.numberVariables = m_variables.getAllNumbers();
-    state.stringVariables = m_variables.getAllStrings();
-    state.boolVariables = m_variables.getAllBools();
-    state.inventory = m_inventory.getAllItems();
-    state.triggeredEndings = m_playthrough.endings();
-    state.flags = m_playthrough.flags();
-    
-    m_saveManager.createSave(node->label(), state);
 }
 
 void NovaVM::executeWait(const WaitNode* node) {

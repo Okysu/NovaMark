@@ -61,7 +61,16 @@ if(ENABLE_WASM)
 endif()
 
 # 安装规则
-install(TARGETS nova-core nova-lexer nova-parser nova-ast nova-cli
+install(TARGETS
+    nova-core
+    nova-lexer
+    nova-parser
+    nova-ast
+    nova-semantic
+    nova-vm
+    nova-packer
+    nova-renderer
+    nova-cli
     RUNTIME DESTINATION bin
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib

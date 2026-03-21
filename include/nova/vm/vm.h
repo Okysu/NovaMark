@@ -179,7 +179,6 @@ private:
     void executeSfx(const SfxCommandNode* node);
     void executeEnding(const EndingNode* node);
     void executeFlag(const FlagNode* node);
-    void executeSave(const SaveNode* node);
     void executeWait(const WaitNode* node);
     void executeCheck(const CheckCommandNode* node);
     

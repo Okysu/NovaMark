@@ -11,6 +11,9 @@
 #include "nova/lexer/lexer.h"
 #include "nova/ast/ast_node.h"
 
+#include <cstdint>
+#include <fstream>
+
 using namespace nova;
 
 class VMTest : public ::testing::Test {
@@ -157,6 +160,22 @@ TEST_F(VMTest, VMReadsDefaultTextConfigFromFrontMatter) {
     EXPECT_EQ(vm.state().textConfig.defaultFont, "SourceHanSansCN-Regular.ttf");
     EXPECT_EQ(vm.state().textConfig.defaultFontSize, 28);
     EXPECT_EQ(vm.state().textConfig.defaultTextSpeed, 60);
+}
+
+TEST_F(VMTest, ProjectMetadataParsesBaseAssetPaths) {
+    auto meta = GameMetadata::from_project_file(
+        "name: tide_library_demo\n"
+        "scripts_path: .\n"
+        "assets_path: assets\n"
+        "base_bg_path: bg/\n"
+        "base_sprite_path: sprites/\n"
+        "base_audio_path: audio/\n"
+    );
+
+    ASSERT_TRUE(meta.valid);
+    EXPECT_EQ(meta.base_bg_path, "bg/");
+    EXPECT_EQ(meta.base_sprite_path, "sprites/");
+    EXPECT_EQ(meta.base_audio_path, "audio/");
 }
 
 TEST_F(VMTest, VMExecuteNarrator) {
@@ -871,6 +890,99 @@ TEST_F(VMTest, NvmpWriteAndReadFile) {
     EXPECT_EQ(readBytecode.size(), bytecode.size());
     
     std::remove(filepath.c_str());
+}
+
+TEST_F(VMTest, NvmpAssetRoundTripPreservesExactBytes) {
+    BytecodeWriter writer;
+    writer.writeByte(static_cast<uint8_t>(OpCode::NodeProgram));
+    writer.writeU32(0);
+    writer.writeByte(static_cast<uint8_t>(OpCode::EndNode));
+
+    AssetBundler bundler;
+    std::vector<uint8_t> original = {0xFF, 0xD8, 0xFF, 0xE1, 0x12, 0x34, 0x56, 0x78};
+    const std::string assetPath = "temp_asset_single.jpg";
+    {
+        std::ofstream out(assetPath, std::ios::binary);
+        ASSERT_TRUE(out.is_open());
+        out.write(reinterpret_cast<const char*>(original.data()), static_cast<std::streamsize>(original.size()));
+    }
+    bundler.addFile(assetPath);
+
+    NvmpWriter nvmpWriter;
+    nvmpWriter.setBytecode(writer.data());
+    nvmpWriter.setAssets(bundler);
+
+    auto buffer = nvmpWriter.writeToBuffer();
+    ASSERT_FALSE(buffer.empty());
+
+    NvmpReader reader;
+    ASSERT_TRUE(reader.loadFromBuffer(buffer));
+
+    std::vector<uint8_t> extracted;
+    ASSERT_TRUE(reader.getAsset("temp_asset_single.jpg", extracted));
+    EXPECT_EQ(extracted, original);
+
+    std::remove(assetPath.c_str());
+}
+
+TEST_F(VMTest, NvmpMultipleAssetsPreserveCorrectPayloadMapping) {
+    BytecodeWriter writer;
+    writer.writeByte(static_cast<uint8_t>(OpCode::NodeProgram));
+    writer.writeU32(0);
+    writer.writeByte(static_cast<uint8_t>(OpCode::EndNode));
+
+    AssetBundler bundler;
+    std::vector<uint8_t> bg = {0xFF, 0xD8, 0xFF, 0xE1, 0xAA, 0xBB};
+    std::vector<uint8_t> sprite = {0x89, 0x50, 0x4E, 0x47, 0x01, 0x02};
+    std::vector<uint8_t> audio = {0x4F, 0x67, 0x67, 0x53, 0x10, 0x20};
+
+    const std::string bgPath = "temp_bg_test.jpg";
+    const std::string spritePath = "temp_sprite_test.png";
+    const std::string audioPath = "temp_audio_test.ogg";
+    {
+        std::ofstream out(bgPath, std::ios::binary);
+        ASSERT_TRUE(out.is_open());
+        out.write(reinterpret_cast<const char*>(bg.data()), static_cast<std::streamsize>(bg.size()));
+    }
+    {
+        std::ofstream out(spritePath, std::ios::binary);
+        ASSERT_TRUE(out.is_open());
+        out.write(reinterpret_cast<const char*>(sprite.data()), static_cast<std::streamsize>(sprite.size()));
+    }
+    {
+        std::ofstream out(audioPath, std::ios::binary);
+        ASSERT_TRUE(out.is_open());
+        out.write(reinterpret_cast<const char*>(audio.data()), static_cast<std::streamsize>(audio.size()));
+    }
+
+    bundler.addFile(bgPath);
+    bundler.addFile(spritePath);
+    bundler.addFile(audioPath);
+
+    NvmpWriter nvmpWriter;
+    nvmpWriter.setBytecode(writer.data());
+    nvmpWriter.setAssets(bundler);
+
+    auto buffer = nvmpWriter.writeToBuffer();
+    ASSERT_FALSE(buffer.empty());
+
+    NvmpReader reader;
+    ASSERT_TRUE(reader.loadFromBuffer(buffer));
+
+    std::vector<uint8_t> bgOut;
+    std::vector<uint8_t> spriteOut;
+    std::vector<uint8_t> audioOut;
+    ASSERT_TRUE(reader.getAsset(bgPath, bgOut));
+    ASSERT_TRUE(reader.getAsset(spritePath, spriteOut));
+    ASSERT_TRUE(reader.getAsset(audioPath, audioOut));
+
+    EXPECT_EQ(bgOut, bg);
+    EXPECT_EQ(spriteOut, sprite);
+    EXPECT_EQ(audioOut, audio);
+
+    std::remove(bgPath.c_str());
+    std::remove(spritePath.c_str());
+    std::remove(audioPath.c_str());
 }
 
 // ============================================

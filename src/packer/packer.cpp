@@ -4,6 +4,7 @@
 #include "nova/semantic/semantic_analyzer.h"
 #include <fstream>
 #include <filesystem>
+#include <algorithm>
 
 namespace fs = std::filesystem;
 
@@ -97,6 +98,7 @@ PackResult Packer::pack() {
     
     AssetBundler bundler;
     if (!m_assetDir.empty() && fs::exists(m_assetDir)) {
+        bundler.setRootDirectory(m_assetDir);
         bundler.addDirectory(m_assetDir);
     }
     bundler.addFromReferences(serializer.getAssetReferences(), m_assetDir);
@@ -129,11 +131,14 @@ bool Packer::collectScripts(const std::string& path) {
     }
     
     if (fs::is_directory(path)) {
+        std::vector<std::string> discovered;
         for (const auto& entry : fs::directory_iterator(path)) {
             if (entry.path().extension() == ".nvm") {
-                m_scripts.push_back(entry.path().string());
+                discovered.push_back(entry.path().string());
             }
         }
+        std::sort(discovered.begin(), discovered.end());
+        m_scripts.insert(m_scripts.end(), discovered.begin(), discovered.end());
     } else if (fs::is_regular_file(path)) {
         m_scripts.push_back(path);
     }

@@ -12,6 +12,7 @@
 #include <filesystem>
 #include <sstream>
 #include <ctime>
+#include <algorithm>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -23,6 +24,7 @@ namespace nova::cli {
 
 static int build_single_file(const CliConfig& config, const std::string& file);
 static int build_project(const CliConfig& config, const std::string& dir, const GameMetadata& meta);
+static bool collect_nvm_files_sorted(const std::string& path, std::vector<std::string>& files);
 
 static void setup_console() {
 #ifdef _WIN32
@@ -202,6 +204,32 @@ GameMetadata extract_front_matter(const std::string& file) {
     }
     
     return GameMetadata::from_front_matter(content);
+}
+
+static bool collect_nvm_files_sorted(const std::string& path, std::vector<std::string>& files) {
+    if (!fs::exists(path)) {
+        return false;
+    }
+
+    if (fs::is_regular_file(path) && fs::path(path).extension() == ".nvm") {
+        files.push_back(path);
+        return true;
+    }
+
+    if (!fs::is_directory(path)) {
+        return false;
+    }
+
+    std::vector<std::string> discovered;
+    for (const auto& entry : fs::directory_iterator(path)) {
+        if (entry.path().extension() == ".nvm") {
+            discovered.push_back(entry.path().string());
+        }
+    }
+
+    std::sort(discovered.begin(), discovered.end());
+    files.insert(files.end(), discovered.begin(), discovered.end());
+    return !discovered.empty();
 }
 
 int do_init(const CliConfig& config) {
@@ -580,41 +608,99 @@ int do_run(const CliConfig& config) {
 
 int do_check(const CliConfig& config) {
     std::string checkPath = config.source_path.empty() ? "." : config.source_path;
-    
     std::vector<std::string> files;
-    
+    GameMetadata meta;
+    bool isProjectMode = false;
+
     if (fs::path(checkPath).extension() == ".nvm") {
         files.push_back(checkPath);
     } else {
-        GameMetadata meta = load_project_metadata(checkPath);
-        std::string scriptsPath;
-        
+        meta = load_project_metadata(checkPath);
+        std::string scriptsPath = checkPath;
+
         if (meta.valid) {
+            isProjectMode = true;
             scriptsPath = (fs::path(checkPath) / meta.scripts_path).string();
             if (config.verbose) {
                 std::cout << "Project: " << meta.name << "\n";
             }
-        } else {
-            scriptsPath = checkPath;
         }
-        
-        if (fs::is_directory(scriptsPath)) {
-            for (const auto& entry : fs::directory_iterator(scriptsPath)) {
-                if (entry.path().extension() == ".nvm") {
-                    files.push_back(entry.path().string());
-                }
-            }
-        }
+
+        collect_nvm_files_sorted(scriptsPath, files);
     }
-    
+
     if (files.empty()) {
         std::cerr << "Error: No .nvm files found\n";
         return 1;
     }
-    
+
     int errorCount = 0;
-    
-    for (const auto& file : files) {
+
+    if (isProjectMode) {
+        SourceLocation packedLoc("<packed>", 1, 1);
+        auto combinedProgram = std::make_unique<ProgramNode>(packedLoc);
+
+        for (const auto& file : files) {
+            std::ifstream f(file);
+            if (!f) {
+                std::cerr << "Error: Cannot open: " << file << "\n";
+                errorCount++;
+                continue;
+            }
+
+            std::string source((std::istreambuf_iterator<char>(f)),
+                               std::istreambuf_iterator<char>());
+
+            Lexer lexer(source, file);
+            auto tokens_result = lexer.tokenize();
+
+            if (tokens_result.is_err()) {
+                std::cerr << tokens_result.error().to_string() << "\n";
+                errorCount++;
+                continue;
+            }
+
+            Parser parser(std::move(tokens_result).unwrap());
+            auto ast_result = parser.parse();
+
+            if (ast_result.is_err()) {
+                std::cerr << ast_result.error().to_string() << "\n";
+                errorCount++;
+                continue;
+            }
+
+            auto& ast = ast_result.unwrap();
+            auto program = dynamic_cast<ProgramNode*>(ast.get());
+            if (!program) {
+                continue;
+            }
+
+            auto& stmts = program->statements();
+            while (!stmts.empty()) {
+                combinedProgram->add_statement(std::move(stmts.front()));
+                stmts.erase(stmts.begin());
+            }
+        }
+
+        if (errorCount == 0) {
+            SemanticAnalyzer analyzer;
+            auto semantic_result = analyzer.analyze(combinedProgram.get());
+
+            if (!semantic_result.success) {
+                for (const auto& diag : semantic_result.diagnostics.diagnostics()) {
+                    if (diag.level == DiagnosticLevel::Error) {
+                        std::cerr << diag.location.to_string() << ": error: " << diag.message << "\n";
+                    }
+                }
+                errorCount++;
+            } else if (config.verbose) {
+                auto scenes = semantic_result.symbol_table.get_symbols_by_kind(SymbolKind::Scene);
+                auto chars = semantic_result.symbol_table.get_symbols_by_kind(SymbolKind::Character);
+                std::cout << "<project>: OK (scenes:" << scenes.size()
+                          << " chars:" << chars.size() << ")\n";
+            }
+        }
+    } else for (const auto& file : files) {
         std::ifstream f(file);
         if (!f) {
             std::cerr << "Error: Cannot open: " << file << "\n";

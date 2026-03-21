@@ -601,11 +601,6 @@ TEST_F(ParserTest, TakeCommand) {
     ASSERT_TRUE(result.is_ok());
 }
 
-TEST_F(ParserTest, SaveCommand) {
-    auto result = parse("@save \"Before boss\"\n");
-    ASSERT_TRUE(result.is_ok());
-}
-
 TEST_F(ParserTest, CallCommand) {
     auto result = parse("@call sub_scene\n");
     ASSERT_TRUE(result.is_ok());

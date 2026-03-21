@@ -1,0 +1,133 @@
+#scene_lighthouse_path "第三章：把灯留到天亮"
+
+@bg pigeon_point.jpg transition:fade
+@bgm ocean_waves.ogg loop:true volume:0.24
+@sprite 馆长 show url:curator_normal.png position:right
+
+> 你重新回到图书馆时，穹顶外的海水已退去大半，远处浮现出一条通往海上灯塔的石阶。
+> 每一级石阶都映着港城雨夜的倒影，像把现在与过去缝在一起。
+
+馆长: 终点不在图书馆里，在那座灯塔上。
+馆长: 去决定，你是要把记忆带走，还是继续把它存放在这里。
+
+? 出发前，你想带上什么？
+- [带上潮汐地图] -> .take_map if has_item("tide_map")
+- [带上蓝色明信片] -> .take_postcard if has_item("blue_postcard")
+- [什么都不拿，立刻上路] -> .take_nothing
+
+.take_map
+@set memory = memory + 1
+> 地图上的线条在你手中稳定下来，最终指向灯塔最上层。
+沈砚: 至少这次，我知道自己要去哪里。
+-> .stairs_begin
+
+.take_postcard
+@set trust = trust + 1
+> 你把蓝色明信片收进口袋，纸张贴着掌心，像一种安静的提醒。
+沈砚: 不让灯灭掉……原来是说这个。
+-> .stairs_begin
+
+.take_nothing
+@set courage = courage + 1
+沈砚: 我不能再靠别的东西替我做决定了。
+-> .stairs_begin
+
+.stairs_begin
+@bg pigeon_point.jpg transition:fade
+@sprite 沈砚 show url:shenyan_determined.png position:left
+@sprite 祁星 show url:qixing_gentle.png position:right
+
+> 石阶尽头，海风越来越大。灯塔并不高，却像把整片海的重量都扛在自己身上。
+> 登上平台时，你看见中央摆着一盏老式航海灯，灯芯只剩最后一点亮色。
+
+祁星: 现在你明白那句留言的意思了吗？
+沈砚: 明白了。不是让我救谁回来，而是别让自己停在那一夜。
+
+? 你准备如何处理这盏灯？
+- [重新点亮它，把记忆带回现实] -> .relight_lamp
+- [任它慢慢熄灭，把记忆留在图书馆] -> .let_it_rest
+- [把灯交给祁星，由她替你保管] -> .give_to_qixing
+
+.relight_lamp
+@set courage = courage + 2
+@set promise = promise + 1
+@sfx bell.ogg
+> 你用掌心拢住风，轻轻拨亮灯芯。温暖的光先照亮你自己的手指，然后照亮整座平台。
+沈砚: 我会记得，也会继续活下去。
+-> .judge_ending
+
+.let_it_rest
+@set trust = trust - 1
+> 你站在灯前，久久没有动作。灯火一点点暗下去，海面重新恢复无声。
+沈砚: 也许有些东西，本来就该留在这里。
+-> .judge_ending
+
+.give_to_qixing
+@set trust = trust + 2
+> 你把航海灯递给祁星。她没有马上接，只是看了你很久。
+祁星: 你确定吗？把决定交给别人，也是一种选择。
+沈砚: 我只是想知道，如果换一个角度看这段记忆，它会不会没那么沉。
+-> .judge_ending
+
+.judge_ending
+if courage >= 5
+if memory >= 5
+-> .good_route
+endif
+endif
+-> .normal_check
+
+.normal_check
+if trust >= 3
+-> .normal_route
+endif
+if promise >= 2
+-> .normal_route
+endif
+-> .quiet_route
+
+.good_route
+@bg harbour_dawn.jpg transition:fade
+@sprite 沈砚 show url:shenyan_determined.png position:left
+@sprite 祁星 show url:qixing_gentle.png position:right
+> 灯光向外扩散，海面上慢慢浮现一条通往清晨港口的路。
+> 你看见远处有人回头挥了挥手，那身影很快就被晨雾吞没，却不再令人绝望。
+
+祁星: 这一次，你没有逃。
+馆长: 借走的夜晚，终于被平安归还了。
+
+沈砚: 我不会忘了它，但它也不会再把我困住。
+> 当你重新睁眼时，自己已经站在现实中的旧书店门口。雨停了，东方的天色正缓缓发亮。
+> 口袋里那张蓝色明信片还在，只是背面多了一行字：灯已经亮到天明。
+
+@ending dawn_ending
+
+.normal_route
+@bg bookshop_night.jpg transition:fade
+@bgm rain.ogg loop:true volume:0.25
+> 灯塔没有完全亮起，却也没有熄灭。它像一枚被风守住的小火种，勉强照亮眼前几级台阶。
+
+祁星: 你还没准备好把一切都带走，但你已经愿意回头看了。
+馆长: 这就够了。故事不一定要今晚结束。
+
+沈砚: 那我还能再来吗？
+馆长: 只要海还记得路，图书馆就会在。
+
+> 你回到旧书店时，天还在下细雨。街灯一盏接一盏熄灭，像城市终于肯把夜晚交还给白天。
+> 你把黄铜钥匙留在柜台上，没有再带走它。
+
+@ending return_ending
+
+.quiet_route
+@bg corridor.jpg transition:fade
+@sprite 馆长 show url:curator_solemn.png position:right
+> 灯终究灭了，平台四周只剩潮声。没有谁责备你，可你知道自己又把某段人生留在原地。
+
+祁星: 有些门不会永远打开。
+沈砚: 我知道。
+馆长: 但图书馆仍会替你保存未读完的那一页。
+
+> 下一秒，你回到旧书店。窗外依旧是那场没有停的雨，仿佛今晚从未发生过。
+> 只有抽屉里那张空白借阅单提醒你：你曾经来过，也还会再来。
+
+@ending tide_ending

@@ -78,9 +78,6 @@ void AstSerializer::serializeNode(const AstNode* node) {
         case NodeType::TakeCommand:
             serializeTakeCommand(dynamic_cast<const TakeCommandNode*>(node));
             break;
-        case NodeType::Save:
-            serializeSave(dynamic_cast<const SaveNode*>(node));
-            break;
         case NodeType::Call:
             serializeCall(dynamic_cast<const CallNode*>(node));
             break;
@@ -236,6 +233,9 @@ void AstSerializer::serializeSpriteCommand(const SpriteCommandNode* node) {
     uint32_t argCount = static_cast<uint32_t>(node->args().size());
     m_writer.writeU32(argCount);
     for (const auto& arg : node->args()) {
+        if (arg.key == "url") {
+            recordAssetRef(arg.value);
+        }
         m_writer.writeString(arg.key);
         m_writer.writeString(arg.value);
     }
@@ -283,11 +283,6 @@ void AstSerializer::serializeTakeCommand(const TakeCommandNode* node) {
     m_writer.writeByte(static_cast<uint8_t>(OpCode::NodeTakeCommand));
     m_writer.writeString(node->item());
     m_writer.writeU32(static_cast<uint32_t>(node->count()));
-}
-
-void AstSerializer::serializeSave(const SaveNode* node) {
-    m_writer.writeByte(static_cast<uint8_t>(OpCode::NodeSave));
-    m_writer.writeString(node->label());
 }
 
 void AstSerializer::serializeCall(const CallNode* node) {
@@ -526,8 +521,6 @@ std::unique_ptr<AstNode> AstDeserializer::deserializeNode() {
             return deserializeGiveCommand();
         case OpCode::NodeTakeCommand:
             return deserializeTakeCommand();
-        case OpCode::NodeSave:
-            return deserializeSave();
         case OpCode::NodeCall:
             return deserializeCall();
         case OpCode::NodeReturn:
@@ -742,11 +735,6 @@ std::unique_ptr<TakeCommandNode> AstDeserializer::deserializeTakeCommand() {
     std::string item = m_reader->readString();
     uint32_t count = m_reader->readU32();
     return std::make_unique<TakeCommandNode>(SourceLocation{}, std::move(item), static_cast<int>(count));
-}
-
-std::unique_ptr<SaveNode> AstDeserializer::deserializeSave() {
-    std::string label = m_reader->readString();
-    return std::make_unique<SaveNode>(SourceLocation{}, std::move(label));
 }
 
 std::unique_ptr<CallNode> AstDeserializer::deserializeCall() {

@@ -1,0 +1,13 @@
+name: tide_library_demo
+title: 潮汐图书馆
+version: 1.3.0
+author: OpenAI x NovaMark Demo
+entry_scene: scene_prologue
+scripts_path: .
+assets_path: assets
+default_font: Noto Serif SC
+default_font_size: 28
+default_text_speed: 42
+base_bg_path: bg/
+base_sprite_path: sprites/
+base_audio_path: audio/

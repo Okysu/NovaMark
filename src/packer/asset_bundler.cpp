@@ -10,6 +10,13 @@ namespace nova {
 
 AssetBundler::AssetBundler() {}
 
+void AssetBundler::setRootDirectory(const std::string& path) {
+    m_rootDir = normalizePath(path);
+    if (!m_rootDir.empty() && m_rootDir.back() == '/') {
+        m_rootDir.pop_back();
+    }
+}
+
 void AssetBundler::addDirectory(const std::string& path) {
     if (!fs::exists(path) || !fs::is_directory(path)) {
         return;
@@ -24,15 +31,16 @@ void AssetBundler::addDirectory(const std::string& path) {
 
 void AssetBundler::addFile(const std::string& path) {
     std::string normalized = normalizePath(path);
+    std::string assetKey = makeAssetKey(normalized);
     
-    if (m_addedPaths.count(normalized) > 0) {
+    if (m_addedPaths.count(assetKey) > 0) {
         return;
     }
     
     std::vector<uint8_t> data;
     if (readFile(path, data)) {
-        m_assets[normalized] = std::move(data);
-        m_addedPaths.insert(normalized);
+        m_assets[assetKey] = std::move(data);
+        m_addedPaths.insert(assetKey);
     }
 }
 
@@ -48,18 +56,18 @@ std::vector<NvmpIndexEntry> AssetBundler::buildIndex(uint64_t dataOffset) const 
     index.reserve(m_assets.size());
     
     uint64_t currentOffset = dataOffset;
-    
-    for (const auto& [path, data] : m_assets) {
+
+    for (const auto& [path, data] : orderedAssets()) {
         NvmpIndexEntry entry;
         entry.nameHash = hashPath(path);
         entry.offset = currentOffset;
-        entry.length = static_cast<uint32_t>(data.size());
-        entry.originalLength = static_cast<uint32_t>(data.size());
+        entry.length = static_cast<uint32_t>(data->size());
+        entry.originalLength = static_cast<uint32_t>(data->size());
         entry.type = detectAssetType(path);
         std::memset(entry.reserved, 0, sizeof(entry.reserved));
         
         index.push_back(entry);
-        currentOffset += data.size();
+        currentOffset += data->size();
     }
     
     return index;
@@ -67,12 +75,27 @@ std::vector<NvmpIndexEntry> AssetBundler::buildIndex(uint64_t dataOffset) const 
 
 std::vector<uint8_t> AssetBundler::buildDataSection() const {
     std::vector<uint8_t> data;
-    
-    for (const auto& [path, assetData] : m_assets) {
-        data.insert(data.end(), assetData.begin(), assetData.end());
+
+    for (const auto& [path, assetData] : orderedAssets()) {
+        data.insert(data.end(), assetData->begin(), assetData->end());
     }
     
     return data;
+}
+
+std::vector<std::pair<std::string, const std::vector<uint8_t>*>> AssetBundler::orderedAssets() const {
+    std::vector<std::pair<std::string, const std::vector<uint8_t>*>> ordered;
+    ordered.reserve(m_assets.size());
+
+    for (const auto& [path, data] : m_assets) {
+        ordered.emplace_back(path, &data);
+    }
+
+    std::sort(ordered.begin(), ordered.end(), [](const auto& lhs, const auto& rhs) {
+        return lhs.first < rhs.first;
+    });
+
+    return ordered;
 }
 
 AssetType AssetBundler::detectAssetType(const std::string& path) const {
@@ -113,6 +136,24 @@ std::string AssetBundler::normalizePath(const std::string& path) const {
     std::string result = path;
     std::replace(result.begin(), result.end(), '\\', '/');
     return result;
+}
+
+std::string AssetBundler::makeAssetKey(const std::string& path) const {
+    std::string normalized = normalizePath(path);
+    if (m_rootDir.empty()) {
+        return normalized;
+    }
+
+    if (normalized == m_rootDir) {
+        return {};
+    }
+
+    const std::string prefix = m_rootDir + "/";
+    if (normalized.rfind(prefix, 0) == 0) {
+        return normalized.substr(prefix.size());
+    }
+
+    return normalized;
 }
 
 bool AssetBundler::readFile(const std::string& path, std::vector<uint8_t>& out) const {

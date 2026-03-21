@@ -169,6 +169,21 @@ int nova_wasm_get_default_text_speed() {
 }
 
 EMSCRIPTEN_KEEPALIVE
+const char* nova_wasm_get_base_bg_path() {
+    return nova_get_base_bg_path(g_vm.get());
+}
+
+EMSCRIPTEN_KEEPALIVE
+const char* nova_wasm_get_base_sprite_path() {
+    return nova_get_base_sprite_path(g_vm.get());
+}
+
+EMSCRIPTEN_KEEPALIVE
+const char* nova_wasm_get_base_audio_path() {
+    return nova_get_base_audio_path(g_vm.get());
+}
+
+EMSCRIPTEN_KEEPALIVE
 const char* nova_wasm_export_runtime_state_json(size_t* outSize) {
     return nova_export_runtime_state_json(g_vm.get(), outSize);
 }

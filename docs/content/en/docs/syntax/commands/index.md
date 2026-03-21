@@ -332,16 +332,6 @@ Trigger a game ending.
 
 ---
 
-### @save - Save Point
-
-Create an automatic save point.
-
-```nvm
-@save "Chapter1_Start"
-```
-
----
-
 ### @wait - Wait
 
 Pause execution for a duration.

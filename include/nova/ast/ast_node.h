@@ -31,7 +31,6 @@ enum class NodeType {
     Jump,               // -> 跳转
     Call,               // @call 调用
     Return,             // @return 返回
-    Save,               // @save 存档点
     Label,              // .label 子场景标签
     Wait,               // @wait 等待
     
@@ -505,20 +504,6 @@ public:
 private:
     std::string m_item;
     int m_count;
-};
-
-/// @brief @save 存档点节点
-class SaveNode : public AstNode {
-public:
-    SaveNode(SourceLocation loc, std::string label)
-        : AstNode(std::move(loc)), m_label(std::move(label)) {}
-    
-    NodeType type() const override { return NodeType::Save; }
-    
-    const std::string& label() const { return m_label; }
-
-private:
-    std::string m_label;
 };
 
 /// @brief @call 调用节点
