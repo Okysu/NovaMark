@@ -476,33 +476,33 @@ private:
 /// @brief @give 给予物品命令节点
 class GiveCommandNode : public AstNode {
 public:
-    GiveCommandNode(SourceLocation loc, std::string item, int count)
-        : AstNode(std::move(loc)), m_item(std::move(item)), m_count(count) {}
+    GiveCommandNode(SourceLocation loc, std::string item, AstPtr count)
+        : AstNode(std::move(loc)), m_item(std::move(item)), m_count(std::move(count)) {}
     
     NodeType type() const override { return NodeType::GiveCommand; }
     
     const std::string& item() const { return m_item; }
-    int count() const { return m_count; }
+    const AstNode* count() const { return m_count.get(); }
 
 private:
     std::string m_item;
-    int m_count;
+    AstPtr m_count;
 };
 
 /// @brief @take 取走物品命令节点
 class TakeCommandNode : public AstNode {
 public:
-    TakeCommandNode(SourceLocation loc, std::string item, int count)
-        : AstNode(std::move(loc)), m_item(std::move(item)), m_count(count) {}
+    TakeCommandNode(SourceLocation loc, std::string item, AstPtr count)
+        : AstNode(std::move(loc)), m_item(std::move(item)), m_count(std::move(count)) {}
     
     NodeType type() const override { return NodeType::TakeCommand; }
     
     const std::string& item() const { return m_item; }
-    int count() const { return m_count; }
+    const AstNode* count() const { return m_count.get(); }
 
 private:
     std::string m_item;
-    int m_count;
+    AstPtr m_count;
 };
 
 /// @brief @call 调用节点

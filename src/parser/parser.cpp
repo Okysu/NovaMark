@@ -981,15 +981,18 @@ Result<AstPtr> Parser::parse_give_command() {
     std::string item = current().value;
     advance();
     
-    int count = 1;
-    if (check(TokenType::NumberLiteral)) {
-        count = static_cast<int>(std::stod(current().value));
-        advance();
+    AstPtr countExpr = std::make_unique<LiteralNode>(loc, 1.0);
+    if (!check(TokenType::Newline)) {
+        auto exprResult = parse_expression();
+        if (exprResult.is_err()) {
+            return exprResult;
+        }
+        countExpr = std::move(exprResult.unwrap());
     }
     
     if (check(TokenType::Newline)) advance();
     
-    return Ok(AstPtr(new GiveCommandNode(loc, std::move(item), count)));
+    return Ok(AstPtr(new GiveCommandNode(loc, std::move(item), std::move(countExpr))));
 }
 
 Result<AstPtr> Parser::parse_take_command() {
@@ -1001,15 +1004,18 @@ Result<AstPtr> Parser::parse_take_command() {
     std::string item = current().value;
     advance();
     
-    int count = 1;
-    if (check(TokenType::NumberLiteral)) {
-        count = static_cast<int>(std::stod(current().value));
-        advance();
+    AstPtr countExpr = std::make_unique<LiteralNode>(loc, 1.0);
+    if (!check(TokenType::Newline)) {
+        auto exprResult = parse_expression();
+        if (exprResult.is_err()) {
+            return exprResult;
+        }
+        countExpr = std::move(exprResult.unwrap());
     }
     
     if (check(TokenType::Newline)) advance();
     
-    return Ok(AstPtr(new TakeCommandNode(loc, std::move(item), count)));
+    return Ok(AstPtr(new TakeCommandNode(loc, std::move(item), std::move(countExpr))));
 }
 
 Result<AstPtr> Parser::parse_call_command() {

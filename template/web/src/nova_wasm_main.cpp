@@ -20,6 +20,7 @@ namespace {
 std::unique_ptr<nova::NovaVM> g_vm;
 std::unique_ptr<nova::NvmpReader> g_reader;
 nova::AstPtr g_program;
+std::string g_last_error;
 
 } // namespace
 
@@ -34,6 +35,7 @@ int nova_wasm_init() {
     
     try {
         g_program.reset();
+        g_last_error.clear();
         g_vm = std::make_unique<nova::NovaVM>();
         g_reader = std::make_unique<nova::NvmpReader>();
         nova_wasm_set_reader(g_reader.get());
@@ -59,6 +61,7 @@ int nova_wasm_load_package(const unsigned char* data, size_t size) {
     fflush(stdout);
     
     if (!g_reader || !g_vm) {
+        g_last_error = "reader/vm not initialized";
         printf("[WASM] ERROR: g_reader or g_vm is null\n");
         fflush(stdout);
         return -1;
@@ -68,6 +71,7 @@ int nova_wasm_load_package(const unsigned char* data, size_t size) {
     fflush(stdout);
     
     if (!g_reader->loadFromBuffer(std::vector<uint8_t>(data, data + size))) {
+        g_last_error = "NvmpReader.loadFromBuffer failed";
         printf("[WASM] ERROR: loadFromBuffer failed\n");
         fflush(stdout);
         return -1;
@@ -90,6 +94,7 @@ int nova_wasm_load_package(const unsigned char* data, size_t size) {
     g_program = deserializer.deserialize(bytecode);
     
     if (!g_program) {
+        g_last_error = "AstDeserializer.deserialize returned null";
         printf("[WASM] ERROR: deserialize returned null\n");
         fflush(stdout);
         return -1;
@@ -99,12 +104,18 @@ int nova_wasm_load_package(const unsigned char* data, size_t size) {
     fflush(stdout);
     
     g_vm->load(g_program);
+    g_last_error.clear();
     
     printf("[WASM] VM loaded, status: %d\n", 
            static_cast<int>(g_vm->state().status));
     fflush(stdout);
     
     return 0;
+}
+
+EMSCRIPTEN_KEEPALIVE
+const char* nova_wasm_get_last_error() {
+    return g_last_error.c_str();
 }
 
 EMSCRIPTEN_KEEPALIVE
@@ -190,8 +201,18 @@ const char* nova_wasm_export_save_json(size_t* outSize) {
 }
 
 EMSCRIPTEN_KEEPALIVE
+void* nova_wasm_export_save_binary(size_t* outSize) {
+    return ::nova_export_save_binary(g_vm.get(), outSize);
+}
+
+EMSCRIPTEN_KEEPALIVE
 int nova_wasm_import_save_json(const char* json, size_t size) {
     return ::nova_import_save_json(g_vm.get(), json, size);
+}
+
+EMSCRIPTEN_KEEPALIVE
+int nova_wasm_import_save_binary(const unsigned char* data, size_t size) {
+    return ::nova_import_save_binary(g_vm.get(), data, size);
 }
 
 EMSCRIPTEN_KEEPALIVE

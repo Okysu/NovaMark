@@ -101,6 +101,7 @@ TEST_F(SemanticTest, ItemDefinition) {
     auto result = analyze(
         "@item sword\n"
         "  name: 剑\n"
+        "  default_value: 1\n"
         "@end\n"
     );
     EXPECT_TRUE(result.success);

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "nova/vm/state.h"
+
 #include <string>
 #include <vector>
 #include <unordered_map>
@@ -11,7 +13,20 @@ namespace nova {
 /// @brief 游戏状态快照（可序列化）
 struct GameState {
     std::string currentScene;
+    std::string currentLabel;
     size_t statementIndex = 0;
+    TextConfigState textConfig;
+
+    std::optional<std::string> bg;
+    std::optional<std::string> bgTransition;
+    std::optional<std::string> bgm;
+    double bgmVolume = 1.0;
+    bool bgmLoop = true;
+
+    std::vector<SpriteState> sprites;
+    std::optional<DialogueState> dialogue;
+    std::optional<ChoiceState> choice;
+    std::optional<std::string> ending;
     
     std::vector<std::pair<std::string, size_t>> callStack;
     
@@ -26,7 +41,18 @@ struct GameState {
     
     void clear() {
         currentScene.clear();
+        currentLabel.clear();
         statementIndex = 0;
+        textConfig = TextConfigState{};
+        bg.reset();
+        bgTransition.reset();
+        bgm.reset();
+        bgmVolume = 1.0;
+        bgmLoop = true;
+        sprites.clear();
+        dialogue.reset();
+        choice.reset();
+        ending.reset();
         callStack.clear();
         numberVariables.clear();
         stringVariables.clear();

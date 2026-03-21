@@ -180,7 +180,18 @@ void NovaVM::markRuntimeStateChanged(int flags) {
 GameState NovaVM::captureState() const {
     GameState state;
     state.currentScene = m_currentScene;
+    state.currentLabel = m_state.currentLabel;
     state.statementIndex = m_statementIndex;
+    state.textConfig = m_state.textConfig;
+    state.bg = m_state.bg;
+    state.bgTransition = m_state.bgTransition;
+    state.bgm = m_state.bgm;
+    state.bgmVolume = m_state.bgmVolume;
+    state.bgmLoop = m_state.bgmLoop;
+    state.sprites = m_state.sprites;
+    state.dialogue = m_state.dialogue;
+    state.choice = m_state.choice;
+    state.ending = m_state.ending;
     state.callStack = m_callStack;
     
     state.numberVariables = m_variables.getAllNumbers();
@@ -219,7 +230,23 @@ bool NovaVM::loadSave(const GameState& state) {
     }
     
     m_state.currentScene = m_currentScene;
+    m_state.currentLabel = state.currentLabel;
     m_state.status = VMStatus::Running;
+    m_state.textConfig = state.textConfig;
+    m_state.bg = state.bg;
+    m_state.bgTransition = state.bgTransition;
+    m_state.bgm = state.bgm;
+    m_state.bgmVolume = state.bgmVolume;
+    m_state.bgmLoop = state.bgmLoop;
+    m_state.sprites = state.sprites;
+    m_state.dialogue = state.dialogue;
+    m_state.choice = state.choice;
+    m_state.ending = state.ending;
+    if (state.ending.has_value()) {
+        m_state.status = VMStatus::Ended;
+    } else if (state.choice.has_value()) {
+        m_state.status = VMStatus::WaitingChoice;
+    }
     markRuntimeStateChanged(RuntimeStateChangeVariables | RuntimeStateChangeInventory);
 
     return true;
@@ -270,6 +297,8 @@ void NovaVM::buildDefinitionRegistry() {
                     def.description = prop.value;
                 } else if (prop.key == "icon") {
                     def.icon = prop.value;
+                } else if (prop.key == "default_value") {
+                    def.defaultValue = prop.value;
                 }
             }
             m_itemDefinitions[item->name()] = std::move(def);
@@ -338,9 +367,9 @@ void NovaVM::executeGlobalStatements() {
                 m_variables.set(var->name(), evaluateExpression(var->init_value()));
             }
         } else if (auto give = as_give(stmt.get())) {
-            m_inventory.add(give->item(), give->count());
+            m_inventory.add(give->item(), static_cast<int>(evaluateAsNumber(give->count())));
         } else if (auto take = as_take(stmt.get())) {
-            m_inventory.remove(take->item(), take->count());
+            m_inventory.remove(take->item(), static_cast<int>(evaluateAsNumber(take->count())));
         }
     }
 }
@@ -735,13 +764,15 @@ void NovaVM::executeSet(const SetCommandNode* node) {
 
 void NovaVM::executeGive(const GiveCommandNode* node) {
     if (!node) return;
-    m_inventory.add(node->item(), node->count());
+    int count = static_cast<int>(evaluateAsNumber(node->count()));
+    m_inventory.add(node->item(), count);
     markRuntimeStateChanged(RuntimeStateChangeInventory);
 }
 
 void NovaVM::executeTake(const TakeCommandNode* node) {
     if (!node) return;
-    if (m_inventory.remove(node->item(), node->count())) {
+    int count = static_cast<int>(evaluateAsNumber(node->count()));
+    if (m_inventory.remove(node->item(), count)) {
         markRuntimeStateChanged(RuntimeStateChangeInventory);
     }
 }

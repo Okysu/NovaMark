@@ -257,7 +257,10 @@ NovaMark 支持 `//` 单行注释：
 ```nvm
 @give healing_potion 1
 @give gold 100
+@give gold random(10, 20)
 ```
+
+数量参数支持表达式。
 
 ---
 
@@ -267,7 +270,11 @@ NovaMark 支持 `//` 单行注释：
 
 ```nvm
 @take healing_potion 1
+@take gold 1 + 1
+@take gold count + 1
 ```
+
+数量参数支持表达式。
 
 ---
 

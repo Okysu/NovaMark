@@ -628,6 +628,7 @@ TEST_F(VMTest, VMItemDefinitionRegistryIncludesIcon) {
         "@item potion\n"
         "  name: \"治疗药水\"\n"
         "  icon: potion.png\n"
+        "  default_value: 3\n"
         "@end\n"
         "#scene_start \"Start\"\n"
     );
@@ -639,6 +640,7 @@ TEST_F(VMTest, VMItemDefinitionRegistryIncludesIcon) {
     auto it = vm.itemDefinitions().find("potion");
     ASSERT_NE(it, vm.itemDefinitions().end());
     EXPECT_EQ(it->second.icon, "potion.png");
+    EXPECT_EQ(it->second.defaultValue, "3");
 }
 
 TEST_F(VMTest, VMSpritePositionStringPassThrough) {
@@ -663,7 +665,16 @@ TEST_F(VMTest, VMSpritePositionStringPassThrough) {
 TEST_F(VMTest, SerializeGameState) {
     GameState state;
     state.currentScene = "forest";
+    state.currentLabel = "branch_a";
     state.statementIndex = 42;
+    state.bg = "forest.png";
+    state.bgm = "theme.mp3";
+    state.bgmVolume = 0.5;
+    state.bgmLoop = false;
+    state.ending = "good_ending";
+    state.dialogue = DialogueState{true, "Alice", "Hello", "happy", "#fff"};
+    state.choice = ChoiceState{true, "Choose", {ChoiceOption{"c1", "A", ".a", false}}};
+    state.sprites = {SpriteState{"Alice", "alice.png", 0.0, 0.0, "left", 1.0, 1}};
     state.callStack = {{"village", 10}};
     state.numberVariables = {{"hp", 100.0}, {"gold", 50.0}};
     state.stringVariables = {{"name", "Alice"}};
@@ -678,7 +689,22 @@ TEST_F(VMTest, SerializeGameState) {
     ASSERT_TRUE(GameStateSerializer::deserialize(json, restored));
     
     EXPECT_EQ(restored.currentScene, "forest");
+    EXPECT_EQ(restored.currentLabel, "branch_a");
     EXPECT_EQ(restored.statementIndex, 42);
+    ASSERT_TRUE(restored.bg.has_value());
+    EXPECT_EQ(*restored.bg, "forest.png");
+    ASSERT_TRUE(restored.bgm.has_value());
+    EXPECT_EQ(*restored.bgm, "theme.mp3");
+    EXPECT_DOUBLE_EQ(restored.bgmVolume, 0.5);
+    EXPECT_FALSE(restored.bgmLoop);
+    ASSERT_TRUE(restored.ending.has_value());
+    EXPECT_EQ(*restored.ending, "good_ending");
+    ASSERT_TRUE(restored.dialogue.has_value());
+    EXPECT_EQ(restored.dialogue->text, "Hello");
+    ASSERT_TRUE(restored.choice.has_value());
+    EXPECT_EQ(restored.choice->question, "Choose");
+    ASSERT_EQ(restored.sprites.size(), 1u);
+    EXPECT_EQ(restored.sprites[0].position, "left");
     EXPECT_EQ(restored.callStack.size(), 1);
     EXPECT_EQ(restored.callStack[0].first, "village");
     EXPECT_DOUBLE_EQ(restored.numberVariables["hp"], 100.0);
@@ -733,7 +759,10 @@ TEST_F(VMTest, CaptureAndRestoreState) {
     std::vector<std::pair<std::string, size_t>> callStack = {{"dungeon", 20}};
     
     GameState state = GameStateSerializer::captureState(
-        "battle", 15, callStack, vars, inv, endings, flags
+        "battle", "camp", 15,
+        TextConfigState{}, std::nullopt, std::nullopt, std::nullopt, 1.0, true,
+        {}, std::nullopt, std::nullopt, std::nullopt,
+        callStack, vars, inv, endings, flags
     );
     
     EXPECT_EQ(state.currentScene, "battle");
@@ -749,16 +778,31 @@ TEST_F(VMTest, CaptureAndRestoreState) {
     VariableManager newVars;
     Inventory newInv;
     std::string newScene;
+    std::string newLabel;
     size_t newIndex = 0;
+    TextConfigState textConfig;
+    std::optional<std::string> bg;
+    std::optional<std::string> bgTransition;
+    std::optional<std::string> bgm;
+    double bgmVolume = 1.0;
+    bool bgmLoop = true;
+    std::vector<SpriteState> sprites;
+    std::optional<DialogueState> dialogue;
+    std::optional<ChoiceState> choice;
+    std::optional<std::string> ending;
     std::vector<std::pair<std::string, size_t>> newCallStack;
     std::unordered_set<std::string> newEndings;
     std::unordered_set<std::string> newFlags;
     
     GameStateSerializer::restoreState(
-        state, newScene, newIndex, newCallStack, newVars, newInv, newEndings, newFlags
+        state, newScene, newLabel, newIndex,
+        textConfig, bg, bgTransition, bgm, bgmVolume, bgmLoop,
+        sprites, dialogue, choice, ending,
+        newCallStack, newVars, newInv, newEndings, newFlags
     );
     
     EXPECT_EQ(newScene, "battle");
+    EXPECT_EQ(newLabel, "camp");
     EXPECT_EQ(newIndex, 15);
     EXPECT_DOUBLE_EQ(newVars.asNumber("hp"), 100.0);
     EXPECT_EQ(newVars.asString("name"), "Hero");
@@ -1150,6 +1194,8 @@ TEST_F(VMTest, VMLoadSaveRestoresState) {
     
     auto savedState = vm.captureState();
     EXPECT_EQ(savedState.currentScene, "scene_dungeon");
+    ASSERT_TRUE(savedState.dialogue.has_value());
+    EXPECT_EQ(savedState.dialogue->text, "Hall");
     
     NovaVM vm2;
     vm2.load(result.unwrap());
@@ -1158,6 +1204,8 @@ TEST_F(VMTest, VMLoadSaveRestoresState) {
     EXPECT_DOUBLE_EQ(vm2.variables().asNumber("hp"), 100.0);
     EXPECT_DOUBLE_EQ(vm2.variables().asNumber("gold"), 50.0);
     EXPECT_EQ(vm2.inventory().count("key"), 1);
+    ASSERT_TRUE(vm2.state().dialogue.has_value());
+    EXPECT_EQ(vm2.state().dialogue->text, "Hall");
 }
 
 TEST_F(VMTest, VMLoadSaveWithEndingsAndFlags) {
@@ -1184,6 +1232,22 @@ TEST_F(VMTest, VMLoadSaveWithEndingsAndFlags) {
     EXPECT_TRUE(vm2.loadSave(savedState));
     EXPECT_TRUE(vm2.playthrough().hasEnding("good_ending"));
     EXPECT_TRUE(vm2.playthrough().hasFlag("met_king"));
+}
+
+TEST_F(VMTest, VMGiveTakeSupportExpressions) {
+    auto result = parse(
+        "@var bonus = 1\n"
+        "#scene_start \"Start\"\n"
+        "@give money 1 + bonus\n"
+        "@take money bonus\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+
+    NovaVM vm;
+    vm.load(result.unwrap());
+    vm.advance();
+
+    EXPECT_EQ(vm.inventory().count("money"), 1);
 }
 
 TEST_F(VMTest, VMChooseById) {

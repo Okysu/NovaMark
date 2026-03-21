@@ -22,7 +22,8 @@ class NovaRenderer {
         runtime._free(dataPtr);
 
         if (result !== 0) {
-            throw new Error('Failed to load game package (code: ' + result + ')');
+            const detail = runtime._nova_wasm_get_last_error ? runtime.UTF8ToString(runtime._nova_wasm_get_last_error()) : '';
+            throw new Error('Failed to load game package (code: ' + result + ')' + (detail ? ': ' + detail : ''));
         }
     }
 
@@ -65,7 +66,7 @@ class NovaRenderer {
     }
 
     isEnded() {
-        return this.getStatus() === 3;
+        return this.getStatus() === 2;
     }
 
     async getAssetBytes(name, category = null) {
@@ -330,7 +331,25 @@ class NovaRenderer {
         }
     }
 
-    exportSave() {
+    exportSaveBinary() {
+        const sizePtr = this.vm._malloc(4);
+        const dataPtr = this.vm._nova_wasm_export_save_binary(sizePtr);
+
+        if (!dataPtr) {
+            this.vm._free(sizePtr);
+            return null;
+        }
+
+        const size = this.vm.getValue(sizePtr, 'i32');
+        const bytes = this.readBytes(dataPtr, size);
+
+        this.vm._free(sizePtr);
+        this.vm._nova_wasm_free(dataPtr);
+
+        return bytes;
+    }
+
+    exportSaveJson() {
         const sizePtr = this.vm._malloc(4);
         const jsonPtr = this.vm._nova_wasm_export_save_json(sizePtr);
 
@@ -348,7 +367,17 @@ class NovaRenderer {
         return json;
     }
 
-    importSave(json) {
+    importSaveBinary(bytes) {
+        const data = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+        const ptr = this.vm._malloc(data.length);
+        this.writeBytes(ptr, data);
+        const result = this.vm._nova_wasm_import_save_binary(ptr, data.length);
+        this.vm._free(ptr);
+
+        return result === 0;
+    }
+
+    importSaveJson(json) {
         const jsonPtr = this.allocateString(json);
         const result = this.vm._nova_wasm_import_save_json(jsonPtr, json.length);
         this.vm._free(jsonPtr);

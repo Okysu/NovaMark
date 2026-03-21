@@ -1,6 +1,7 @@
 #pragma once
 
 #include "nova/vm/game_state.h"
+#include "nova/vm/state.h"
 #include "nova/vm/variable.h"
 #include "nova/vm/inventory.h"
 #include <string>
@@ -36,7 +37,18 @@ public:
     /// @brief 从 VM 组件构建游戏状态
     static GameState captureState(
         const std::string& currentScene,
+        const std::string& currentLabel,
         size_t statementIndex,
+        const TextConfigState& textConfig,
+        const std::optional<std::string>& bg,
+        const std::optional<std::string>& bgTransition,
+        const std::optional<std::string>& bgm,
+        double bgmVolume,
+        bool bgmLoop,
+        const std::vector<SpriteState>& sprites,
+        const std::optional<DialogueState>& dialogue,
+        const std::optional<ChoiceState>& choice,
+        const std::optional<std::string>& ending,
         const std::vector<std::pair<std::string, size_t>>& callStack,
         const VariableManager& variables,
         const Inventory& inventory,
@@ -48,7 +60,18 @@ public:
     static void restoreState(
         const GameState& state,
         std::string& currentScene,
+        std::string& currentLabel,
         size_t& statementIndex,
+        TextConfigState& textConfig,
+        std::optional<std::string>& bg,
+        std::optional<std::string>& bgTransition,
+        std::optional<std::string>& bgm,
+        double& bgmVolume,
+        bool& bgmLoop,
+        std::vector<SpriteState>& sprites,
+        std::optional<DialogueState>& dialogue,
+        std::optional<ChoiceState>& choice,
+        std::optional<std::string>& ending,
         std::vector<std::pair<std::string, size_t>>& callStack,
         VariableManager& variables,
         Inventory& inventory,

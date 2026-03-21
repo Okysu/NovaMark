@@ -216,6 +216,20 @@ function getDebugSnapshot() {
     return snapshot;
 }
 
+function getDebugStatus() {
+    if (!renderer) {
+        return null;
+    }
+
+    return {
+        mode: renderer.mode,
+        status: renderer.getStatus(),
+        isEnded: renderer.isEnded(),
+        hasDialogue: renderer.hasDialogue(),
+        hasChoices: renderer.hasChoices()
+    };
+}
+
 function installDebugAPI() {
     if (typeof window === 'undefined') {
         return;
@@ -223,19 +237,7 @@ function installDebugAPI() {
 
     window.novaDebug = {
         status() {
-            if (!renderer) {
-                return null;
-            }
-
-            return {
-                mode: renderer.mode,
-                status: renderer.getStatus(),
-                isEnded: renderer.isEnded(),
-                hasDialogue: renderer.hasDialogue(),
-                hasChoices: renderer.hasChoices(),
-                textConfig: renderer.getTextConfig(),
-                runtimeState: renderer.getRuntimeState()
-            };
+            return getDebugStatus();
         },
 
         snapshot() {
@@ -247,6 +249,16 @@ function installDebugAPI() {
                 return null;
             }
             return renderer.getRuntimeState();
+        },
+
+        saveJson() {
+            if (!renderer) return null;
+            return renderer.exportSaveJson();
+        },
+
+        saveBinary() {
+            if (!renderer) return null;
+            return renderer.exportSaveBinary();
         },
 
         choices() {
@@ -306,7 +318,7 @@ document.addEventListener('DOMContentLoaded', () => {
     saveInput.addEventListener('change', async () => {
         if (saveInput.files.length) {
             const file = saveInput.files[0];
-            saveData = await file.text();
+            saveData = await file.arrayBuffer();
         }
     });
     
@@ -328,14 +340,15 @@ document.addEventListener('DOMContentLoaded', () => {
             isEndingShown = false;
             
             if (saveData) {
-                renderer.importSave(saveData);
+                renderer.importSaveBinary(saveData);
+                showGameScreen();
+                renderGame();
+            } else {
+                showGameScreen();
+                renderer.advance();
+                renderGame();
             }
-            
-            showGameScreen();
-            renderer.advance();
-            
-            renderGame();
-            
+             
         } catch (err) {
             errorDiv.textContent = 'Error: ' + err.message;
             errorDiv.classList.remove('hidden');
@@ -362,12 +375,13 @@ document.addEventListener('DOMContentLoaded', () => {
     $('load-menu-btn').addEventListener('click', () => {
         const input = document.createElement('input');
         input.type = 'file';
-        input.accept = '.json';
+        input.accept = '.nvs,application/octet-stream';
         input.onchange = async () => {
             const file = input.files[0];
-            const json = await file.text();
-            renderer.importSave(json);
+            const bytes = await file.arrayBuffer();
+            renderer.importSaveBinary(bytes);
             $('menu-overlay').classList.add('hidden');
+            renderGame();
         };
         input.click();
     });
@@ -429,15 +443,15 @@ function handleChoice(index) {
 }
 
 function handleSave() {
-    const json = renderer.exportSave();
-    if (!json) return;
-    
-    const blob = new Blob([json], { type: 'application/json' });
+    const bytes = renderer.exportSaveBinary();
+    if (!bytes) return;
+
+    const blob = new Blob([bytes], { type: 'application/octet-stream' });
     const url = URL.createObjectURL(blob);
     
     const a = document.createElement('a');
     a.href = url;
-    a.download = `novamark_save_${Date.now()}.json`;
+    a.download = `novamark_save_${Date.now()}.nvs`;
     a.click();
     
     URL.revokeObjectURL(url);

@@ -33,6 +33,7 @@ struct ItemDefinition {
     std::string name;
     std::string description;
     std::string icon;
+    std::string defaultValue;
 };
 
 /// @brief NovaMark 虚拟机

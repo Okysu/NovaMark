@@ -26,6 +26,54 @@ static int build_single_file(const CliConfig& config, const std::string& file);
 static int build_project(const CliConfig& config, const std::string& dir, const GameMetadata& meta);
 static bool collect_nvm_files_sorted(const std::string& path, std::vector<std::string>& files);
 
+static int natural_compare(const std::string& a, const std::string& b) {
+    size_t i = 0;
+    size_t j = 0;
+    while (i < a.size() && j < b.size()) {
+        const unsigned char ca = static_cast<unsigned char>(a[i]);
+        const unsigned char cb = static_cast<unsigned char>(b[j]);
+        if (std::isdigit(ca) && std::isdigit(cb)) {
+            size_t i2 = i;
+            size_t j2 = j;
+            while (i2 < a.size() && std::isdigit(static_cast<unsigned char>(a[i2]))) ++i2;
+            while (j2 < b.size() && std::isdigit(static_cast<unsigned char>(b[j2]))) ++j2;
+
+            auto numA = a.substr(i, i2 - i);
+            auto numB = b.substr(j, j2 - j);
+            size_t trimA = numA.find_first_not_of('0');
+            size_t trimB = numB.find_first_not_of('0');
+            numA.erase(0, trimA == std::string::npos ? numA.size() - 1 : trimA);
+            numB.erase(0, trimB == std::string::npos ? numB.size() - 1 : trimB);
+
+            if (numA.size() != numB.size()) {
+                return numA.size() < numB.size() ? -1 : 1;
+            }
+            if (numA != numB) {
+                return numA < numB ? -1 : 1;
+            }
+
+            if ((i2 - i) != (j2 - j)) {
+                return (i2 - i) < (j2 - j) ? -1 : 1;
+            }
+
+            i = i2;
+            j = j2;
+            continue;
+        }
+
+        const unsigned char lowerA = static_cast<unsigned char>(std::tolower(ca));
+        const unsigned char lowerB = static_cast<unsigned char>(std::tolower(cb));
+        if (lowerA != lowerB) {
+            return lowerA < lowerB ? -1 : 1;
+        }
+        ++i;
+        ++j;
+    }
+
+    if (i == a.size() && j == b.size()) return 0;
+    return i == a.size() ? -1 : 1;
+}
+
 static void setup_console() {
 #ifdef _WIN32
     SetConsoleOutputCP(CP_UTF8);
@@ -227,7 +275,9 @@ static bool collect_nvm_files_sorted(const std::string& path, std::vector<std::s
         }
     }
 
-    std::sort(discovered.begin(), discovered.end());
+    std::sort(discovered.begin(), discovered.end(), [](const std::string& a, const std::string& b) {
+        return natural_compare(fs::path(a).filename().string(), fs::path(b).filename().string()) < 0;
+    });
     files.insert(files.end(), discovered.begin(), discovered.end());
     return !discovered.empty();
 }

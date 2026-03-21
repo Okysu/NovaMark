@@ -257,7 +257,10 @@ Add item to player inventory.
 ```nvm
 @give healing_potion 1
 @give gold 100
+@give gold random(10, 20)
 ```
+
+The quantity parameter supports expressions.
 
 ---
 
@@ -267,7 +270,11 @@ Remove item from player inventory.
 
 ```nvm
 @take healing_potion 1
+@take gold 1 + 1
+@take gold count + 1
 ```
+
+The quantity parameter supports expressions.
 
 ---
 

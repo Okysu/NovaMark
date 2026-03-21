@@ -592,8 +592,18 @@ TEST_F(ParserTest, GiveCommand) {
     ASSERT_TRUE(result.is_ok());
 }
 
+TEST_F(ParserTest, GiveCommandWithExpression) {
+    auto result = parse("@give gold_coin 1 + 1\n");
+    ASSERT_TRUE(result.is_ok());
+}
+
 TEST_F(ParserTest, TakeCommand) {
     auto result = parse("@take torch 1\n");
+    ASSERT_TRUE(result.is_ok());
+}
+
+TEST_F(ParserTest, TakeCommandWithExpression) {
+    auto result = parse("@take torch count + 1\n");
     ASSERT_TRUE(result.is_ok());
 }
 

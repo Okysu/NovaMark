@@ -82,6 +82,33 @@ const char* nova_export_save_json(void* vm, size_t* outSize) {
     return result;
 }
 
+void* nova_export_save_binary(void* vm, size_t* outSize) {
+    auto* nova_vm = cast_vm(vm);
+    if (!nova_vm || !outSize) {
+        if (outSize) *outSize = 0;
+        return nullptr;
+    }
+
+    nova::GameState state = nova_vm->captureState();
+
+    nova::SaveData save;
+    save.saveId = "wasm-export";
+    save.label = "Web Save";
+    save.timestamp = std::chrono::system_clock::now();
+    save.state = state;
+
+    auto bytes = nova::GameStateSerializer::serializeSaveBinary(save);
+    void* result = std::malloc(bytes.size());
+    if (!result) {
+        *outSize = 0;
+        return nullptr;
+    }
+
+    std::memcpy(result, bytes.data(), bytes.size());
+    *outSize = bytes.size();
+    return result;
+}
+
 int nova_import_save_json(void* vm, const char* json, size_t size) {
     auto* nova_vm = cast_vm(vm);
     if (!nova_vm || !json || size == 0) return -1;
@@ -91,6 +118,17 @@ int nova_import_save_json(void* vm, const char* json, size_t size) {
     
     if (!nova::GameStateSerializer::deserializeSave(jsonStr, save)) return -1;
     
+    return nova_vm->loadSave(save.state) ? 0 : -1;
+}
+
+int nova_import_save_binary(void* vm, const unsigned char* data, size_t size) {
+    auto* nova_vm = cast_vm(vm);
+    if (!nova_vm || !data || size == 0) return -1;
+
+    nova::SaveData save;
+    std::vector<uint8_t> bytes(data, data + size);
+    if (!nova::GameStateSerializer::deserializeSaveBinary(bytes, save)) return -1;
+
     return nova_vm->loadSave(save.state) ? 0 : -1;
 }
 
@@ -218,7 +256,8 @@ const char* nova_export_runtime_state_json(void* vm, size_t* outSize) {
             {"id", item.id},
             {"name", item.name},
             {"description", item.description},
-            {"icon", item.icon}
+            {"icon", item.icon},
+            {"defaultValue", item.defaultValue}
         };
     }
 
@@ -241,6 +280,7 @@ const char* nova_export_runtime_state_json(void* vm, size_t* outSize) {
                 {"name", it->second.name},
                 {"description", it->second.description},
                 {"icon", it->second.icon},
+                {"defaultValue", it->second.defaultValue},
                 {"count", count}
             });
         } else {
@@ -249,6 +289,7 @@ const char* nova_export_runtime_state_json(void* vm, size_t* outSize) {
                 {"name", id},
                 {"description", ""},
                 {"icon", ""},
+                {"defaultValue", ""},
                 {"count", count}
             });
         }

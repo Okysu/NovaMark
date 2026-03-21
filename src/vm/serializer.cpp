@@ -160,7 +160,47 @@ bool read_call_stack(const std::vector<uint8_t>& data, size_t& offset, std::vect
 std::string GameStateSerializer::serialize(const GameState& state) {
     json j;
     j["currentScene"] = state.currentScene;
+    j["currentLabel"] = state.currentLabel;
     j["statementIndex"] = state.statementIndex;
+    j["textConfig"] = {
+        {"defaultFont", state.textConfig.defaultFont},
+        {"defaultFontSize", state.textConfig.defaultFontSize},
+        {"defaultTextSpeed", state.textConfig.defaultTextSpeed}
+    };
+    j["bg"] = state.bg;
+    j["bgTransition"] = state.bgTransition;
+    j["bgm"] = state.bgm;
+    j["bgmVolume"] = state.bgmVolume;
+    j["bgmLoop"] = state.bgmLoop;
+    j["ending"] = state.ending;
+    j["sprites"] = json::array();
+    for (const auto& sp : state.sprites) {
+        j["sprites"].push_back({
+            {"id", sp.id}, {"url", sp.url}, {"x", sp.x}, {"y", sp.y},
+            {"position", sp.position}, {"opacity", sp.opacity}, {"zIndex", sp.zIndex}
+        });
+    }
+    if (state.dialogue) {
+        j["dialogue"] = {
+            {"isShow", state.dialogue->isShow},
+            {"speaker", state.dialogue->speaker},
+            {"text", state.dialogue->text},
+            {"emotion", state.dialogue->emotion},
+            {"color", state.dialogue->color}
+        };
+    }
+    if (state.choice) {
+        j["choice"] = {
+            {"isShow", state.choice->isShow},
+            {"question", state.choice->question},
+            {"options", json::array()}
+        };
+        for (const auto& opt : state.choice->options) {
+            j["choice"]["options"].push_back({
+                {"id", opt.id}, {"text", opt.text}, {"target", opt.target}, {"disabled", opt.disabled}
+            });
+        }
+    }
     
     json callStackJson = json::array();
     for (const auto& [scene, idx] : state.callStack) {
@@ -183,7 +223,64 @@ bool GameStateSerializer::deserialize(const std::string& jsonStr, GameState& sta
         json j = json::parse(jsonStr);
         
         state.currentScene = j.value("currentScene", "");
+        state.currentLabel = j.value("currentLabel", "");
         state.statementIndex = j.value("statementIndex", 0);
+        if (j.contains("textConfig")) {
+            auto cfg = j["textConfig"];
+            state.textConfig.defaultFont = cfg.value("defaultFont", "sans-serif");
+            state.textConfig.defaultFontSize = cfg.value("defaultFontSize", 24);
+            state.textConfig.defaultTextSpeed = cfg.value("defaultTextSpeed", 50);
+        }
+        if (j.contains("bg") && !j["bg"].is_null()) state.bg = j["bg"].get<std::string>();
+        if (j.contains("bgTransition") && !j["bgTransition"].is_null()) state.bgTransition = j["bgTransition"].get<std::string>();
+        if (j.contains("bgm") && !j["bgm"].is_null()) state.bgm = j["bgm"].get<std::string>();
+        state.bgmVolume = j.value("bgmVolume", 1.0);
+        state.bgmLoop = j.value("bgmLoop", true);
+        if (j.contains("ending") && !j["ending"].is_null()) state.ending = j["ending"].get<std::string>();
+
+        state.sprites.clear();
+        if (j.contains("sprites")) {
+            for (const auto& item : j["sprites"]) {
+                SpriteState sp;
+                sp.id = item.value("id", "");
+                sp.url = item.value("url", "");
+                sp.x = item.value("x", 0.0);
+                sp.y = item.value("y", 0.0);
+                sp.position = item.value("position", "");
+                sp.opacity = item.value("opacity", 1.0);
+                sp.zIndex = item.value("zIndex", 0);
+                state.sprites.push_back(std::move(sp));
+            }
+        }
+
+        if (j.contains("dialogue") && !j["dialogue"].is_null()) {
+            DialogueState dialog;
+            const auto& d = j["dialogue"];
+            dialog.isShow = d.value("isShow", false);
+            dialog.speaker = d.value("speaker", "");
+            dialog.text = d.value("text", "");
+            dialog.emotion = d.value("emotion", "");
+            dialog.color = d.value("color", "");
+            state.dialogue = std::move(dialog);
+        }
+
+        if (j.contains("choice") && !j["choice"].is_null()) {
+            ChoiceState choice;
+            const auto& c = j["choice"];
+            choice.isShow = c.value("isShow", false);
+            choice.question = c.value("question", "");
+            if (c.contains("options")) {
+                for (const auto& item : c["options"]) {
+                    ChoiceOption opt;
+                    opt.id = item.value("id", "");
+                    opt.text = item.value("text", "");
+                    opt.target = item.value("target", "");
+                    opt.disabled = item.value("disabled", false);
+                    choice.options.push_back(std::move(opt));
+                }
+            }
+            state.choice = std::move(choice);
+        }
         
         state.callStack.clear();
         if (j.contains("callStack")) {
@@ -288,8 +385,42 @@ std::vector<uint8_t> GameStateSerializer::serializeSaveBinary(const SaveData& sa
     write_pod(out, timestamp);
 
     write_string(out, save.state.currentScene);
+    write_string(out, save.state.currentLabel);
     uint64_t statementIndex = static_cast<uint64_t>(save.state.statementIndex);
     write_pod(out, statementIndex);
+    write_string(out, save.state.textConfig.defaultFont);
+    write_pod(out, save.state.textConfig.defaultFontSize);
+    write_pod(out, save.state.textConfig.defaultTextSpeed);
+    write_pod(out, save.state.bg.has_value()); if (save.state.bg) write_string(out, *save.state.bg);
+    write_pod(out, save.state.bgTransition.has_value()); if (save.state.bgTransition) write_string(out, *save.state.bgTransition);
+    write_pod(out, save.state.bgm.has_value()); if (save.state.bgm) write_string(out, *save.state.bgm);
+    write_pod(out, save.state.bgmVolume);
+    write_pod(out, save.state.bgmLoop);
+    uint32_t spriteCount = static_cast<uint32_t>(save.state.sprites.size());
+    write_pod(out, spriteCount);
+    for (const auto& sp : save.state.sprites) {
+        write_string(out, sp.id); write_string(out, sp.url); write_pod(out, sp.x); write_pod(out, sp.y);
+        write_string(out, sp.position); write_pod(out, sp.opacity); write_pod(out, sp.zIndex);
+    }
+    write_pod(out, save.state.dialogue.has_value());
+    if (save.state.dialogue) {
+        write_pod(out, save.state.dialogue->isShow);
+        write_string(out, save.state.dialogue->speaker);
+        write_string(out, save.state.dialogue->text);
+        write_string(out, save.state.dialogue->emotion);
+        write_string(out, save.state.dialogue->color);
+    }
+    write_pod(out, save.state.choice.has_value());
+    if (save.state.choice) {
+        write_pod(out, save.state.choice->isShow);
+        write_string(out, save.state.choice->question);
+        uint32_t optionCount = static_cast<uint32_t>(save.state.choice->options.size());
+        write_pod(out, optionCount);
+        for (const auto& opt : save.state.choice->options) {
+            write_string(out, opt.id); write_string(out, opt.text); write_string(out, opt.target); write_pod(out, opt.disabled);
+        }
+    }
+    write_pod(out, save.state.ending.has_value()); if (save.state.ending) write_string(out, *save.state.ending);
     write_call_stack(out, save.state.callStack);
     write_map_string_key(out, save.state.numberVariables);
     write_string_map(out, save.state.stringVariables);
@@ -318,15 +449,118 @@ bool GameStateSerializer::deserializeSaveBinary(const std::vector<uint8_t>& data
 
     int64_t timestamp = 0;
     uint64_t statementIndex = 0;
+    uint32_t spriteCount = 0;
 
     save = SaveData{};
+    bool hasBg = false, hasBgTransition = false, hasBgm = false, hasDialogue = false, hasChoice = false, hasEnding = false;
     if (!read_string(data, offset, save.saveId) ||
         !read_string(data, offset, save.label) ||
         !read_string(data, offset, save.screenshot) ||
         !read_pod(data, offset, timestamp) ||
         !read_string(data, offset, save.state.currentScene) ||
+        !read_string(data, offset, save.state.currentLabel) ||
         !read_pod(data, offset, statementIndex) ||
-        !read_call_stack(data, offset, save.state.callStack) ||
+        !read_string(data, offset, save.state.textConfig.defaultFont) ||
+        !read_pod(data, offset, save.state.textConfig.defaultFontSize) ||
+        !read_pod(data, offset, save.state.textConfig.defaultTextSpeed) ||
+        !read_pod(data, offset, hasBg)) {
+        return false;
+    }
+    if (hasBg) {
+        std::string bg;
+        if (!read_string(data, offset, bg)) return false;
+        save.state.bg = std::move(bg);
+    }
+    if (!read_pod(data, offset, hasBgTransition)) {
+        return false;
+    }
+    if (hasBgTransition) {
+        std::string bgTransition;
+        if (!read_string(data, offset, bgTransition)) return false;
+        save.state.bgTransition = std::move(bgTransition);
+    }
+    if (!read_pod(data, offset, hasBgm)) {
+        return false;
+    }
+    if (hasBgm) {
+        std::string bgm;
+        if (!read_string(data, offset, bgm)) return false;
+        save.state.bgm = std::move(bgm);
+    }
+    if (!read_pod(data, offset, save.state.bgmVolume) ||
+        !read_pod(data, offset, save.state.bgmLoop) ||
+        !read_pod(data, offset, spriteCount)) {
+        return false;
+    }
+
+    save.state.sprites.clear();
+    save.state.sprites.reserve(spriteCount);
+    for (uint32_t i = 0; i < spriteCount; ++i) {
+        SpriteState sp;
+        if (!read_string(data, offset, sp.id) ||
+            !read_string(data, offset, sp.url) ||
+            !read_pod(data, offset, sp.x) ||
+            !read_pod(data, offset, sp.y) ||
+            !read_string(data, offset, sp.position) ||
+            !read_pod(data, offset, sp.opacity) ||
+            !read_pod(data, offset, sp.zIndex)) {
+            return false;
+        }
+        save.state.sprites.push_back(std::move(sp));
+    }
+
+    if (!read_pod(data, offset, hasDialogue)) {
+        return false;
+    }
+    if (hasDialogue) {
+        DialogueState dialog;
+        if (!read_pod(data, offset, dialog.isShow) ||
+            !read_string(data, offset, dialog.speaker) ||
+            !read_string(data, offset, dialog.text) ||
+            !read_string(data, offset, dialog.emotion) ||
+            !read_string(data, offset, dialog.color)) {
+            return false;
+        }
+        save.state.dialogue = std::move(dialog);
+    }
+
+    if (!read_pod(data, offset, hasChoice)) {
+        return false;
+    }
+    if (hasChoice) {
+        ChoiceState choice;
+        uint32_t optionCount = 0;
+        if (!read_pod(data, offset, choice.isShow) ||
+            !read_string(data, offset, choice.question) ||
+            !read_pod(data, offset, optionCount)) {
+            return false;
+        }
+        choice.options.reserve(optionCount);
+        for (uint32_t i = 0; i < optionCount; ++i) {
+            ChoiceOption opt;
+            if (!read_string(data, offset, opt.id) ||
+                !read_string(data, offset, opt.text) ||
+                !read_string(data, offset, opt.target) ||
+                !read_pod(data, offset, opt.disabled)) {
+                return false;
+            }
+            choice.options.push_back(std::move(opt));
+        }
+        save.state.choice = std::move(choice);
+    }
+
+    if (!read_pod(data, offset, hasEnding)) {
+        return false;
+    }
+    if (hasEnding) {
+        std::string ending;
+        if (!read_string(data, offset, ending)) {
+            return false;
+        }
+        save.state.ending = std::move(ending);
+    }
+
+    if (!read_call_stack(data, offset, save.state.callStack) ||
         !read_map_string_key(data, offset, save.state.numberVariables) ||
         !read_string_map(data, offset, save.state.stringVariables) ||
         !read_map_string_key(data, offset, save.state.boolVariables) ||
@@ -343,7 +577,18 @@ bool GameStateSerializer::deserializeSaveBinary(const std::vector<uint8_t>& data
 
 GameState GameStateSerializer::captureState(
     const std::string& currentScene,
+    const std::string& currentLabel,
     size_t statementIndex,
+    const TextConfigState& textConfig,
+    const std::optional<std::string>& bg,
+    const std::optional<std::string>& bgTransition,
+    const std::optional<std::string>& bgm,
+    double bgmVolume,
+    bool bgmLoop,
+    const std::vector<SpriteState>& sprites,
+    const std::optional<DialogueState>& dialogue,
+    const std::optional<ChoiceState>& choice,
+    const std::optional<std::string>& ending,
     const std::vector<std::pair<std::string, size_t>>& callStack,
     const VariableManager& variables,
     const Inventory& inventory,
@@ -352,7 +597,18 @@ GameState GameStateSerializer::captureState(
 ) {
     GameState state;
     state.currentScene = currentScene;
+    state.currentLabel = currentLabel;
     state.statementIndex = statementIndex;
+    state.textConfig = textConfig;
+    state.bg = bg;
+    state.bgTransition = bgTransition;
+    state.bgm = bgm;
+    state.bgmVolume = bgmVolume;
+    state.bgmLoop = bgmLoop;
+    state.sprites = sprites;
+    state.dialogue = dialogue;
+    state.choice = choice;
+    state.ending = ending;
     state.callStack = callStack;
     state.numberVariables = variables.getAllNumbers();
     state.stringVariables = variables.getAllStrings();
@@ -366,7 +622,18 @@ GameState GameStateSerializer::captureState(
 void GameStateSerializer::restoreState(
     const GameState& state,
     std::string& currentScene,
+    std::string& currentLabel,
     size_t& statementIndex,
+    TextConfigState& textConfig,
+    std::optional<std::string>& bg,
+    std::optional<std::string>& bgTransition,
+    std::optional<std::string>& bgm,
+    double& bgmVolume,
+    bool& bgmLoop,
+    std::vector<SpriteState>& sprites,
+    std::optional<DialogueState>& dialogue,
+    std::optional<ChoiceState>& choice,
+    std::optional<std::string>& ending,
     std::vector<std::pair<std::string, size_t>>& callStack,
     VariableManager& variables,
     Inventory& inventory,
@@ -374,7 +641,18 @@ void GameStateSerializer::restoreState(
     std::unordered_set<std::string>& flags
 ) {
     currentScene = state.currentScene;
+    currentLabel = state.currentLabel;
     statementIndex = state.statementIndex;
+    textConfig = state.textConfig;
+    bg = state.bg;
+    bgTransition = state.bgTransition;
+    bgm = state.bgm;
+    bgmVolume = state.bgmVolume;
+    bgmLoop = state.bgmLoop;
+    sprites = state.sprites;
+    dialogue = state.dialogue;
+    choice = state.choice;
+    ending = state.ending;
     callStack = state.callStack;
     
     variables.clear();

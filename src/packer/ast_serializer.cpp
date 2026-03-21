@@ -273,13 +273,13 @@ void AstSerializer::serializeSetCommand(const SetCommandNode* node) {
 void AstSerializer::serializeGiveCommand(const GiveCommandNode* node) {
     m_writer.writeByte(static_cast<uint8_t>(OpCode::NodeGiveCommand));
     m_writer.writeString(node->item());
-    m_writer.writeU32(static_cast<uint32_t>(node->count()));
+    serializeExpression(node->count());
 }
 
 void AstSerializer::serializeTakeCommand(const TakeCommandNode* node) {
     m_writer.writeByte(static_cast<uint8_t>(OpCode::NodeTakeCommand));
     m_writer.writeString(node->item());
-    m_writer.writeU32(static_cast<uint32_t>(node->count()));
+    serializeExpression(node->count());
 }
 
 void AstSerializer::serializeCall(const CallNode* node) {
@@ -717,14 +717,14 @@ std::unique_ptr<SetCommandNode> AstDeserializer::deserializeSetCommand() {
 
 std::unique_ptr<GiveCommandNode> AstDeserializer::deserializeGiveCommand() {
     std::string item = m_reader->readString();
-    uint32_t count = m_reader->readU32();
-    return std::make_unique<GiveCommandNode>(SourceLocation{}, std::move(item), static_cast<int>(count));
+    auto count = deserializeExpression();
+    return std::make_unique<GiveCommandNode>(SourceLocation{}, std::move(item), std::move(count));
 }
 
 std::unique_ptr<TakeCommandNode> AstDeserializer::deserializeTakeCommand() {
     std::string item = m_reader->readString();
-    uint32_t count = m_reader->readU32();
-    return std::make_unique<TakeCommandNode>(SourceLocation{}, std::move(item), static_cast<int>(count));
+    auto count = deserializeExpression();
+    return std::make_unique<TakeCommandNode>(SourceLocation{}, std::move(item), std::move(count));
 }
 
 std::unique_ptr<CallNode> AstDeserializer::deserializeCall() {
