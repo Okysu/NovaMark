@@ -188,6 +188,7 @@ function getDebugSnapshot() {
         textConfig: renderer.getTextConfig(),
         runtimeState: renderer.getRuntimeState(),
         background: renderer.getBackground(),
+        backgroundTransition: renderer.getBackgroundTransition(),
         bgm: renderer.getBgm(),
         dialogue: null,
         choices: getDebugChoices(),
@@ -507,13 +508,17 @@ function getSpriteLane(x) {
 
 async function renderVNMode() {
     const bg = renderer.getBackground();
+    const bgEl = $('vn-background');
     if (bg) {
         const url = await renderer.getImageUrl(bg, 'bg');
         if (url) {
-            $('vn-background').style.backgroundImage = `url(${url})`;
+            bgEl.style.backgroundImage = `url(${url})`;
+            const transition = renderer.getBackgroundTransition();
+            bgEl.dataset.transition = transition || '';
         }
     } else {
-        $('vn-background').style.backgroundImage = '';
+        bgEl.style.backgroundImage = '';
+        bgEl.dataset.transition = '';
     }
     
     const spritesDiv = $('vn-sprites');
@@ -531,7 +536,8 @@ async function renderVNMode() {
         const img = document.createElement('img');
         img.src = url;
         img.className = 'vn-sprite';
-        const lane = getSpriteLane(renderer.getSpriteX(i));
+        const position = renderer.getSpritePosition(i);
+        const lane = position || getSpriteLane(renderer.getSpriteX(i));
         const owner = getSpriteOwner(spriteAsset, runtimeState);
         const isSpeaking = owner && currentSpeaker && owner === currentSpeaker;
         const spriteKey = `${owner || 'unknown'}:${spriteAsset}:${lane}`;

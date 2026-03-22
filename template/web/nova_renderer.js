@@ -203,6 +203,10 @@ class NovaRenderer {
         return this.getString(this.vm._nova_wasm_get_bg());
     }
 
+    getBackgroundTransition() {
+        return this.getString(this.vm._nova_wasm_get_bg_transition());
+    }
+
     getBgm() {
         return this.getString(this.vm._nova_wasm_get_bgm());
     }
@@ -269,6 +273,10 @@ class NovaRenderer {
 
     getSpriteZIndex(index) {
         return this.vm._nova_wasm_get_sprite_z_index(index);
+    }
+
+    getSpritePosition(index) {
+        return this.getString(this.vm._nova_wasm_get_sprite_position(index));
     }
 
     async playBgm(assetName, loop, volume) {

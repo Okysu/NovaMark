@@ -207,6 +207,12 @@ const char* nova_get_base_bg_path(void*) {
     return value.c_str();
 }
 
+const char* nova_get_bg_transition(void* vm) {
+    auto* nova_vm = cast_vm(vm);
+    if (!nova_vm || !nova_vm->state().bgTransition.has_value()) return "";
+    return nova_vm->state().bgTransition->c_str();
+}
+
 const char* nova_get_base_sprite_path(void*) {
     static std::string value;
     value = g_current_reader ? g_current_reader->readMetadata().base_sprite_path : "";
@@ -217,6 +223,14 @@ const char* nova_get_base_audio_path(void*) {
     static std::string value;
     value = g_current_reader ? g_current_reader->readMetadata().base_audio_path : "";
     return value.c_str();
+}
+
+const char* nova_get_sprite_position(void* vm, int index) {
+    auto* nova_vm = cast_vm(vm);
+    if (!nova_vm || index < 0) return "";
+    const auto& sprites = nova_vm->state().sprites;
+    if (static_cast<size_t>(index) >= sprites.size()) return "";
+    return sprites[static_cast<size_t>(index)].position.c_str();
 }
 
 const char* nova_export_runtime_state_json(void* vm, size_t* outSize) {

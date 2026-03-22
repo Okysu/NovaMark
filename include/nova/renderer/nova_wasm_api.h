@@ -98,6 +98,8 @@ NOVA_WASM_API int nova_get_default_text_speed(void* vm);
 
 NOVA_WASM_API const char* nova_get_base_bg_path(void* vm);
 
+NOVA_WASM_API const char* nova_get_bg_transition(void* vm);
+
 NOVA_WASM_API const char* nova_get_base_sprite_path(void* vm);
 
 NOVA_WASM_API const char* nova_get_base_audio_path(void* vm);
@@ -105,6 +107,14 @@ NOVA_WASM_API const char* nova_get_base_audio_path(void* vm);
 NOVA_WASM_API const char* nova_export_runtime_state_json(void* vm, size_t* outSize);
 
 NOVA_WASM_API unsigned long long nova_get_runtime_state_version(void* vm);
+
+// ========== 精灵位置 API ==========
+
+/// @brief 获取精灵位置字符串（left/center/right）
+/// @param vm VM 实例
+/// @param index 精灵索引
+/// @return 位置字符串，空字符串表示无效索引或无位置信息
+NOVA_WASM_API const char* nova_get_sprite_position(void* vm, int index);
 
 NOVA_WASM_API int nova_consume_runtime_state_change_flags(void* vm);
 

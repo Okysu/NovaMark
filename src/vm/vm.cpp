@@ -8,6 +8,22 @@ namespace nova {
 
 namespace {
 
+/// @brief 将位置字符串映射为 x 百分比坐标，供渲染器布局使用
+/// @param position 位置字符串：left, center, right
+/// @return x 坐标百分比 (left=20, center=50, right=80)
+double mapPositionToX(const std::string& position) {
+    if (position == "left") return 20.0;
+    if (position == "center") return 50.0;
+    if (position == "right") return 80.0;
+    return 50.0; // 默认居中
+}
+
+std::string defaultPositionForIndex(size_t index) {
+    if (index == 0) return "left";
+    if (index == 1) return "right";
+    return "center";
+}
+
 double safe_stod(const std::string& s, double defaultVal = 0.0) {
     try { return std::stod(s); }
     catch (...) { return defaultVal; }
@@ -699,6 +715,8 @@ void NovaVM::executeDialogue(const DialogueNode* node) {
             SpriteState sprite;
             sprite.id = diag.speaker;
             sprite.url = spriteUrl;
+            sprite.position = defaultPositionForIndex(m_state.sprites.size());
+            sprite.x = mapPositionToX(sprite.position);
             m_state.sprites.push_back(sprite);
         }
     }
@@ -790,25 +808,54 @@ void NovaVM::executeBg(const BgCommandNode* node) {
 
 void NovaVM::executeSprite(const SpriteCommandNode* node) {
     if (!node) return;
-    
-    SpriteState sprite;
-    sprite.id = node->name();
-    
+
+    const std::string spriteId = node->name();
+
+    bool hasX = false, hasY = false, hasPosition = false;
+    bool hasOpacity = false, hasZIndex = false, hasUrl = false;
+
+    std::string url;
+    double x = 0.0, y = 0.0, opacity = 1.0;
+    int zIndex = 0;
+    std::string position;
+
     for (const auto& arg : node->args()) {
-        if (arg.key == "x") sprite.x = safe_stod(arg.value, sprite.x);
-        else if (arg.key == "y") sprite.y = safe_stod(arg.value, sprite.y);
-        else if (arg.key == "position") sprite.position = arg.value;
-        else if (arg.key == "opacity") sprite.opacity = safe_stod(arg.value, sprite.opacity);
-        else if (arg.key == "zIndex") sprite.zIndex = safe_stoi(arg.value, sprite.zIndex);
-        else if (arg.key == "url") sprite.url = arg.value;
+        if (arg.key == "x") { x = safe_stod(arg.value, 0.0); hasX = true; }
+        else if (arg.key == "y") { y = safe_stod(arg.value, 0.0); hasY = true; }
+        else if (arg.key == "position") { position = arg.value; hasPosition = true; }
+        else if (arg.key == "opacity") { opacity = safe_stod(arg.value, 1.0); hasOpacity = true; }
+        else if (arg.key == "zIndex") { zIndex = safe_stoi(arg.value, 0); hasZIndex = true; }
+        else if (arg.key == "url") { url = arg.value; hasUrl = true; }
     }
-    
+
     auto it = std::find_if(m_state.sprites.begin(), m_state.sprites.end(),
-        [&](const SpriteState& s) { return s.id == sprite.id; });
-    
+        [&](const SpriteState& s) { return s.id == spriteId; });
+
     if (it != m_state.sprites.end()) {
-        *it = sprite;
+        if (hasX) it->x = x;
+        if (hasY) it->y = y;
+        if (hasPosition) it->position = position;
+        if (hasOpacity) it->opacity = opacity;
+        if (hasZIndex) it->zIndex = zIndex;
+        if (hasUrl) it->url = url;
+
+        if (!hasX && hasPosition) {
+            it->x = mapPositionToX(it->position);
+        }
     } else {
+        SpriteState sprite;
+        sprite.id = spriteId;
+        sprite.url = url;
+        sprite.x = x;
+        sprite.y = y;
+        sprite.position = position;
+        sprite.opacity = opacity;
+        sprite.zIndex = zIndex;
+
+        if (!hasX && hasPosition) {
+            sprite.x = mapPositionToX(position);
+        }
+
         m_state.sprites.push_back(sprite);
     }
 }

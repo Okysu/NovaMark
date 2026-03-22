@@ -1574,3 +1574,118 @@ TEST_F(VMTest, VMLogicalExpressions) {
     
     EXPECT_TRUE(vm.variables().asBool("not_result"));
 }
+
+// ============================================
+// Sprite Position/Merge Behavior Tests
+// ============================================
+
+TEST_F(VMTest, VMSpritePositionLeftMapsToX20) {
+    auto result = parse(
+        "#scene_start \"Start\"\n"
+        "@sprite alice url:alice.png position:left\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+
+    NovaVM vm;
+    vm.load(result.unwrap());
+    vm.advance();
+
+    ASSERT_EQ(vm.state().sprites.size(), 1u);
+    EXPECT_EQ(vm.state().sprites[0].position, "left");
+    EXPECT_DOUBLE_EQ(vm.state().sprites[0].x, 20.0);
+}
+
+TEST_F(VMTest, VMSpritePositionRightMapsToX80) {
+    auto result = parse(
+        "#scene_start \"Start\"\n"
+        "@sprite bob url:bob.png position:right\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+
+    NovaVM vm;
+    vm.load(result.unwrap());
+    vm.advance();
+
+    ASSERT_EQ(vm.state().sprites.size(), 1u);
+    EXPECT_EQ(vm.state().sprites[0].position, "right");
+    EXPECT_DOUBLE_EQ(vm.state().sprites[0].x, 80.0);
+}
+
+TEST_F(VMTest, VMSpritePositionCenterMapsToX50) {
+    auto result = parse(
+        "#scene_start \"Start\"\n"
+        "@sprite charlie url:charlie.png position:center\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+
+    NovaVM vm;
+    vm.load(result.unwrap());
+    vm.advance();
+
+    ASSERT_EQ(vm.state().sprites.size(), 1u);
+    EXPECT_EQ(vm.state().sprites[0].position, "center");
+    EXPECT_DOUBLE_EQ(vm.state().sprites[0].x, 50.0);
+}
+
+TEST_F(VMTest, VMSpriteUrlUpdateDoesNotResetPosition) {
+    auto result = parse(
+        "#scene_start \"Start\"\n"
+        "@sprite diana url:diana_normal.png position:left\n"
+        "@sprite diana url:diana_happy.png\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+
+    NovaVM vm;
+    vm.load(result.unwrap());
+    vm.advance();
+
+    ASSERT_EQ(vm.state().sprites.size(), 1u);
+    EXPECT_EQ(vm.state().sprites[0].url, "diana_normal.png");
+    EXPECT_EQ(vm.state().sprites[0].position, "left");
+    EXPECT_DOUBLE_EQ(vm.state().sprites[0].x, 20.0);
+
+    vm.advance();
+
+    ASSERT_EQ(vm.state().sprites.size(), 1u);
+    EXPECT_EQ(vm.state().sprites[0].url, "diana_happy.png");
+    EXPECT_EQ(vm.state().sprites[0].position, "left");
+    EXPECT_DOUBLE_EQ(vm.state().sprites[0].x, 20.0);
+}
+
+TEST_F(VMTest, VMSpriteUrlUpdateDoesNotResetExplicitX) {
+    auto result = parse(
+        "#scene_start \"Start\"\n"
+        "@sprite eve url:eve_a.png x:35\n"
+        "@sprite eve url:eve_b.png\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+
+    NovaVM vm;
+    vm.load(result.unwrap());
+    vm.advance();
+
+    ASSERT_EQ(vm.state().sprites.size(), 1u);
+    EXPECT_DOUBLE_EQ(vm.state().sprites[0].x, 35.0);
+
+    vm.advance();
+
+    ASSERT_EQ(vm.state().sprites.size(), 1u);
+    EXPECT_EQ(vm.state().sprites[0].url, "eve_b.png");
+    EXPECT_DOUBLE_EQ(vm.state().sprites[0].x, 35.0);
+}
+
+TEST_F(VMTest, VMSpriteExplicitXOverridesPositionMapping) {
+    auto result = parse(
+        "#scene_start \"Start\"\n"
+        "@sprite frank url:frank.png position:left x:45\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+
+    NovaVM vm;
+    vm.load(result.unwrap());
+    vm.advance();
+
+    ASSERT_EQ(vm.state().sprites.size(), 1u);
+    EXPECT_EQ(vm.state().sprites[0].position, "left");
+    EXPECT_DOUBLE_EQ(vm.state().sprites[0].x, 45.0);
+}

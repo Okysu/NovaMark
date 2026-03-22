@@ -171,6 +171,11 @@ const char* nova_wasm_get_base_bg_path() {
 }
 
 EMSCRIPTEN_KEEPALIVE
+const char* nova_wasm_get_bg_transition() {
+    return nova_get_bg_transition(g_vm.get());
+}
+
+EMSCRIPTEN_KEEPALIVE
 const char* nova_wasm_get_base_sprite_path() {
     return nova_get_base_sprite_path(g_vm.get());
 }
@@ -359,6 +364,14 @@ int nova_wasm_get_sprite_z_index(int index) {
         return g_vm->state().sprites[index].zIndex;
     }
     return 0;
+}
+
+EMSCRIPTEN_KEEPALIVE
+const char* nova_wasm_get_sprite_position(int index) {
+    if (g_vm && index >= 0 && static_cast<size_t>(index) < g_vm->state().sprites.size()) {
+        return g_vm->state().sprites[index].position.c_str();
+    }
+    return "";
 }
 
 } // extern "C"
