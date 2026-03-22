@@ -1,22 +1,21 @@
 ---
-title: "Legacy Syntax Reference"
+title: "Syntax Reference"
 weight: 1
 bookCollapseSection: true
 ---
 
-# Legacy Syntax Reference
+# Syntax Reference
 
-This is the older syntax entry structure, preserved for lookup and transition.
+This is NovaMark's syntax directory and command manual.
 
-If you are new to NovaMark, start from the Guide instead of this page.
+If you are new to NovaMark, start from [For Creators](../guide/) and return here when you need exact details.
 
-This page is now mainly useful as:
+This page is mainly useful as:
 
-- an older documentation entry point
 - a syntax lookup index
-- a bridge during the documentation transition
+- a reference for readers who already know what they want to check
 
-## Legacy Contents
+## Contents
 
 - [Basic Syntax](./basic/) - Comments, text, dialogue
 - [Front Matter](./front-matter/) - File metadata configuration

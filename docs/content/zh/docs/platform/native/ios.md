@@ -283,5 +283,5 @@ NovaMark 不自动决定存档时机，宿主需要：
 ## 进一步参考
 
 - [运行时、宿主与平台接入](../runtime-and-host/) - 核心概念详解
-- [C API 参考](../../../api/c-api/) - 底层接口文档
-- [运行时状态 API](../../../api/runtime-state/) - 状态结构说明
+- [C API 参考](../../api/c-api/) - 底层接口文档
+- [运行时状态 API](../../api/runtime-state/) - 状态结构说明

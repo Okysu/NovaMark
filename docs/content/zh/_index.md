@@ -38,8 +38,9 @@ cmake --build build
 
 - [安装指南](/docs/getting-started/installation/) - 如何安装和配置 NovaMark
 - [快速入门](/docs/getting-started/quickstart/) - 5 分钟创建你的第一个游戏
-- [语法参考](/docs/syntax/) - 完整的语法规范
-- [C API](/docs/api/c-api/) - C 语言接口文档
+- [为创作者](/docs/guide/) - 从零开始学习 NovaMark 创作主线
+- [速查参考](/docs/reference/) - 查语法、状态、API 与配置
+- [平台接入](/docs/platform/) - C API、WASM、Native 与运行时模型
 
 ## 示例
 

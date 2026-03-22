@@ -1234,6 +1234,33 @@ TEST_F(VMTest, VMLoadSaveWithEndingsAndFlags) {
     EXPECT_TRUE(vm2.playthrough().hasFlag("met_king"));
 }
 
+TEST_F(VMTest, VMLoadSaveReplacesExistingPlaythroughState) {
+    auto result = parse(
+        "#scene_start \"Start\"\n"
+        "> Text\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+
+    NovaVM sourceVm;
+    sourceVm.load(result.unwrap());
+    sourceVm.advance();
+    sourceVm.playthrough().triggerEnding("ending_a");
+    sourceVm.playthrough().setFlag("flag_a");
+    auto savedState = sourceVm.captureState();
+
+    NovaVM restoredVm;
+    restoredVm.load(result.unwrap());
+    restoredVm.advance();
+    restoredVm.playthrough().triggerEnding("ending_b");
+    restoredVm.playthrough().setFlag("flag_b");
+
+    ASSERT_TRUE(restoredVm.loadSave(savedState));
+    EXPECT_TRUE(restoredVm.playthrough().hasEnding("ending_a"));
+    EXPECT_FALSE(restoredVm.playthrough().hasEnding("ending_b"));
+    EXPECT_TRUE(restoredVm.playthrough().hasFlag("flag_a"));
+    EXPECT_FALSE(restoredVm.playthrough().hasFlag("flag_b"));
+}
+
 TEST_F(VMTest, VMGiveTakeSupportExpressions) {
     auto result = parse(
         "@var bonus = 1\n"

@@ -130,4 +130,4 @@ Now that you have your first story, the natural next questions are:
 
 Next page:
 
-- [State, Variables, and Items](../state-and-variables/)
+- [State, Variables, and Items](./state-and-variables/)

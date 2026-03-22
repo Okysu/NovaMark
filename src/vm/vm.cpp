@@ -221,6 +221,7 @@ bool NovaVM::loadSave(const GameState& state) {
     
     m_variables.loadFrom(state.numberVariables, state.stringVariables, state.boolVariables);
     m_inventory.loadFrom(state.inventory);
+    m_playthrough.clear();
     
     for (const auto& ending : state.triggeredEndings) {
         m_playthrough.triggerEnding(ending);

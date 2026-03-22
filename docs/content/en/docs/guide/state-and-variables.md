@@ -222,4 +222,4 @@ The natural next questions are:
 
 Next page:
 
-- [Choices, Branches, and Checks](../choices-and-checks/)
+- [Choices, Branches, and Checks](./choices-and-checks/)

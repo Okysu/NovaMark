@@ -1,20 +1,19 @@
 ---
-title: "Legacy API 参考"
+title: "API 参考"
 weight: 2
 bookCollapseSection: true
 ---
 
-# Legacy API 参考
+# API 参考
 
-这是旧的 API 文档入口。
+这里是 NovaMark 的 API 与运行时接口入口。
 
-它仍然保留，用于：
+它适合：
 
-- 旧链接兼容
 - 精确字段查询
 - C API / 运行时状态参考
 
-如果你是第一次接触 NovaMark，建议先阅读新的 Guide 主线，再回到这里查细节。
+如果你是第一次接触 NovaMark，建议先阅读 [为平台、渲染与发行扩展方](../platform/) 或 [速查参考](../reference/)。
 
 ## 入口
 

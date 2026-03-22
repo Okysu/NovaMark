@@ -37,7 +37,7 @@
 
 .enter_shop
 @bg bookshop_night.jpg transition:fade
-@sprite 沈砚 show url:shenyan_pensive.png position:left
+@sprite 沈砚 show url:shenyan_normal.png position:left
 
 > 书店的门铃没有响，像是声音先一步被屋里厚重的纸页吸走了。
 > 书架深处传来一阵短暂的风声，明明窗都关着，柜台上的台灯却自行亮了起来。
@@ -55,33 +55,30 @@
 .inspect_drawer
 @give brass_key 1
 @set memory = memory + 1
-@sprite 沈砚 show url:shenyan_normal.png position:left
 > 你拿起黄铜钥匙，钥匙柄冰凉，像刚从海水里捞起。
 > 账本纸上只记着一行潦草字迹：“零点前，去潮汐图书馆。”
-沈砚: 图书馆？港城早就没有这地方了。
+沈砚[normal]: 图书馆？港城早就没有这地方了。
 -> .hear_steps
 
 .search_shelves
 @set courage = courage + 1
-@sprite 沈砚 show url:shenyan_pensive.png position:left
 > 你沿着两排旧书之间的窄道往里走，闻到一股潮湿纸张和海风混在一起的味道。
 > 最深处的地板上，摆着一盏没有点燃的航海灯。
-沈砚: 像是谁特意留给我的。
+沈砚[pensive]: 像是谁特意留给我的。
 -> .hear_steps
 
 .check_door
 @set trust = trust - 1
-@sprite 沈砚 show url:shenyan_determined.png position:left
 > 你回身推门，门却纹丝不动；玻璃外仍是那条雨夜街道，却远得像隔着一层海。
-沈砚: ……这就不好笑了。
+沈砚[determined]: ……这就不好笑了。
 -> .hear_steps
 
 .hear_steps
 > 楼上忽然传来清晰的脚步声，一下、两下，停在楼梯拐角。
 @sfx bell.ogg
-@sprite 祁星 show url:qixing_mysterious.png position:right
+@sprite 祁星 show url:qixing_normal.png position:right
 
-祁星: 你果然来了。
+祁星[mysterious]: 你果然来了。
 
 > 少女撑着一把没沾到半滴雨的深蓝长伞，站在楼梯半层，像从某一页没被读完的故事里走出来。
 

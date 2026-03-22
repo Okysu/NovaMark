@@ -36,7 +36,7 @@
 
 ### 4. bookshop_night.jpg
 
-- 文件位置: `assets/bg/prologue/bookshop_night.jpg`
+- 文件位置: `assets/bg/bookshop_night.jpg`
 - 文件来源: Wikimedia Commons
 - 页面: https://commons.wikimedia.org/wiki/File:Bookshop_interior_by_night_(30248939176).jpg
 - 原图直链: https://upload.wikimedia.org/wikipedia/commons/1/14/Bookshop_interior_by_night_%2830248939176%29.jpg
@@ -46,7 +46,7 @@
 
 ### 5. corridor.jpg
 
-- 文件位置: `assets/bg/library/corridor.jpg`
+- 文件位置: `assets/bg/corridor.jpg`
 - 文件来源: Wikimedia Commons
 - 页面: https://commons.wikimedia.org/wiki/File:Interior_corridor_in_the_Normandie..jpg
 - 原图直链: https://upload.wikimedia.org/wikipedia/commons/c/ca/Interior_corridor_in_the_Normandie..jpg
@@ -56,7 +56,7 @@
 
 ### 6. harbour_dawn.jpg
 
-- 文件位置: `assets/bg/memory/harbour_dawn.jpg`
+- 文件位置: `assets/bg/harbour_dawn.jpg`
 - 文件来源: Wikimedia Commons
 - 页面: https://commons.wikimedia.org/wiki/File:Harbour_@_dawn_-_50083824036.jpg
 - 原图直链: https://upload.wikimedia.org/wikipedia/commons/f/fb/Harbour_%40_dawn_-_50083824036.jpg
@@ -66,7 +66,7 @@
 
 ### 7. pigeon_point.jpg
 
-- 文件位置: `assets/bg/lighthouse/pigeon_point.jpg`
+- 文件位置: `assets/bg/pigeon_point.jpg`
 - 文件来源: Wikimedia Commons
 - 页面: https://commons.wikimedia.org/wiki/File:Pigeon_Point_Lighthouse_(2016).jpg
 - 原图直链: https://upload.wikimedia.org/wikipedia/commons/b/bb/Pigeon_Point_Lighthouse_%282016%29.jpg
@@ -78,7 +78,7 @@
 
 ### 1. rain.ogg
 
-- 文件位置: `assets/audio/ambient/rain.ogg`
+- 文件位置: `assets/audio/rain.ogg`
 - 文件来源: Wikimedia Commons
 - 页面: https://commons.wikimedia.org/wiki/File:Sound_of_rain.ogg
 - 原始文件: https://upload.wikimedia.org/wikipedia/commons/8/8a/Sound_of_rain.ogg
@@ -88,7 +88,7 @@
 
 ### 2. ocean_waves.ogg
 
-- 文件位置: `assets/audio/ambient/ocean_waves.ogg`
+- 文件位置: `assets/audio/ocean_waves.ogg`
 - 文件来源: Wikimedia Commons
 - 页面: https://commons.wikimedia.org/wiki/File:Oceanwavescrushing.ogg
 - 原始文件: https://upload.wikimedia.org/wikipedia/commons/f/f1/Oceanwavescrushing.ogg
@@ -108,35 +108,32 @@
 
 ## 三、立绘占位资源
 
-以下 PNG 并非外部下载素材，而是本仓库内通过脚本生成的“视觉小说风格占位图”，用于展示 NovaMark 的 `@sprite` 目录组织与情绪切换能力。
+以下 PNG 并非外部下载素材，而是本仓库内通过脚本生成的“视觉小说风格占位图”，用于展示 NovaMark 的 `@char` 情绪预设与 `角色[emotion]: 台词` 的切换能力。
 
 ### 生成脚本
 
 - 脚本路径: `examples/scripts/generate_placeholder_sprites.ps1`
 - 生成方式: 使用 PowerShell + `System.Drawing` 本地绘制简化人物占位图
 
-### 生成目录结构
+### 当前实际打包文件
 
 ```text
 assets/sprites/
-├── shenyan/
-│   ├── normal.png
-│   ├── pensive.png
-│   └── determined.png
-├── qixing/
-│   ├── normal.png
-│   ├── mysterious.png
-│   └── gentle.png
-└── curator/
-    ├── normal.png
-    └── solemn.png
+├── shenyan_normal.png
+├── shenyan_pensive.png
+├── shenyan_determined.png
+├── qixing_normal.png
+├── qixing_mysterious.png
+├── qixing_gentle.png
+├── curator_normal.png
+└── curator_solemn.png
 ```
 
 ### 用途说明
 
-- `shenyan/*`: 主角沈砚的默认、沉思、坚定三种状态
-- `qixing/*`: 祁星的默认、神秘、柔和三种状态
-- `curator/*`: 馆长的默认、庄重两种状态
+- `shenyan_*`: 主角沈砚的默认、沉思、坚定三种状态
+- `qixing_*`: 祁星的默认、神秘、柔和三种状态
+- `curator_*`: 馆长的默认、庄重两种状态
 
 ## 四、备注
 

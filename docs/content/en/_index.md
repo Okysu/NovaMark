@@ -38,8 +38,9 @@ cmake --build build
 
 - [Installation Guide](/docs/getting-started/installation/) - How to install and configure NovaMark
 - [Quick Start](/docs/getting-started/quickstart/) - Create your first game in 5 minutes
-- [Syntax Reference](/docs/syntax/) - Complete syntax specification
-- [C API](/docs/api/c-api/) - C language interface documentation
+- [For Creators](/docs/guide/) - Learn NovaMark through the creator-first guide
+- [Quick Reference](/docs/reference/) - Look up syntax, state, API, and configuration
+- [Platform Integration](/docs/platform/) - C API, WASM, Native, and runtime model
 
 ## Example
 

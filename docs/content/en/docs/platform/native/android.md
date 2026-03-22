@@ -9,7 +9,7 @@ This document is for developers who need to integrate the NovaMark runtime into 
 
 ## Prerequisite Understanding
 
-Before starting, make sure you have read [Runtime, Host, and Platform Integration](../../runtime-and-host/) and understand these core concepts:
+Before starting, make sure you have read [Runtime, Host, and Platform Integration](../runtime-and-host/) and understand these core concepts:
 
 - **Discrete state machine**: NovaMark VM does not advance time on its own, but waits for host calls
 - **Host responsibilities**: Android side handles UI rendering, animations, save management, platform adaptation
@@ -305,6 +305,6 @@ After completing integration, confirm these features work:
 
 ## Related Documentation
 
-- [Runtime, Host, and Platform Integration](../../runtime-and-host/)
-- [C API Reference](../../../api/c-api/)
-- [Runtime State Structure](../../../api/runtime-state/)
+- [Runtime, Host, and Platform Integration](../runtime-and-host/)
+- [C API Reference](../../api/c-api/)
+- [Runtime State Structure](../../api/runtime-state/)

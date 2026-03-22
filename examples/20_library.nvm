@@ -3,13 +3,13 @@
 @bg library_interior.jpg transition:fade
 @bgm ocean_waves.ogg loop:true volume:0.2
 @sprite 沈砚 show url:shenyan_normal.png position:left
-@sprite 馆长 show url:curator_solemn.png position:right
+@sprite 馆长 show url:curator_normal.png position:right
 
 > 门后没有楼梯，只有一条缓缓向下延展的长廊。
 > 长廊尽头，是一座巨大的圆形阅览厅。半透明的穹顶之外不是天空，而是缓慢移动的深海光影。
 > 书架像码头一样一层层向外延伸，每一本书脊都带着细小的银色编号。
 
-馆长: 欢迎回来，沈砚。
+馆长[solemn]: 欢迎回来，沈砚。
 
 > 说话的人站在服务台后，像已在那里等了很多很多年。
 
@@ -81,7 +81,7 @@
 > 阅览室的门像潮水一样向两侧退开。室内只有一张长桌，一盏绿罩台灯，以及桌中央那本深蓝封面的书。
 
 @bg harbour_dawn.jpg transition:fade
-@sprite 祁星 show url:qixing_gentle.png position:right
+@sprite 祁星 show url:qixing_normal.png position:right
 
 > 你翻开第一页，纸页上没有文字，只有海边的风声。
 > 下一秒，整个房间像被海雾没过，你站在三年前的清晨码头上。

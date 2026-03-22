@@ -36,7 +36,3 @@ Use Reference when you already know what you want to look up.
 ### 4. Glossary
 
 Glossary explains recurring NovaMark terms.
-
-### 5. Legacy
-
-Legacy preserves older fragmented docs during the transition.

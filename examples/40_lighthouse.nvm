@@ -7,8 +7,8 @@
 > 你重新回到图书馆时，穹顶外的海水已退去大半，远处浮现出一条通往海上灯塔的石阶。
 > 每一级石阶都映着港城雨夜的倒影，像把现在与过去缝在一起。
 
-馆长: 终点不在图书馆里，在那座灯塔上。
-馆长: 去决定，你是要把记忆带走，还是继续把它存放在这里。
+馆长[normal]: 终点不在图书馆里，在那座灯塔上。
+馆长[solemn]: 去决定，你是要把记忆带走，还是继续把它存放在这里。
 
 ? 出发前，你想带上什么？
 - [带上潮汐地图] -> .take_map if has_item("tide_map")
@@ -34,14 +34,14 @@
 
 .stairs_begin
 @bg pigeon_point.jpg transition:fade
-@sprite 沈砚 show url:shenyan_determined.png position:left
-@sprite 祁星 show url:qixing_gentle.png position:right
+@sprite 沈砚 show url:shenyan_normal.png position:left
+@sprite 祁星 show url:qixing_normal.png position:right
 
 > 石阶尽头，海风越来越大。灯塔并不高，却像把整片海的重量都扛在自己身上。
 > 登上平台时，你看见中央摆着一盏老式航海灯，灯芯只剩最后一点亮色。
 
-祁星: 现在你明白那句留言的意思了吗？
-沈砚: 明白了。不是让我救谁回来，而是别让自己停在那一夜。
+祁星[gentle]: 现在你明白那句留言的意思了吗？
+沈砚[determined]: 明白了。不是让我救谁回来，而是别让自己停在那一夜。
 
 ? 你准备如何处理这盏灯？
 - [重新点亮它，把记忆带回现实] -> .relight_lamp
@@ -88,13 +88,13 @@ endif
 
 .good_route
 @bg harbour_dawn.jpg transition:fade
-@sprite 沈砚 show url:shenyan_determined.png position:left
-@sprite 祁星 show url:qixing_gentle.png position:right
+@sprite 沈砚 show url:shenyan_normal.png position:left
+@sprite 祁星 show url:qixing_normal.png position:right
 > 灯光向外扩散，海面上慢慢浮现一条通往清晨港口的路。
 > 你看见远处有人回头挥了挥手，那身影很快就被晨雾吞没，却不再令人绝望。
 
-祁星: 这一次，你没有逃。
-馆长: 借走的夜晚，终于被平安归还了。
+祁星[gentle]: 这一次，你没有逃。
+馆长[solemn]: 借走的夜晚，终于被平安归还了。
 
 沈砚: 我不会忘了它，但它也不会再把我困住。
 > 当你重新睁眼时，自己已经站在现实中的旧书店门口。雨停了，东方的天色正缓缓发亮。
@@ -120,7 +120,7 @@ endif
 
 .quiet_route
 @bg corridor.jpg transition:fade
-@sprite 馆长 show url:curator_solemn.png position:right
+@sprite 馆长 show url:curator_normal.png position:right
 > 灯终究灭了，平台四周只剩潮声。没有谁责备你，可你知道自己又把某段人生留在原地。
 
 祁星: 有些门不会永远打开。

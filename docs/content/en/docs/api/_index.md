@@ -1,22 +1,21 @@
 ---
-title: "Legacy API Reference"
+title: "API Reference"
 weight: 2
 bookCollapseSection: true
 ---
 
-# Legacy API Reference
+# API Reference
 
-Legacy API documentation entry point.
+This is NovaMark's API and runtime interface entry point.
 
-This section is retained for:
+This section is useful for:
 
-- Backward compatibility with existing links
 - Precise field lookup
 - C API / runtime state reference
 
-If you're new to NovaMark, read the Guide first, then return here for details.
+If you're new to NovaMark, start from [Platform Integration](../platform/) or [Reference](../reference/), then return here for exact details.
 
 ## Entries
 
 - [Runtime State](./runtime-state/)
-- [C API](./c-api/)
+- [C API](./c-api)

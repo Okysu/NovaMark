@@ -283,5 +283,5 @@ The script doesn't need to know these differences.
 ## Further Reference
 
 - [Runtime, Host, and Platform Integration](../runtime-and-host/) - Core concepts explained
-- [C API Reference](../../../api/c-api/) - Low-level interface documentation
-- [Runtime State API](../../../api/runtime-state/) - State structure description
+- [C API Reference](../../api/c-api/) - Low-level interface documentation
+- [Runtime State API](../../api/runtime-state/) - State structure description
