@@ -4,9 +4,11 @@ weight: 1
 bookCollapseSection: true
 ---
 
-# C API Reference
+# Legacy C API Reference
 
-NovaMark provides a C API for integrating the engine into your applications.
+This is the older C API entry page kept for transition and lookup.
+
+If you are new to NovaMark, the Guide should come first. Use this page when you need exact API details.
 
 ## Header File
 
@@ -18,6 +20,3 @@ NovaMark provides a C API for integrating the engine into your applications.
 
 - [Lifecycle Management](./lifecycle/) - Create and destroy VM instances
 - [Game Control](./control/) - Load, start, and advance the game
-- [State Retrieval](./state/) - Get current rendering state
-- [Save/Load](./saveload/) - Save and load game states
-- [Variables and Inventory](./data/) - Access game data

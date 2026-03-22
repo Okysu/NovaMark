@@ -99,6 +99,25 @@ const char* nova_get_error(NovaVM* vm);
 
 Get the last error message.
 
+### Runtime State Snapshot
+
+The Web/WASM extension interface provides unified runtime state export:
+
+```c
+const char* nova_export_runtime_state_json(void* vm, size_t* outSize);
+```
+
+Returns a JSON string containing:
+
+- `textConfig`
+- `variables`
+- `inventory`
+- `itemDefinitions`
+- `characterDefinitions`
+- `inventoryItems`
+
+Suitable for GUI and debugging tools to read complete runtime state in one call.
+
 ## Callbacks
 
 ### nova_set_state_callback

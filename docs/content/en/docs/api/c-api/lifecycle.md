@@ -1,9 +1,9 @@
 ---
-title: "生命周期管理"
+title: "Lifecycle Management"
 weight: 1
 ---
 
-# 生命周期管理
+# Lifecycle Management
 
 ## nova_create
 

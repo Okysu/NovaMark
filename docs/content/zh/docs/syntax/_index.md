@@ -1,14 +1,22 @@
 ---
-title: "语法参考"
+title: "Legacy 语法参考"
 weight: 1
 bookCollapseSection: true
 ---
 
-# 语法参考
+# Legacy 语法参考
 
-NovaMark 使用简洁直观的标记语法，让创作者专注于故事本身。
+这是旧的语法入口结构，当前仍然保留用于查阅。
 
-## 目录
+如果你是第一次接触 NovaMark，建议优先阅读新的 Guide 主线，而不是直接从这里开始。
+
+这里更适合作为：
+
+- 旧链接兼容入口
+- 语法手册索引
+- 已经知道自己要查什么的用户
+
+## Legacy 目录
 
 - [基础语法](./basic/) - 注释、文本、对话
 - [Front Matter](./front-matter/) - 文件元数据配置
