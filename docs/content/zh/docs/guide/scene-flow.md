@@ -350,4 +350,4 @@ title: 示例游戏
 
 下一页建议看：
 
-- [结局与标记](../guide/endings-and-flags/)
+- [结局与标记](./endings-and-flags/)

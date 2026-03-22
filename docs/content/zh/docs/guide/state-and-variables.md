@@ -222,4 +222,4 @@ NovaMark 的设计里，脚本不直接管理 HUD。
 
 下一页建议看：
 
-- [选择、分支与检定](../guide/choices-and-checks/)
+- [选择、分支与检定](./choices-and-checks/)

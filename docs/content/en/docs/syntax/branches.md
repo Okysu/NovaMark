@@ -193,3 +193,71 @@ endcheck
 ```
 
 Supported operations: `+`, `-`, `*`, `/`, `%`
+
+## Complete Example
+
+```nvm
+#scene_combat "Combat"
+
+@check hp > 0
+success
+  ? The enemy approaches. You choose:
+  - [Attack] -> .attack
+  - [Defend] -> .defend
+  - [Use potion] if has_item("healing_potion") -> .use_potion
+  - [Flee] -> .flee
+  
+  .attack
+  @check roll("1d20") >= 10
+  success
+    > Your attack hits!
+    @set enemy_hp = enemy_hp - 15
+  fail
+    > You missed!
+    @set hp = hp - 10
+  endcheck
+  -> .check_result
+  
+  .defend
+  > You raise your shield.
+  @set defense_bonus = 5
+  -> .enemy_turn
+  
+  .use_potion
+  @take healing_potion 1
+  @set hp = hp + 50
+  > You recover 50 HP!
+  -> .enemy_turn
+  
+  .flee
+  @check roll("1d20") >= 12
+  success
+    > You escaped!
+    -> scene_escape
+  fail
+    > Escape failed!
+    @set hp = hp - 20
+  endcheck
+  -> .check_result
+  
+  .check_result
+  @check enemy_hp <= 0
+  success
+    @flag defeated_enemy
+    > You defeated the enemy!
+    -> scene_victory
+  fail
+    @check hp > 0
+    success
+      -> .enemy_turn
+    fail
+      > You were defeated...
+      @ending game_over
+    endcheck
+  endcheck
+  
+fail
+  > You have already fallen...
+  @ending game_over
+endcheck
+```

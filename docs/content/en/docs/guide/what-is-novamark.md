@@ -21,12 +21,104 @@ NovaMark is designed around a simple split:
 
 ---
 
-## What's Next
+## What problem does it solve?
 
-If this is your first time reading the guide, don't try to learn every feature at once.
+If you write story logic in general-purpose code, the usual problems are:
 
-The best next step is to write a tiny story that actually runs.
+- dialogue and program logic get mixed together
+- writers cannot easily read the story structure
+- a single story is hard to reuse across Web, Native, and CLI
 
-Next page:
+NovaMark separates these responsibilities:
 
-- [Your First Story](./your-first-story/)
+### The script owns
+
+- content
+- branches
+- state changes
+- asset references
+
+### The host owns
+
+- UI layout
+- animation
+- typewriter effects
+- save file management
+- buttons and HUD
+
+That means the same story can:
+
+- run as a Web chat UI
+- become a Native visual novel UI
+- run in CLI text mode
+
+without rewriting the script itself.
+
+---
+
+## The 4 core concepts
+
+If this is your first time, focus on these four ideas.
+
+### 1. Scene
+
+A scene is the basic unit of story structure. Think of it as:
+
+- a chapter
+- a room
+- a story fragment
+
+### 2. Dialogue and narration
+
+Most of what you write is either:
+
+- narration
+- character dialogue
+
+### 3. Choices and branches
+
+Interactive narrative relies on:
+
+- what the player can choose
+- where those choices lead
+
+### 4. State
+
+State includes:
+
+- variables
+- items
+- flags
+- endings
+
+State decides how the script continues.
+
+---
+
+## What NovaMark is NOT
+
+To avoid confusion, NovaMark **does not** try to be:
+
+- a continuous timeline animation engine
+- a UI framework
+- a HUD layout system
+- an automatic save policy system
+
+NovaMark outputs **discrete state**, not a continuous time flow.
+
+The host application decides:
+
+- when to advance
+- how to display the current state
+- how to play animations and transitions
+
+---
+
+## Suggested reading order
+
+If this is your first time with NovaMark, follow this path:
+
+1. [Your First Story](./your-first-story/)
+2. [State, Variables, and Items](./state-and-variables/)
+3. [Choices, Branches, and Checks](./choices-and-checks/)
+4. Then use `Reference` for details

@@ -122,9 +122,9 @@ NovaMark 当前不是：
 
 如果你第一次接触 NovaMark，推荐按这个顺序：
 
-1. [第一段故事](../guide/your-first-story/)
-2. [状态、变量与物品](../guide/state-and-variables/)
-3. [分支、选择与检定](../guide/choices-and-checks/)
+1. [第一段故事](./your-first-story/)
+2. [状态、变量与物品](./state-and-variables/)
+3. [分支、选择与检定](./choices-and-checks/)
 4. 再去看 `Reference`
 
 这样你会先建立直觉，再去记细节。

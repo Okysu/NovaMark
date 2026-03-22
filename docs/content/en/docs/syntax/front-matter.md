@@ -88,3 +88,11 @@ When building a project with `project.yaml`:
 
 - `project.yaml` configuration takes priority over Front Matter
 - Front Matter resource path settings are preserved
+
+## Read Order
+
+NovaMark determines game metadata in this order:
+
+1. `project.yaml` (project mode)
+2. Front Matter of the first `.nvm` file
+3. Default values

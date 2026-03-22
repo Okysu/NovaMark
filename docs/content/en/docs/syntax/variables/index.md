@@ -82,3 +82,5 @@ Use in conditions:
 | `has_ending("ending_id")` | Check if ending was triggered |
 | `has_flag("flag_id")` | Check if flag was set |
 | `roll("2d6+3")` | Dice check |
+| `random(1, hp)` | Generate a random integer in range |
+| `chance(0.25)` | Return a boolean by probability |
