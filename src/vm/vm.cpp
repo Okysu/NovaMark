@@ -18,12 +18,6 @@ double mapPositionToX(const std::string& position) {
     return 50.0; // 默认居中
 }
 
-std::string defaultPositionForIndex(size_t index) {
-    if (index == 0) return "left";
-    if (index == 1) return "right";
-    return "center";
-}
-
 double safe_stod(const std::string& s, double defaultVal = 0.0) {
     try { return std::stod(s); }
     catch (...) { return defaultVal; }
@@ -715,8 +709,6 @@ void NovaVM::executeDialogue(const DialogueNode* node) {
             SpriteState sprite;
             sprite.id = diag.speaker;
             sprite.url = spriteUrl;
-            sprite.position = defaultPositionForIndex(m_state.sprites.size());
-            sprite.x = mapPositionToX(sprite.position);
             m_state.sprites.push_back(sprite);
         }
     }
