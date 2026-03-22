@@ -185,11 +185,11 @@ You can use arithmetic expressions in conditions:
 
 ```nvm
 @check str + roll("1d20") >= 15
-success
+@success
   > You successfully persuaded the guard!
-fail
+@fail
   > The guard is unmoved...
-endcheck
+@endcheck
 ```
 
 Supported operations: `+`, `-`, `*`, `/`, `%`
@@ -200,7 +200,7 @@ Supported operations: `+`, `-`, `*`, `/`, `%`
 #scene_combat "Combat"
 
 @check hp > 0
-success
+@success
   ? The enemy approaches. You choose:
   - [Attack] -> .attack
   - [Defend] -> .defend
@@ -209,13 +209,13 @@ success
   
   .attack
   @check roll("1d20") >= 10
-  success
+  @success
     > Your attack hits!
     @set enemy_hp = enemy_hp - 15
-  fail
+  @fail
     > You missed!
     @set hp = hp - 10
-  endcheck
+  @endcheck
   -> .check_result
   
   .defend
@@ -231,33 +231,33 @@ success
   
   .flee
   @check roll("1d20") >= 12
-  success
+  @success
     > You escaped!
     -> scene_escape
-  fail
+  @fail
     > Escape failed!
     @set hp = hp - 20
-  endcheck
+  @endcheck
   -> .check_result
   
   .check_result
   @check enemy_hp <= 0
-  success
+  @success
     @flag defeated_enemy
     > You defeated the enemy!
     -> scene_victory
-  fail
+  @fail
     @check hp > 0
-    success
+    @success
       -> .enemy_turn
-    fail
+    @fail
       > You were defeated...
       @ending game_over
-    endcheck
-  endcheck
+    @endcheck
+  @endcheck
   
-fail
+@fail
   > You have already fallen...
   @ending game_over
-endcheck
+@endcheck
 ```

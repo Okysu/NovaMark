@@ -185,11 +185,11 @@ endif
 
 ```nvm
 @check str + roll("1d20") >= 15
-success
+@success
   > 你成功说服了守卫！
-fail
+@fail
   > 守卫不为所动...
-endcheck
+@endcheck
 ```
 
 支持的运算：`+`, `-`, `*`, `/`, `%`
@@ -200,7 +200,7 @@ endcheck
 #scene_combat "战斗"
 
 @check hp > 0
-success
+@success
   ? 敌人逼近，你要：
   - [攻击] -> .attack
   - [防御] -> .defend
@@ -209,13 +209,13 @@ success
   
   .attack
   @check roll("1d20") >= 10
-  success
+  @success
     > 你的攻击命中了！
     @set enemy_hp = enemy_hp - 15
-  fail
+  @fail
     > 你miss了！
     @set hp = hp - 10
-  endcheck
+  @endcheck
   -> .check_result
   
   .defend
@@ -231,33 +231,33 @@ success
   
   .flee
   @check roll("1d20") >= 12
-  success
+  @success
     > 你成功逃跑了！
     -> scene_escape
-  fail
+  @fail
     > 逃跑失败！
     @set hp = hp - 20
-  endcheck
+  @endcheck
   -> .check_result
   
   .check_result
   @check enemy_hp <= 0
-  success
+  @success
     @flag defeated_enemy
     > 你击败了敌人！
     -> scene_victory
-  fail
+  @fail
     @check hp > 0
-    success
+    @success
       -> .enemy_turn
-    fail
+    @fail
       > 你被打败了...
       @ending game_over
-    endcheck
-  endcheck
+    @endcheck
+  @endcheck
   
-fail
+@fail
   > 你已经倒下了...
   @ending game_over
-endcheck
+@endcheck
 ```
