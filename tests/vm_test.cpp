@@ -1383,6 +1383,7 @@ TEST_F(VMTest, VMSelectChoiceInvalidIndex) {
     EXPECT_EQ(vm.state().status, VMStatus::Running);
 }
 
+
 TEST_F(VMTest, VMJumpToInvalidLabel) {
     auto result = parse(
         "#scene_start \"Start\"\n"

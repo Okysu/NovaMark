@@ -155,6 +155,30 @@ Restore runtime state from a **binary snapshot file**.
 
 ## Variables and Inventory
 
+### nova_get_variable_count
+
+```c
+size_t nova_get_variable_count(NovaVM* vm);
+```
+
+Get the total number of variables.
+
+### nova_get_variable_name
+
+```c
+const char* nova_get_variable_name(NovaVM* vm, size_t index);
+```
+
+Get a variable name by index.
+
+**Ordering**: names are returned in lexicographic (ascending) order, index starts at 0.
+
+**Notes**:
+
+- The internal cache is rebuilt on each call
+- Returned pointers may become invalid after the next call
+- Returns `NULL` if `index` is out of range
+
 ### nova_get_variable_number
 
 ```c

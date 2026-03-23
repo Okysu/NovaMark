@@ -68,9 +68,6 @@ public:
     /// @brief 从存档恢复游戏状态
     bool loadSave(const GameState& state);
     
-    /// @brief 执行一步（直到需要用户输入）
-    void step();
-    
     /// @brief 推进到下一个离散阻塞点（对话 / 选择 / 结局 / 场景切换）
     void advance();
     

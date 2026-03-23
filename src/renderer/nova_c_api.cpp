@@ -2,6 +2,7 @@
 #include "nova/vm/vm.h"
 #include "nova/vm/serializer.h"
 #include "nova/packer/nvmp_writer.h"
+#include <algorithm>
 #include <cstring>
 #include <string>
 #include <vector>
@@ -15,6 +16,7 @@ struct NovaVM {
     void* callbackUserData = nullptr;
     std::vector<NovaSprite> spriteBuffer;
     std::vector<NovaChoice> choiceBuffer;
+    std::vector<std::string> variableNameCache;
 };
 
 extern "C" {
@@ -188,7 +190,20 @@ size_t nova_get_variable_count(NovaVM* vm) {
 }
 
 const char* nova_get_variable_name(NovaVM* vm, size_t index) {
-    return nullptr;
+    if (!vm) return nullptr;
+
+    vm->variableNameCache.clear();
+    vm->variableNameCache.reserve(vm->vm.variables().all().size());
+    for (const auto& entry : vm->vm.variables().all()) {
+        vm->variableNameCache.push_back(entry.first);
+    }
+
+    if (index >= vm->variableNameCache.size()) {
+        return nullptr;
+    }
+
+    std::sort(vm->variableNameCache.begin(), vm->variableNameCache.end());
+    return vm->variableNameCache[index].c_str();
 }
 
 double nova_get_variable_number(NovaVM* vm, const char* name) {

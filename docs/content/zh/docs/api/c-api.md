@@ -155,6 +155,30 @@ int nova_load_snapshot_file(NovaVM* vm, const char* path);
 
 ## 变量和背包
 
+### nova_get_variable_count
+
+```c
+size_t nova_get_variable_count(NovaVM* vm);
+```
+
+获取当前变量总数。
+
+### nova_get_variable_name
+
+```c
+const char* nova_get_variable_name(NovaVM* vm, size_t index);
+```
+
+按索引获取变量名。
+
+**顺序说明**：变量名按字典序（升序）排序后返回，索引从 0 开始。
+
+**注意事项**：
+
+- 每次调用会重新生成内部缓存
+- 返回的指针在下一次调用该函数后可能失效
+- 如果 `index` 越界，返回 `NULL`
+
 ### nova_get_variable_number
 
 ```c
