@@ -655,7 +655,8 @@ TEST_F(VMTest, VMSpritePositionStringPassThrough) {
     vm.advance();
 
     ASSERT_FALSE(vm.state().sprites.empty());
-    EXPECT_EQ(vm.state().sprites.front().position, "left");
+    ASSERT_TRUE(vm.state().sprites.front().position.has_value());
+    EXPECT_EQ(*vm.state().sprites.front().position, "left");
 }
 
 // ============================================
@@ -674,7 +675,13 @@ TEST_F(VMTest, SerializeGameState) {
     state.ending = "good_ending";
     state.dialogue = DialogueState{true, "Alice", "Hello", "happy", "#fff"};
     state.choice = ChoiceState{true, "Choose", {ChoiceOption{"c1", "A", ".a", false}}};
-    state.sprites = {SpriteState{"Alice", "alice.png", 0.0, 0.0, "left", 1.0, 1}};
+    SpriteState sprite;
+    sprite.id = "Alice";
+    sprite.url = "alice.png";
+    sprite.position = "left";
+    sprite.opacity = 1.0;
+    sprite.zIndex = 1;
+    state.sprites = {sprite};
     state.callStack = {{"village", 10}};
     state.numberVariables = {{"hp", 100.0}, {"gold", 50.0}};
     state.stringVariables = {{"name", "Alice"}};
@@ -704,7 +711,8 @@ TEST_F(VMTest, SerializeGameState) {
     ASSERT_TRUE(restored.choice.has_value());
     EXPECT_EQ(restored.choice->question, "Choose");
     ASSERT_EQ(restored.sprites.size(), 1u);
-    EXPECT_EQ(restored.sprites[0].position, "left");
+    ASSERT_TRUE(restored.sprites[0].position.has_value());
+    EXPECT_EQ(*restored.sprites[0].position, "left");
     EXPECT_EQ(restored.callStack.size(), 1);
     EXPECT_EQ(restored.callStack[0].first, "village");
     EXPECT_DOUBLE_EQ(restored.numberVariables["hp"], 100.0);
@@ -722,6 +730,8 @@ TEST_F(VMTest, SerializeSaveData) {
     state.currentScene = "castle";
     state.statementIndex = 5;
     state.numberVariables = {{"mp", 80.0}};
+    state.currentTheme = "dark_forest";
+    state.themeProperties = {{"dialog_bg", "#1a1a2e"}};
     
     SaveData save;
     save.saveId = "save_001";
@@ -741,6 +751,9 @@ TEST_F(VMTest, SerializeSaveData) {
     EXPECT_EQ(restored.state.currentScene, "castle");
     EXPECT_EQ(restored.state.statementIndex, 5);
     EXPECT_DOUBLE_EQ(restored.state.numberVariables["mp"], 80.0);
+    ASSERT_TRUE(restored.state.currentTheme.has_value());
+    EXPECT_EQ(*restored.state.currentTheme, "dark_forest");
+    EXPECT_EQ(restored.state.themeProperties["dialog_bg"], "#1a1a2e");
 }
 
 TEST_F(VMTest, CaptureAndRestoreState) {
@@ -757,10 +770,13 @@ TEST_F(VMTest, CaptureAndRestoreState) {
     std::unordered_set<std::string> flags = {"talked_to_wizard"};
     
     std::vector<std::pair<std::string, size_t>> callStack = {{"dungeon", 20}};
+    std::optional<std::string> currentTheme = "dark_forest";
+    std::unordered_map<std::string, std::string> themeProperties = {{"dialog_bg", "#000"}};
     
     GameState state = GameStateSerializer::captureState(
         "battle", "camp", 15,
         TextConfigState{}, std::nullopt, std::nullopt, std::nullopt, 1.0, true,
+        currentTheme, themeProperties,
         {}, std::nullopt, std::nullopt, std::nullopt,
         callStack, vars, inv, endings, flags
     );
@@ -786,6 +802,8 @@ TEST_F(VMTest, CaptureAndRestoreState) {
     std::optional<std::string> bgm;
     double bgmVolume = 1.0;
     bool bgmLoop = true;
+    std::optional<std::string> newCurrentTheme;
+    std::unordered_map<std::string, std::string> newThemeProperties;
     std::vector<SpriteState> sprites;
     std::optional<DialogueState> dialogue;
     std::optional<ChoiceState> choice;
@@ -797,6 +815,7 @@ TEST_F(VMTest, CaptureAndRestoreState) {
     GameStateSerializer::restoreState(
         state, newScene, newLabel, newIndex,
         textConfig, bg, bgTransition, bgm, bgmVolume, bgmLoop,
+        newCurrentTheme, newThemeProperties,
         sprites, dialogue, choice, ending,
         newCallStack, newVars, newInv, newEndings, newFlags
     );
@@ -811,6 +830,9 @@ TEST_F(VMTest, CaptureAndRestoreState) {
     EXPECT_EQ(newInv.count("potion"), 5);
     EXPECT_TRUE(newEndings.count("bad_ending"));
     EXPECT_TRUE(newFlags.count("talked_to_wizard"));
+    ASSERT_TRUE(newCurrentTheme.has_value());
+    EXPECT_EQ(*newCurrentTheme, "dark_forest");
+    EXPECT_EQ(newThemeProperties["dialog_bg"], "#000");
 }
 
 TEST_F(VMTest, SaveToFileAndLoad) {
@@ -846,6 +868,14 @@ TEST_F(VMTest, SerializeSaveDataBinary) {
     state.inventory = {{"potion", 2}};
     state.triggeredEndings = {"true_end"};
     state.flags = {"opened_gate"};
+    state.currentTheme = "binary_theme";
+    state.themeProperties = {{"text_color", "#ffffff"}};
+    SpriteState sprite;
+    sprite.id = "binary_hero";
+    sprite.url = "binary.png";
+    sprite.x = "72%";
+    sprite.opacity = 0.75;
+    state.sprites = {sprite};
 
     SaveData save;
     save.saveId = "save_bin";
@@ -870,6 +900,18 @@ TEST_F(VMTest, SerializeSaveDataBinary) {
     EXPECT_EQ(restored.state.inventory["potion"], 2);
     EXPECT_TRUE(restored.state.triggeredEndings.count("true_end"));
     EXPECT_TRUE(restored.state.flags.count("opened_gate"));
+    ASSERT_TRUE(restored.state.currentTheme.has_value());
+    EXPECT_EQ(*restored.state.currentTheme, "binary_theme");
+    EXPECT_EQ(restored.state.themeProperties["text_color"], "#ffffff");
+    ASSERT_EQ(restored.state.sprites.size(), 1u);
+    EXPECT_EQ(restored.state.sprites[0].id, "binary_hero");
+    ASSERT_TRUE(restored.state.sprites[0].url.has_value());
+    EXPECT_EQ(*restored.state.sprites[0].url, "binary.png");
+    ASSERT_TRUE(restored.state.sprites[0].x.has_value());
+    EXPECT_EQ(*restored.state.sprites[0].x, "72%");
+    EXPECT_FALSE(restored.state.sprites[0].y.has_value());
+    ASSERT_TRUE(restored.state.sprites[0].opacity.has_value());
+    EXPECT_DOUBLE_EQ(*restored.state.sprites[0].opacity, 0.75);
 }
 
 // ============================================
@@ -1580,7 +1622,7 @@ TEST_F(VMTest, VMLogicalExpressions) {
 // Sprite Position/Merge Behavior Tests
 // ============================================
 
-TEST_F(VMTest, VMSpritePositionLeftMapsToX20) {
+TEST_F(VMTest, VMSpritePositionLeftDoesNotInjectX) {
     auto result = parse(
         "#scene_start \"Start\"\n"
         "@sprite alice url:alice.png position:left\n"
@@ -1592,11 +1634,12 @@ TEST_F(VMTest, VMSpritePositionLeftMapsToX20) {
     vm.advance();
 
     ASSERT_EQ(vm.state().sprites.size(), 1u);
-    EXPECT_EQ(vm.state().sprites[0].position, "left");
-    EXPECT_DOUBLE_EQ(vm.state().sprites[0].x, 20.0);
+    ASSERT_TRUE(vm.state().sprites[0].position.has_value());
+    EXPECT_EQ(*vm.state().sprites[0].position, "left");
+    EXPECT_FALSE(vm.state().sprites[0].x.has_value());
 }
 
-TEST_F(VMTest, VMSpritePositionRightMapsToX80) {
+TEST_F(VMTest, VMSpritePositionRightDoesNotInjectX) {
     auto result = parse(
         "#scene_start \"Start\"\n"
         "@sprite bob url:bob.png position:right\n"
@@ -1608,11 +1651,12 @@ TEST_F(VMTest, VMSpritePositionRightMapsToX80) {
     vm.advance();
 
     ASSERT_EQ(vm.state().sprites.size(), 1u);
-    EXPECT_EQ(vm.state().sprites[0].position, "right");
-    EXPECT_DOUBLE_EQ(vm.state().sprites[0].x, 80.0);
+    ASSERT_TRUE(vm.state().sprites[0].position.has_value());
+    EXPECT_EQ(*vm.state().sprites[0].position, "right");
+    EXPECT_FALSE(vm.state().sprites[0].x.has_value());
 }
 
-TEST_F(VMTest, VMSpritePositionCenterMapsToX50) {
+TEST_F(VMTest, VMSpritePositionCenterDoesNotInjectX) {
     auto result = parse(
         "#scene_start \"Start\"\n"
         "@sprite charlie url:charlie.png position:center\n"
@@ -1624,8 +1668,27 @@ TEST_F(VMTest, VMSpritePositionCenterMapsToX50) {
     vm.advance();
 
     ASSERT_EQ(vm.state().sprites.size(), 1u);
-    EXPECT_EQ(vm.state().sprites[0].position, "center");
-    EXPECT_DOUBLE_EQ(vm.state().sprites[0].x, 50.0);
+    ASSERT_TRUE(vm.state().sprites[0].position.has_value());
+    EXPECT_EQ(*vm.state().sprites[0].position, "center");
+    EXPECT_FALSE(vm.state().sprites[0].x.has_value());
+}
+
+TEST_F(VMTest, VMSpritePreservesRawCoordinateStrings) {
+    auto result = parse(
+        "#scene_start \"Start\"\n"
+        "@sprite aria url:aria.png x:70 y:100\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+
+    NovaVM vm;
+    vm.load(result.unwrap());
+    vm.advance();
+
+    ASSERT_EQ(vm.state().sprites.size(), 1u);
+    ASSERT_TRUE(vm.state().sprites[0].x.has_value());
+    ASSERT_TRUE(vm.state().sprites[0].y.has_value());
+    EXPECT_EQ(*vm.state().sprites[0].x, "70");
+    EXPECT_EQ(*vm.state().sprites[0].y, "100");
 }
 
 TEST_F(VMTest, VMSpriteUrlUpdateDoesNotResetPosition) {
@@ -1641,16 +1704,11 @@ TEST_F(VMTest, VMSpriteUrlUpdateDoesNotResetPosition) {
     vm.advance();
 
     ASSERT_EQ(vm.state().sprites.size(), 1u);
-    EXPECT_EQ(vm.state().sprites[0].url, "diana_normal.png");
-    EXPECT_EQ(vm.state().sprites[0].position, "left");
-    EXPECT_DOUBLE_EQ(vm.state().sprites[0].x, 20.0);
-
-    vm.advance();
-
-    ASSERT_EQ(vm.state().sprites.size(), 1u);
-    EXPECT_EQ(vm.state().sprites[0].url, "diana_happy.png");
-    EXPECT_EQ(vm.state().sprites[0].position, "left");
-    EXPECT_DOUBLE_EQ(vm.state().sprites[0].x, 20.0);
+    ASSERT_TRUE(vm.state().sprites[0].url.has_value());
+    EXPECT_EQ(*vm.state().sprites[0].url, "diana_happy.png");
+    ASSERT_TRUE(vm.state().sprites[0].position.has_value());
+    EXPECT_EQ(*vm.state().sprites[0].position, "left");
+    EXPECT_FALSE(vm.state().sprites[0].x.has_value());
 }
 
 TEST_F(VMTest, VMSpriteUrlUpdateDoesNotResetExplicitX) {
@@ -1666,16 +1724,13 @@ TEST_F(VMTest, VMSpriteUrlUpdateDoesNotResetExplicitX) {
     vm.advance();
 
     ASSERT_EQ(vm.state().sprites.size(), 1u);
-    EXPECT_DOUBLE_EQ(vm.state().sprites[0].x, 35.0);
-
-    vm.advance();
-
-    ASSERT_EQ(vm.state().sprites.size(), 1u);
-    EXPECT_EQ(vm.state().sprites[0].url, "eve_b.png");
-    EXPECT_DOUBLE_EQ(vm.state().sprites[0].x, 35.0);
+    ASSERT_TRUE(vm.state().sprites[0].url.has_value());
+    EXPECT_EQ(*vm.state().sprites[0].url, "eve_b.png");
+    ASSERT_TRUE(vm.state().sprites[0].x.has_value());
+    EXPECT_EQ(*vm.state().sprites[0].x, "35");
 }
 
-TEST_F(VMTest, VMSpriteExplicitXOverridesPositionMapping) {
+TEST_F(VMTest, VMSpriteExplicitXCoexistsWithPosition) {
     auto result = parse(
         "#scene_start \"Start\"\n"
         "@sprite frank url:frank.png position:left x:45\n"
@@ -1687,6 +1742,151 @@ TEST_F(VMTest, VMSpriteExplicitXOverridesPositionMapping) {
     vm.advance();
 
     ASSERT_EQ(vm.state().sprites.size(), 1u);
-    EXPECT_EQ(vm.state().sprites[0].position, "left");
-    EXPECT_DOUBLE_EQ(vm.state().sprites[0].x, 45.0);
+    ASSERT_TRUE(vm.state().sprites[0].position.has_value());
+    EXPECT_EQ(*vm.state().sprites[0].position, "left");
+    ASSERT_TRUE(vm.state().sprites[0].x.has_value());
+    EXPECT_EQ(*vm.state().sprites[0].x, "45");
+}
+
+TEST_F(VMTest, VMSpriteHideRemovesSpriteFromState) {
+    auto result = parse(
+        "#scene_start \"Start\"\n"
+        "@sprite iris url:iris.png position:left\n"
+        "> shown\n"
+        "@sprite iris hide\n"
+        "> hidden\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+
+    NovaVM vm;
+    vm.load(result.unwrap());
+    vm.advance();
+
+    ASSERT_EQ(vm.state().sprites.size(), 1u);
+    EXPECT_EQ(vm.state().sprites[0].id, "iris");
+    ASSERT_TRUE(vm.state().dialogue.has_value());
+    EXPECT_EQ(vm.state().dialogue->text, "shown");
+
+    vm.advance();
+
+    EXPECT_TRUE(vm.state().sprites.empty());
+    ASSERT_TRUE(vm.state().dialogue.has_value());
+    EXPECT_EQ(vm.state().dialogue->text, "hidden");
+}
+
+TEST_F(VMTest, VMSpriteShowUsesCharacterDefaultSprite) {
+    auto result = parse(
+        "@char iris\n"
+        "  sprite_default: iris_default.png\n"
+        "@end\n"
+        "#scene_start \"Start\"\n"
+        "@sprite iris show position:left\n"
+        "> shown\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+
+    NovaVM vm;
+    vm.load(result.unwrap());
+    vm.advance();
+
+    ASSERT_EQ(vm.state().sprites.size(), 1u);
+    EXPECT_EQ(vm.state().sprites[0].id, "iris");
+    ASSERT_TRUE(vm.state().sprites[0].url.has_value());
+    EXPECT_EQ(*vm.state().sprites[0].url, "iris_default.png");
+    ASSERT_TRUE(vm.state().sprites[0].position.has_value());
+    EXPECT_EQ(*vm.state().sprites[0].position, "left");
+    EXPECT_FALSE(vm.state().sprites[0].x.has_value());
+    ASSERT_TRUE(vm.state().dialogue.has_value());
+    EXPECT_EQ(vm.state().dialogue->text, "shown");
+}
+
+TEST_F(VMTest, VMDialogueManagedSpritesClearOnSceneJump) {
+    auto result = parse(
+        "@char iris\n"
+        "  sprite_default: iris_default.png\n"
+        "  sprite_happy: iris_happy.png\n"
+        "@end\n"
+        "#scene_start \"Start\"\n"
+        "iris[happy]: hello\n"
+        "-> scene_next\n"
+        "#scene_next \"Next\"\n"
+        "> arrived\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+
+    NovaVM vm;
+    vm.load(result.unwrap());
+    vm.advance();
+
+    ASSERT_EQ(vm.state().sprites.size(), 1u);
+    EXPECT_EQ(vm.state().sprites[0].id, "iris");
+    ASSERT_TRUE(vm.state().sprites[0].url.has_value());
+    EXPECT_EQ(*vm.state().sprites[0].url, "iris_happy.png");
+    ASSERT_TRUE(vm.state().dialogue.has_value());
+    EXPECT_EQ(vm.state().dialogue->text, "hello");
+
+    vm.advance();
+
+    EXPECT_TRUE(vm.state().sprites.empty());
+    EXPECT_FALSE(vm.state().dialogue.has_value());
+
+    vm.advance();
+
+    EXPECT_TRUE(vm.state().sprites.empty());
+    ASSERT_TRUE(vm.state().dialogue.has_value());
+    EXPECT_EQ(vm.state().dialogue->text, "arrived");
+}
+
+TEST_F(VMTest, VMExplicitSpritesClearOnSceneJump) {
+    auto result = parse(
+        "#scene_start \"Start\"\n"
+        "@sprite iris show url:iris_default.png position:left\n"
+        "-> scene_next\n"
+        "#scene_next \"Next\"\n"
+        "> arrived\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+
+    NovaVM vm;
+    vm.load(result.unwrap());
+    vm.advance();
+
+    EXPECT_TRUE(vm.state().sprites.empty());
+    EXPECT_FALSE(vm.state().dialogue.has_value());
+
+    vm.advance();
+
+    EXPECT_TRUE(vm.state().sprites.empty());
+    ASSERT_TRUE(vm.state().dialogue.has_value());
+    EXPECT_EQ(vm.state().dialogue->text, "arrived");
+}
+
+TEST_F(VMTest, VMBgmStopClearsCurrentTrack) {
+    auto result = parse(
+        "#scene_start \"Start\"\n"
+        "@bgm theme.ogg loop:true volume:0.4\n"
+        "> started\n"
+        "@bgm stop\n"
+        "> stopped\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+
+    NovaVM vm;
+    vm.load(result.unwrap());
+    vm.advance();
+
+    ASSERT_TRUE(vm.state().bgm.has_value());
+    EXPECT_EQ(*vm.state().bgm, "theme.ogg");
+    EXPECT_TRUE(vm.state().bgmLoop);
+    EXPECT_DOUBLE_EQ(vm.state().bgmVolume, 0.4);
+    ASSERT_TRUE(vm.state().dialogue.has_value());
+    EXPECT_EQ(vm.state().dialogue->text, "started");
+
+    vm.advance();
+
+    EXPECT_FALSE(vm.state().bgm.has_value());
+    EXPECT_TRUE(vm.state().bgmLoop);
+    EXPECT_DOUBLE_EQ(vm.state().bgmVolume, 1.0);
+    ASSERT_TRUE(vm.state().dialogue.has_value());
+    EXPECT_EQ(vm.state().dialogue->text, "stopped");
 }

@@ -526,7 +526,14 @@ int do_run(const CliConfig& config) {
         if (state.sprites != last_sprites) {
             last_sprites = state.sprites;
             for (const auto& sprite : state.sprites) {
-                std::cout << "[Sprite: " << sprite.id << " at (" << sprite.x << "," << sprite.y << ")]\n";
+                std::cout << "[Sprite: " << sprite.id;
+                if (sprite.position) {
+                    std::cout << " position=" << *sprite.position;
+                }
+                if (sprite.x || sprite.y) {
+                    std::cout << " at (" << (sprite.x ? *sprite.x : "") << "," << (sprite.y ? *sprite.y : "") << ")";
+                }
+                std::cout << "]\n";
             }
         }
         

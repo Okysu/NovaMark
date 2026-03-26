@@ -23,6 +23,9 @@ struct GameState {
     double bgmVolume = 1.0;
     bool bgmLoop = true;
 
+    std::optional<std::string> currentTheme;
+    std::unordered_map<std::string, std::string> themeProperties;
+
     std::vector<SpriteState> sprites;
     std::optional<DialogueState> dialogue;
     std::optional<ChoiceState> choice;
@@ -49,6 +52,8 @@ struct GameState {
         bgm.reset();
         bgmVolume = 1.0;
         bgmLoop = true;
+        currentTheme.reset();
+        themeProperties.clear();
         sprites.clear();
         dialogue.reset();
         choice.reset();

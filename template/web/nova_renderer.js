@@ -231,6 +231,10 @@ class NovaRenderer {
         return this.getString(this.vm._nova_wasm_get_dialogue_text());
     }
 
+    getDialogueEmotion() {
+        return this.getString(this.vm._nova_wasm_get_dialogue_emotion());
+    }
+
     getDialogueColor() {
         return this.getString(this.vm._nova_wasm_get_dialogue_color());
     }
@@ -247,6 +251,18 @@ class NovaRenderer {
         return this.getString(this.vm._nova_wasm_get_choice_text(index));
     }
 
+    getChoiceId(index) {
+        return this.getString(this.vm._nova_wasm_get_choice_id(index));
+    }
+
+    getChoiceTarget(index) {
+        return this.getString(this.vm._nova_wasm_get_choice_target(index));
+    }
+
+    getChoiceQuestion() {
+        return this.getString(this.vm._nova_wasm_get_choice_question());
+    }
+
     isChoiceDisabled(index) {
         return this.vm._nova_wasm_is_choice_disabled(index) === 1;
     }
@@ -260,19 +276,70 @@ class NovaRenderer {
     }
 
     getSpriteX(index) {
-        return this.vm._nova_wasm_get_sprite_x(index);
+        return this.getString(this.vm._nova_wasm_get_sprite_x(index));
     }
 
     getSpriteY(index) {
-        return this.vm._nova_wasm_get_sprite_y(index);
+        return this.getString(this.vm._nova_wasm_get_sprite_y(index));
     }
 
     getSpriteOpacity(index) {
-        return this.vm._nova_wasm_get_sprite_opacity(index);
+        return this.getString(this.vm._nova_wasm_get_sprite_opacity(index));
     }
 
     getSpriteZIndex(index) {
-        return this.vm._nova_wasm_get_sprite_z_index(index);
+        return this.getString(this.vm._nova_wasm_get_sprite_z_index(index));
+    }
+
+    getSfxCount() {
+        return this.vm._nova_wasm_get_sfx_count();
+    }
+
+    getSfxId(index) {
+        return this.getString(this.vm._nova_wasm_get_sfx_id(index));
+    }
+
+    getSfxPath(index) {
+        return this.getString(this.vm._nova_wasm_get_sfx_path(index));
+    }
+
+    getSfxVolume(index) {
+        return this.vm._nova_wasm_get_sfx_volume(index);
+    }
+
+    getSfxLoop(index) {
+        return this.vm._nova_wasm_get_sfx_loop(index) === 1;
+    }
+
+    getThemeCount() {
+        return this.vm._nova_wasm_get_theme_count();
+    }
+
+    getThemeName(index) {
+        return this.getString(this.vm._nova_wasm_get_theme_name(index));
+    }
+
+    getThemePropertyCount(themeId) {
+        const themePtr = this.allocateString(themeId);
+        const count = this.vm._nova_wasm_get_theme_property_count(themePtr);
+        this.vm._free(themePtr);
+        return count;
+    }
+
+    getThemePropertyKey(themeId, index) {
+        const themePtr = this.allocateString(themeId);
+        const key = this.getString(this.vm._nova_wasm_get_theme_property_key(themePtr, index));
+        this.vm._free(themePtr);
+        return key;
+    }
+
+    getThemePropertyValue(themeId, key) {
+        const themePtr = this.allocateString(themeId);
+        const keyPtr = this.allocateString(key);
+        const value = this.getString(this.vm._nova_wasm_get_theme_property_value(themePtr, keyPtr));
+        this.vm._free(themePtr);
+        this.vm._free(keyPtr);
+        return value;
     }
 
     getSpritePosition(index) {

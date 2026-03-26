@@ -152,6 +152,7 @@ NovaMark 现在正式支持这套约定：
   name: "治疗药水"
   description: "恢复生命值。"
   icon: healing_potion.png
+  default_value: 3
 @end
 ```
 
@@ -162,8 +163,21 @@ NovaMark 现在正式支持这套约定：
 | `name` | 物品显示名 |
 | `description` | 物品描述 |
 | `icon` | GUI 图标 |
+| `default_value` | 默认值，适合玩家可见属性或初始公开状态 |
 
 这些定义会被导出到运行时状态里，方便 GUI 渲染背包、道具栏和提示信息。
+
+如果你希望某个值更偏向“玩家可见的公开属性”，也可以使用 `@item` 来定义，例如：
+
+```nvm
+@item hp
+  name: "生命值"
+  description: "角色当前生命值。"
+  default_value: 100
+@end
+```
+
+而 `@var` 更适合内部逻辑控制用的变量。
 
 ---
 
@@ -293,7 +307,11 @@ NovaMark 里最常见的运行时状态包括：
 ```nvm
 @give healing_potion 1
 @take gold_coin 50
+@give gold_coin random(10, 20)
+@take gold_coin 1 + 1
 ```
+
+这些命令现在支持表达式，而不只支持字面量。
 
 ### 你应该如何理解这些状态
 

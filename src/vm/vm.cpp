@@ -8,16 +8,6 @@ namespace nova {
 
 namespace {
 
-/// @brief 将位置字符串映射为 x 百分比坐标，供渲染器布局使用
-/// @param position 位置字符串：left, center, right
-/// @return x 坐标百分比 (left=20, center=50, right=80)
-double mapPositionToX(const std::string& position) {
-    if (position == "left") return 20.0;
-    if (position == "center") return 50.0;
-    if (position == "right") return 80.0;
-    return 50.0; // 默认居中
-}
-
 double safe_stod(const std::string& s, double defaultVal = 0.0) {
     try { return std::stod(s); }
     catch (...) { return defaultVal; }
@@ -338,6 +328,11 @@ std::string NovaVM::resolveCharacterSprite(const std::string& speaker, const std
     return "";
 }
 
+void NovaVM::clearDialogueManagedSprites() {
+    m_state.sprites.clear();
+    m_dialogueManagedSprites.clear();
+}
+
 void NovaVM::applyFrontMatterDefaults() {
     m_state.textConfig = TextConfigState{};
 
@@ -473,6 +468,7 @@ void NovaVM::advance() {
             if (orderIt != m_scene_order_index.end()) {
                 size_t idx = orderIt->second;
                 if (idx + 1 < m_scene_order.size()) {
+                    clearDialogueManagedSprites();
                     m_currentScene = m_scene_order[idx + 1];
                     m_statementIndex = 0;
                     m_state.currentScene = m_currentScene;
@@ -501,7 +497,7 @@ void NovaVM::advance() {
             m_state.status == VMStatus::Ended) {
             return;
         }
-        
+
         if (m_currentScene != scene_at_start) {
             return;
         }
@@ -553,6 +549,8 @@ void NovaVM::setEntryPoint(const std::string& sceneName) {
 bool NovaVM::jumpToScene(const std::string& sceneName) {
     auto it = m_scenes.find(sceneName);
     if (it == m_scenes.end()) return false;
+
+    clearDialogueManagedSprites();
     
     m_currentScene = sceneName;
     m_statementIndex = 0;
@@ -611,6 +609,7 @@ void NovaVM::reset() {
     m_currentScene.clear();
     m_statementIndex = 0;
     m_callStack.clear();
+    m_dialogueManagedSprites.clear();
     markRuntimeStateChanged(RuntimeStateChangeVariables | RuntimeStateChangeInventory);
 }
 
@@ -711,6 +710,7 @@ void NovaVM::executeDialogue(const DialogueNode* node) {
             sprite.url = spriteUrl;
             m_state.sprites.push_back(sprite);
         }
+        m_dialogueManagedSprites.insert(diag.speaker);
     }
 }
 
@@ -803,22 +803,47 @@ void NovaVM::executeSprite(const SpriteCommandNode* node) {
 
     const std::string spriteId = node->name();
 
+    bool hideSprite = false;
+    bool showSprite = false;
     bool hasX = false, hasY = false, hasPosition = false;
     bool hasOpacity = false, hasZIndex = false, hasUrl = false;
 
     std::string url;
-    double x = 0.0, y = 0.0, opacity = 1.0;
+    std::string x;
+    std::string y;
+    double opacity = 1.0;
     int zIndex = 0;
     std::string position;
 
     for (const auto& arg : node->args()) {
-        if (arg.key == "x") { x = safe_stod(arg.value, 0.0); hasX = true; }
-        else if (arg.key == "y") { y = safe_stod(arg.value, 0.0); hasY = true; }
+        if (arg.key == "hide") { hideSprite = true; }
+        else if (arg.key == "show") { showSprite = true; }
+        else if (arg.key == "x") { x = arg.value; hasX = true; }
+        else if (arg.key == "y") { y = arg.value; hasY = true; }
         else if (arg.key == "position") { position = arg.value; hasPosition = true; }
         else if (arg.key == "opacity") { opacity = safe_stod(arg.value, 1.0); hasOpacity = true; }
         else if (arg.key == "zIndex") { zIndex = safe_stoi(arg.value, 0); hasZIndex = true; }
         else if (arg.key == "url") { url = arg.value; hasUrl = true; }
     }
+
+    if (hideSprite) {
+        auto it = std::remove_if(m_state.sprites.begin(), m_state.sprites.end(),
+            [&](const SpriteState& s) { return s.id == spriteId; });
+        m_state.sprites.erase(it, m_state.sprites.end());
+        m_dialogueManagedSprites.erase(spriteId);
+        return;
+    }
+
+    if (showSprite && !hasUrl) {
+        url = resolveCharacterSprite(spriteId, "");
+        hasUrl = !url.empty();
+    }
+
+    if (!hasX && !hasY && !hasPosition && !hasOpacity && !hasZIndex && !hasUrl) {
+        return;
+    }
+
+    m_dialogueManagedSprites.erase(spriteId);
 
     auto it = std::find_if(m_state.sprites.begin(), m_state.sprites.end(),
         [&](const SpriteState& s) { return s.id == spriteId; });
@@ -830,23 +855,15 @@ void NovaVM::executeSprite(const SpriteCommandNode* node) {
         if (hasOpacity) it->opacity = opacity;
         if (hasZIndex) it->zIndex = zIndex;
         if (hasUrl) it->url = url;
-
-        if (!hasX && hasPosition) {
-            it->x = mapPositionToX(it->position);
-        }
     } else {
         SpriteState sprite;
         sprite.id = spriteId;
-        sprite.url = url;
-        sprite.x = x;
-        sprite.y = y;
-        sprite.position = position;
-        sprite.opacity = opacity;
-        sprite.zIndex = zIndex;
-
-        if (!hasX && hasPosition) {
-            sprite.x = mapPositionToX(position);
-        }
+        if (hasUrl) sprite.url = url;
+        if (hasX) sprite.x = x;
+        if (hasY) sprite.y = y;
+        if (hasPosition) sprite.position = position;
+        if (hasOpacity) sprite.opacity = opacity;
+        if (hasZIndex) sprite.zIndex = zIndex;
 
         m_state.sprites.push_back(sprite);
     }
@@ -854,6 +871,14 @@ void NovaVM::executeSprite(const SpriteCommandNode* node) {
 
 void NovaVM::executeBgm(const BgmCommandNode* node) {
     if (!node) return;
+
+    if (node->file() == "stop") {
+        m_state.bgm.reset();
+        m_state.bgmVolume = 1.0;
+        m_state.bgmLoop = true;
+        return;
+    }
+
     m_state.bgm = node->file();
     for (const auto& arg : node->args()) {
         if (arg.key == "volume") m_state.bgmVolume = safe_stod(arg.value, m_state.bgmVolume);

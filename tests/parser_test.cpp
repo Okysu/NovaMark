@@ -567,6 +567,34 @@ TEST_F(ParserTest, SpriteCommandPositionPassThrough) {
     EXPECT_EQ(cmd->args()[1].value, "left");
 }
 
+TEST_F(ParserTest, SpriteCommandRawCoordinatesPassThrough) {
+    auto result = parse("@sprite 林晓 url:linxiao.png x:70 y:100\n");
+    ASSERT_TRUE(result.is_ok());
+    auto program = as_program(result.unwrap());
+    ASSERT_EQ(program->statements().size(), 1u);
+
+    auto cmd = dynamic_cast<const SpriteCommandNode*>(program->statements()[0].get());
+    ASSERT_NE(cmd, nullptr);
+    ASSERT_EQ(cmd->args().size(), 3u);
+    EXPECT_EQ(cmd->args()[1].key, "x");
+    EXPECT_EQ(cmd->args()[1].value, "70");
+    EXPECT_EQ(cmd->args()[2].key, "y");
+    EXPECT_EQ(cmd->args()[2].value, "100");
+}
+
+TEST_F(ParserTest, SpriteCommandHide) {
+    auto result = parse("@sprite 林晓 hide\n");
+    ASSERT_TRUE(result.is_ok());
+    auto program = as_program(result.unwrap());
+    ASSERT_EQ(program->statements().size(), 1u);
+
+    auto cmd = dynamic_cast<const SpriteCommandNode*>(program->statements()[0].get());
+    ASSERT_NE(cmd, nullptr);
+    ASSERT_EQ(cmd->args().size(), 1u);
+    EXPECT_EQ(cmd->args()[0].key, "hide");
+    EXPECT_EQ(cmd->args()[0].value, "true");
+}
+
 TEST_F(ParserTest, BgmCommand) {
     auto result = parse("@bgm theme_music\n");
     ASSERT_TRUE(result.is_ok());
@@ -575,6 +603,17 @@ TEST_F(ParserTest, BgmCommand) {
 TEST_F(ParserTest, BgmCommandWithLoop) {
     auto result = parse("@bgm theme_music loop:true volume:0.8\n");
     ASSERT_TRUE(result.is_ok());
+}
+
+TEST_F(ParserTest, BgmCommandStop) {
+    auto result = parse("@bgm stop\n");
+    ASSERT_TRUE(result.is_ok());
+    auto program = as_program(result.unwrap());
+    ASSERT_EQ(program->statements().size(), 1u);
+
+    auto cmd = dynamic_cast<const BgmCommandNode*>(program->statements()[0].get());
+    ASSERT_NE(cmd, nullptr);
+    EXPECT_EQ(cmd->file(), "stop");
 }
 
 TEST_F(ParserTest, SfxCommand) {

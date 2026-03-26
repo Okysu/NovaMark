@@ -37,7 +37,6 @@
 
 .enter_shop
 @bg bookshop_night.jpg transition:fade
-@sprite 沈砚 show url:shenyan_normal.png position:left
 
 > 书店的门铃没有响，像是声音先一步被屋里厚重的纸页吸走了。
 > 书架深处传来一阵短暂的风声，明明窗都关着，柜台上的台灯却自行亮了起来。
@@ -57,7 +56,7 @@
 @set memory = memory + 1
 > 你拿起黄铜钥匙，钥匙柄冰凉，像刚从海水里捞起。
 > 账本纸上只记着一行潦草字迹：“零点前，去潮汐图书馆。”
-沈砚[normal]: 图书馆？港城早就没有这地方了。
+沈砚: 图书馆？港城早就没有这地方了。
 -> .hear_steps
 
 .search_shelves
@@ -76,7 +75,6 @@
 .hear_steps
 > 楼上忽然传来清晰的脚步声，一下、两下，停在楼梯拐角。
 @sfx bell.ogg
-@sprite 祁星 show url:qixing_normal.png position:right
 
 祁星[mysterious]: 你果然来了。
 

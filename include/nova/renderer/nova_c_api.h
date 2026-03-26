@@ -19,16 +19,18 @@ typedef struct NovaVM NovaVM;
 typedef struct {
     const char* id;
     const char* url;
-    double x;
-    double y;
-    double opacity;
-    int zIndex;
+    const char* x;
+    const char* y;
+    const char* position;
+    const char* opacity;
+    const char* zIndex;
 } NovaSprite;
 
 typedef struct {
     int isShow;
     const char* name;
     const char* text;
+    const char* emotion;
     const char* color;
 } NovaDialogue;
 
@@ -41,22 +43,52 @@ typedef struct {
 typedef struct {
     const char* id;
     const char* text;
+    const char* target;
     int disabled;
 } NovaChoice;
 
 typedef struct {
+    const char* id;
+    const char* path;
+    int loop;
+    double volume;
+} NovaSfx;
+
+typedef struct {
     const char* bg;
+    const char* bgTransition;
     const char* bgm;
+    double bgmVolume;
+    int bgmLoop;
+
+    const char* currentTheme;
     
     const NovaSprite* sprites;
     size_t spriteCount;
+
+    const NovaSfx* sfx;
+    size_t sfxCount;
     
     NovaDialogue dialogue;
     int hasDialogue;
     
     const NovaChoice* choices;
     size_t choiceCount;
+
+    const char* choiceQuestion;
+    int hasChoices;
+    int choiceIsShow;
 } NovaState;
+
+NOVA_API size_t nova_get_theme_count(NovaVM* vm);
+NOVA_API const char* nova_get_theme_name(NovaVM* vm, size_t index);
+NOVA_API size_t nova_get_theme_property_count(NovaVM* vm, const char* themeId);
+NOVA_API const char* nova_get_theme_property_key(NovaVM* vm, const char* themeId, size_t index);
+NOVA_API const char* nova_get_theme_property_value(NovaVM* vm, const char* themeId, const char* key);
+NOVA_API const char* nova_get_current_theme(NovaVM* vm);
+NOVA_API size_t nova_get_current_theme_property_count(NovaVM* vm);
+NOVA_API const char* nova_get_current_theme_property_key(NovaVM* vm, size_t index);
+NOVA_API const char* nova_get_current_theme_property_value(NovaVM* vm, const char* key);
 
 NOVA_API NovaVM* nova_create();
 NOVA_API void nova_destroy(NovaVM* vm);

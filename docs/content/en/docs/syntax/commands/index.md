@@ -182,20 +182,25 @@ Display or switch character sprites.
 
 ```nvm
 @sprite CharacterName show url:sprite.png position:left
-@sprite CharacterName show url:sprite.png x:70% y:100px
+@sprite CharacterName show position:left
+@sprite CharacterName show url:sprite.png x:70 y:100
 @sprite CharacterName hide
 ```
 
 **Parameters**:
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `show` | - | Show sprite |
+| `show` | - | Show sprite; if `url` is omitted, NovaMark tries `sprite_default` from the character definition |
 | `hide` | - | Hide sprite |
 | `url` | Filename | Sprite image |
 | `position` | String | Recommended `left` / `right`, passed through as-is |
-| `x` | String/Number | Interpreted by each platform |
-| `y` | String/Number | Interpreted by each platform |
+| `x` | String/Number | Passed through to the host as-is |
+| `y` | String/Number | Passed through to the host as-is |
 | `opacity` | Number | Opacity (0-1) |
+
+When switching to a new scene, sprites from the previous scene are cleared automatically. Within the same scene, use `hide` when you want a portrait to leave.
+
+NovaMark only exports sprite fields that were explicitly set in script. Unspecified fields remain empty, and the host decides how to apply its own default layout or rendering fallback.
 
 ---
 

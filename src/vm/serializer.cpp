@@ -13,7 +13,7 @@ using json = nlohmann::json;
 namespace {
 
 constexpr char SAVE_MAGIC[] = "NVMSAVE";
-constexpr uint32_t SAVE_VERSION = 1;
+constexpr uint32_t SAVE_VERSION = 3;
 
 template<typename T>
 void write_pod(std::vector<uint8_t>& out, const T& value) {
@@ -47,6 +47,56 @@ bool read_string(const std::vector<uint8_t>& data, size_t& offset, std::string& 
     }
     value.assign(reinterpret_cast<const char*>(data.data() + offset), size);
     offset += size;
+    return true;
+}
+
+void write_optional_string(std::vector<uint8_t>& out, const std::optional<std::string>& value) {
+    write_pod(out, value.has_value());
+    if (value) {
+        write_string(out, *value);
+    }
+}
+
+bool read_optional_string(const std::vector<uint8_t>& data, size_t& offset, std::optional<std::string>& value) {
+    bool hasValue = false;
+    if (!read_pod(data, offset, hasValue)) {
+        return false;
+    }
+    value.reset();
+    if (!hasValue) {
+        return true;
+    }
+    std::string parsed;
+    if (!read_string(data, offset, parsed)) {
+        return false;
+    }
+    value = std::move(parsed);
+    return true;
+}
+
+template<typename T>
+void write_optional_pod(std::vector<uint8_t>& out, const std::optional<T>& value) {
+    write_pod(out, value.has_value());
+    if (value) {
+        write_pod(out, *value);
+    }
+}
+
+template<typename T>
+bool read_optional_pod(const std::vector<uint8_t>& data, size_t& offset, std::optional<T>& value) {
+    bool hasValue = false;
+    if (!read_pod(data, offset, hasValue)) {
+        return false;
+    }
+    value.reset();
+    if (!hasValue) {
+        return true;
+    }
+    T parsed{};
+    if (!read_pod(data, offset, parsed)) {
+        return false;
+    }
+    value = parsed;
     return true;
 }
 
@@ -172,13 +222,19 @@ std::string GameStateSerializer::serialize(const GameState& state) {
     j["bgm"] = state.bgm;
     j["bgmVolume"] = state.bgmVolume;
     j["bgmLoop"] = state.bgmLoop;
+    j["currentTheme"] = state.currentTheme;
+    j["themeProperties"] = state.themeProperties;
     j["ending"] = state.ending;
     j["sprites"] = json::array();
     for (const auto& sp : state.sprites) {
-        j["sprites"].push_back({
-            {"id", sp.id}, {"url", sp.url}, {"x", sp.x}, {"y", sp.y},
-            {"position", sp.position}, {"opacity", sp.opacity}, {"zIndex", sp.zIndex}
-        });
+        json sprite = {{"id", sp.id}};
+        if (sp.url) sprite["url"] = *sp.url;
+        if (sp.x) sprite["x"] = *sp.x;
+        if (sp.y) sprite["y"] = *sp.y;
+        if (sp.position) sprite["position"] = *sp.position;
+        if (sp.opacity) sprite["opacity"] = *sp.opacity;
+        if (sp.zIndex) sprite["zIndex"] = *sp.zIndex;
+        j["sprites"].push_back(std::move(sprite));
     }
     if (state.dialogue) {
         j["dialogue"] = {
@@ -236,6 +292,12 @@ bool GameStateSerializer::deserialize(const std::string& jsonStr, GameState& sta
         if (j.contains("bgm") && !j["bgm"].is_null()) state.bgm = j["bgm"].get<std::string>();
         state.bgmVolume = j.value("bgmVolume", 1.0);
         state.bgmLoop = j.value("bgmLoop", true);
+        state.currentTheme.reset();
+        state.themeProperties.clear();
+        if (j.contains("currentTheme") && !j["currentTheme"].is_null()) {
+            state.currentTheme = j["currentTheme"].get<std::string>();
+        }
+        state.themeProperties = j.value("themeProperties", std::unordered_map<std::string, std::string>{});
         if (j.contains("ending") && !j["ending"].is_null()) state.ending = j["ending"].get<std::string>();
 
         state.sprites.clear();
@@ -243,12 +305,12 @@ bool GameStateSerializer::deserialize(const std::string& jsonStr, GameState& sta
             for (const auto& item : j["sprites"]) {
                 SpriteState sp;
                 sp.id = item.value("id", "");
-                sp.url = item.value("url", "");
-                sp.x = item.value("x", 0.0);
-                sp.y = item.value("y", 0.0);
-                sp.position = item.value("position", "");
-                sp.opacity = item.value("opacity", 1.0);
-                sp.zIndex = item.value("zIndex", 0);
+                if (item.contains("url") && !item["url"].is_null()) sp.url = item["url"].get<std::string>();
+                if (item.contains("x") && !item["x"].is_null()) sp.x = item["x"].get<std::string>();
+                if (item.contains("y") && !item["y"].is_null()) sp.y = item["y"].get<std::string>();
+                if (item.contains("position") && !item["position"].is_null()) sp.position = item["position"].get<std::string>();
+                if (item.contains("opacity") && !item["opacity"].is_null()) sp.opacity = item["opacity"].get<double>();
+                if (item.contains("zIndex") && !item["zIndex"].is_null()) sp.zIndex = item["zIndex"].get<int>();
                 state.sprites.push_back(std::move(sp));
             }
         }
@@ -396,11 +458,19 @@ std::vector<uint8_t> GameStateSerializer::serializeSaveBinary(const SaveData& sa
     write_pod(out, save.state.bgm.has_value()); if (save.state.bgm) write_string(out, *save.state.bgm);
     write_pod(out, save.state.bgmVolume);
     write_pod(out, save.state.bgmLoop);
+    write_pod(out, save.state.currentTheme.has_value());
+    if (save.state.currentTheme) write_string(out, *save.state.currentTheme);
+    write_string_map(out, save.state.themeProperties);
     uint32_t spriteCount = static_cast<uint32_t>(save.state.sprites.size());
     write_pod(out, spriteCount);
     for (const auto& sp : save.state.sprites) {
-        write_string(out, sp.id); write_string(out, sp.url); write_pod(out, sp.x); write_pod(out, sp.y);
-        write_string(out, sp.position); write_pod(out, sp.opacity); write_pod(out, sp.zIndex);
+        write_string(out, sp.id);
+        write_optional_string(out, sp.url);
+        write_optional_string(out, sp.x);
+        write_optional_string(out, sp.y);
+        write_optional_string(out, sp.position);
+        write_optional_pod(out, sp.opacity);
+        write_optional_pod(out, sp.zIndex);
     }
     write_pod(out, save.state.dialogue.has_value());
     if (save.state.dialogue) {
@@ -443,7 +513,7 @@ bool GameStateSerializer::deserializeSaveBinary(const std::vector<uint8_t>& data
     offset += sizeof(SAVE_MAGIC) - 1;
 
     uint32_t version = 0;
-    if (!read_pod(data, offset, version) || version != SAVE_VERSION) {
+    if (!read_pod(data, offset, version) || (version != 1 && version != 2 && version != SAVE_VERSION)) {
         return false;
     }
 
@@ -488,8 +558,26 @@ bool GameStateSerializer::deserializeSaveBinary(const std::vector<uint8_t>& data
         save.state.bgm = std::move(bgm);
     }
     if (!read_pod(data, offset, save.state.bgmVolume) ||
-        !read_pod(data, offset, save.state.bgmLoop) ||
-        !read_pod(data, offset, spriteCount)) {
+        !read_pod(data, offset, save.state.bgmLoop)) {
+        return false;
+    }
+    if (version >= 2) {
+        bool hasCurrentTheme = false;
+        if (!read_pod(data, offset, hasCurrentTheme)) {
+            return false;
+        }
+        if (hasCurrentTheme) {
+            std::string currentTheme;
+            if (!read_string(data, offset, currentTheme)) {
+                return false;
+            }
+            save.state.currentTheme = std::move(currentTheme);
+        }
+        if (!read_string_map(data, offset, save.state.themeProperties)) {
+            return false;
+        }
+    }
+    if (!read_pod(data, offset, spriteCount)) {
         return false;
     }
 
@@ -497,14 +585,39 @@ bool GameStateSerializer::deserializeSaveBinary(const std::vector<uint8_t>& data
     save.state.sprites.reserve(spriteCount);
     for (uint32_t i = 0; i < spriteCount; ++i) {
         SpriteState sp;
-        if (!read_string(data, offset, sp.id) ||
-            !read_string(data, offset, sp.url) ||
-            !read_pod(data, offset, sp.x) ||
-            !read_pod(data, offset, sp.y) ||
-            !read_string(data, offset, sp.position) ||
-            !read_pod(data, offset, sp.opacity) ||
-            !read_pod(data, offset, sp.zIndex)) {
+        if (!read_string(data, offset, sp.id)) {
             return false;
+        }
+        if (version >= 3) {
+            if (!read_optional_string(data, offset, sp.url) ||
+                !read_optional_string(data, offset, sp.x) ||
+                !read_optional_string(data, offset, sp.y) ||
+                !read_optional_string(data, offset, sp.position) ||
+                !read_optional_pod(data, offset, sp.opacity) ||
+                !read_optional_pod(data, offset, sp.zIndex)) {
+                return false;
+            }
+        } else {
+            std::string legacyUrl;
+            double legacyX = 0.0;
+            double legacyY = 0.0;
+            std::string legacyPosition;
+            double legacyOpacity = 1.0;
+            int legacyZIndex = 0;
+            if (!read_string(data, offset, legacyUrl) ||
+                !read_pod(data, offset, legacyX) ||
+                !read_pod(data, offset, legacyY) ||
+                !read_string(data, offset, legacyPosition) ||
+                !read_pod(data, offset, legacyOpacity) ||
+                !read_pod(data, offset, legacyZIndex)) {
+                return false;
+            }
+            sp.url = std::move(legacyUrl);
+            sp.x = std::to_string(legacyX);
+            sp.y = std::to_string(legacyY);
+            if (!legacyPosition.empty()) sp.position = std::move(legacyPosition);
+            sp.opacity = legacyOpacity;
+            sp.zIndex = legacyZIndex;
         }
         save.state.sprites.push_back(std::move(sp));
     }
@@ -585,6 +698,8 @@ GameState GameStateSerializer::captureState(
     const std::optional<std::string>& bgm,
     double bgmVolume,
     bool bgmLoop,
+    const std::optional<std::string>& currentTheme,
+    const std::unordered_map<std::string, std::string>& themeProperties,
     const std::vector<SpriteState>& sprites,
     const std::optional<DialogueState>& dialogue,
     const std::optional<ChoiceState>& choice,
@@ -605,6 +720,8 @@ GameState GameStateSerializer::captureState(
     state.bgm = bgm;
     state.bgmVolume = bgmVolume;
     state.bgmLoop = bgmLoop;
+    state.currentTheme = currentTheme;
+    state.themeProperties = themeProperties;
     state.sprites = sprites;
     state.dialogue = dialogue;
     state.choice = choice;
@@ -630,6 +747,8 @@ void GameStateSerializer::restoreState(
     std::optional<std::string>& bgm,
     double& bgmVolume,
     bool& bgmLoop,
+    std::optional<std::string>& currentTheme,
+    std::unordered_map<std::string, std::string>& themeProperties,
     std::vector<SpriteState>& sprites,
     std::optional<DialogueState>& dialogue,
     std::optional<ChoiceState>& choice,
@@ -649,6 +768,8 @@ void GameStateSerializer::restoreState(
     bgm = state.bgm;
     bgmVolume = state.bgmVolume;
     bgmLoop = state.bgmLoop;
+    currentTheme = state.currentTheme;
+    themeProperties = state.themeProperties;
     sprites = state.sprites;
     dialogue = state.dialogue;
     choice = state.choice;

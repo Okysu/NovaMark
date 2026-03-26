@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <memory>
 #include <functional>
+#include <unordered_set>
 #include <vector>
 
 namespace nova {
@@ -34,6 +35,11 @@ struct ItemDefinition {
     std::string description;
     std::string icon;
     std::string defaultValue;
+};
+
+struct ThemeDefinition {
+    std::string id;
+    std::unordered_map<std::string, std::string> properties;
 };
 
 /// @brief NovaMark 虚拟机
@@ -105,6 +111,7 @@ public:
 
     const std::unordered_map<std::string, CharacterDefinition>& characterDefinitions() const { return m_characterDefinitions; }
     const std::unordered_map<std::string, ItemDefinition>& itemDefinitions() const { return m_itemDefinitions; }
+    const std::unordered_map<std::string, ThemeDefinition>& themeDefinitions() const { return m_themeDefinitions; }
     
     /// @brief 周目状态
     PlaythroughState& playthrough() { return m_playthrough; }
@@ -131,6 +138,7 @@ private:
     std::unordered_map<std::string, SceneData> m_scenes;
     std::unordered_map<std::string, CharacterDefinition> m_characterDefinitions;
     std::unordered_map<std::string, ItemDefinition> m_itemDefinitions;
+    std::unordered_map<std::string, ThemeDefinition> m_themeDefinitions;
 
     std::vector<std::string> m_scene_order;
     std::unordered_map<std::string, size_t> m_scene_order_index;
@@ -139,6 +147,7 @@ private:
     size_t m_statementIndex = 0;
     
     std::vector<std::pair<std::string, size_t>> m_callStack;
+    std::unordered_set<std::string> m_dialogueManagedSprites;
 
     uint64_t m_runtimeStateVersion = 0;
     int m_runtimeStateChangeFlags = RuntimeStateChangeNone;
@@ -147,6 +156,7 @@ private:
     void buildDefinitionRegistry();
     void executeGlobalStatements();
     void applyFrontMatterDefaults();
+    void clearDialogueManagedSprites();
     void executeStatement(const AstNode* node);
     void executeDialogue(const DialogueNode* node);
     void executeNarrator(const NarratorNode* node);

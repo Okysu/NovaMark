@@ -95,18 +95,24 @@ base_audio_path: assets/audio/
 @sprite 林晓 hide
 ```
 
+### `show` 的明确语义
+
+- `@sprite 林晓 show url:linxiao_default.png position:left`：显示/更新该立绘，并应用你写出的参数
+- `@sprite 林晓 show position:left`：如果 `@char 林晓` 里定义了 `sprite_default`，会直接使用默认立绘
+- `@sprite 林晓 hide`：把该角色从当前立绘状态中移除
+
+这意味着常见情况下，你不一定每次都要手写图片路径；如果只是让角色按默认立绘登场，可以直接写 `show`。
+
 ### 指定精确位置
 
-你也可以用坐标：
+你也可以直接写坐标值：
 
 ```nvm
-@sprite 林晓 show url:linxiao_happy.png x:70% y:100px
+@sprite 林晓 show url:linxiao_happy.png x:70 y:100
 ```
 
-`x` 和 `y` 的值由客户端解释，通常支持：
-
-- 百分比：`70%`
-- 像素：`100px`
+NovaMark 会把 `x` 和 `y` 原样保留到运行时状态里，不在 VM 内做数值推导。
+是否把它解释成百分比、像素或别的坐标体系，由宿主自己决定。
 
 ### 情绪立绘的快捷写法
 
@@ -124,6 +130,48 @@ base_audio_path: assets/audio/
 ```
 
 `林晓[happy]` 会自动使用 `sprite_happy` 定义的图片。
+
+如果没有写情绪，例如：
+
+```nvm
+林晓: 我到了。
+```
+
+那么会自动回退到 `sprite_default`。
+
+### 立绘会一直留在屏幕上吗？
+
+NovaMark 当前的规则是：
+
+- 同一场景内，立绘会持续保留，直到你显式写 `@sprite 角色名 hide`
+- 切换到新的场景时，当前场景的立绘会自动清空
+
+这更接近传统 VN 的常见心智模型：**场景切换时自动清场，场景内按需要显式调度**。
+
+### 稀疏立绘状态是什么意思？
+
+NovaMark 的运行时只会输出你显式设置过的立绘字段。
+
+例如：
+
+```nvm
+@sprite 林晓 show position:left opacity:0.8
+```
+
+那么宿主拿到的就是：
+
+- `id`
+- `url`
+- `position`
+- `opacity`
+
+而不会再额外补出默认的 `x=0`、`y=0`、`zIndex=0` 之类字段。
+
+因此推荐宿主按这个顺序处理：
+
+1. 先看 `x/y`
+2. 再看 `position`
+3. 都没有时使用宿主自己的默认对白布局
 
 ---
 

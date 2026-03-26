@@ -2,12 +2,11 @@
 
 @bg pigeon_point.jpg transition:fade
 @bgm ocean_waves.ogg loop:true volume:0.24
-@sprite 馆长 show url:curator_normal.png position:right
 
 > 你重新回到图书馆时，穹顶外的海水已退去大半，远处浮现出一条通往海上灯塔的石阶。
 > 每一级石阶都映着港城雨夜的倒影，像把现在与过去缝在一起。
 
-馆长[normal]: 终点不在图书馆里，在那座灯塔上。
+馆长: 终点不在图书馆里，在那座灯塔上。
 馆长[solemn]: 去决定，你是要把记忆带走，还是继续把它存放在这里。
 
 ? 出发前，你想带上什么？
@@ -34,11 +33,11 @@
 
 .stairs_begin
 @bg pigeon_point.jpg transition:fade
-@sprite 沈砚 show url:shenyan_normal.png position:left
-@sprite 祁星 show url:qixing_normal.png position:right
 
 > 石阶尽头，海风越来越大。灯塔并不高，却像把整片海的重量都扛在自己身上。
 > 登上平台时，你看见中央摆着一盏老式航海灯，灯芯只剩最后一点亮色。
+
+> 祁星比你先一步站上平台，替你挡住了最猛的一阵海风。
 
 祁星[gentle]: 现在你明白那句留言的意思了吗？
 沈砚[determined]: 明白了。不是让我救谁回来，而是别让自己停在那一夜。
@@ -87,9 +86,8 @@ endif
 -> .quiet_route
 
 .good_route
+@bgm stop
 @bg harbour_dawn.jpg transition:fade
-@sprite 沈砚 show url:shenyan_normal.png position:left
-@sprite 祁星 show url:qixing_normal.png position:right
 > 灯光向外扩散，海面上慢慢浮现一条通往清晨港口的路。
 > 你看见远处有人回头挥了挥手，那身影很快就被晨雾吞没，却不再令人绝望。
 
@@ -119,8 +117,8 @@ endif
 @ending return_ending
 
 .quiet_route
+@bgm stop
 @bg corridor.jpg transition:fade
-@sprite 馆长 show url:curator_normal.png position:right
 > 灯终究灭了，平台四周只剩潮声。没有谁责备你，可你知道自己又把某段人生留在原地。
 
 祁星: 有些门不会永远打开。

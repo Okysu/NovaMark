@@ -182,20 +182,25 @@ NovaMark 支持 `//` 单行注释：
 
 ```nvm
 @sprite 角色名 show url:立绘.png position:left
-@sprite 角色名 show url:立绘.png x:70% y:100px
+@sprite 角色名 show position:left
+@sprite 角色名 show url:立绘.png x:70 y:100
 @sprite 角色名 hide
 ```
 
 **参数**:
 | 参数 | 类型 | 说明 |
 |------|------|------|
-| `show` | - | 显示精灵 |
+| `show` | - | 显示精灵；若未提供 `url`，会尝试使用角色的 `sprite_default` |
 | `hide` | - | 隐藏精灵 |
 | `url` | 文件名 | 精灵图片 |
 | `position` | 字符串 | 推荐 `left` / `right`，原样透传 |
-| `x` | 字符串/数字 | 平台自行解释 |
-| `y` | 字符串/数字 | 平台自行解释 |
+| `x` | 字符串/数字 | 原样透传给宿主解释 |
+| `y` | 字符串/数字 | 原样透传给宿主解释 |
 | `opacity` | 数字 | 透明度 (0-1) |
+
+场景切换时，当前场景中的立绘会自动清空；同一场景内若需要退场，仍使用 `hide`。
+
+NovaMark 只会导出脚本里显式设置过的立绘字段；未设置字段保持为空，由宿主决定默认布局或渲染策略。
 
 ---
 

@@ -207,6 +207,22 @@ const char* nova_get_base_bg_path(void*) {
     return value.c_str();
 }
 
+const char* nova_get_bgm(void* vm) {
+    auto* nova_vm = cast_vm(vm);
+    if (!nova_vm || !nova_vm->state().bgm.has_value()) return "";
+    return nova_vm->state().bgm->c_str();
+}
+
+double nova_get_bgm_volume(void* vm) {
+    auto* nova_vm = cast_vm(vm);
+    return nova_vm ? nova_vm->state().bgmVolume : 1.0;
+}
+
+int nova_get_bgm_loop(void* vm) {
+    auto* nova_vm = cast_vm(vm);
+    return (nova_vm && nova_vm->state().bgmLoop) ? 1 : 0;
+}
+
 const char* nova_get_bg_transition(void* vm) {
     auto* nova_vm = cast_vm(vm);
     if (!nova_vm || !nova_vm->state().bgTransition.has_value()) return "";
@@ -225,12 +241,174 @@ const char* nova_get_base_audio_path(void*) {
     return value.c_str();
 }
 
+const char* nova_get_dialogue_emotion(void* vm) {
+    auto* nova_vm = cast_vm(vm);
+    if (!nova_vm || !nova_vm->state().dialogue.has_value()) return "";
+    return nova_vm->state().dialogue->emotion.c_str();
+}
+
+const char* nova_get_choice_question(void* vm) {
+    auto* nova_vm = cast_vm(vm);
+    if (!nova_vm || !nova_vm->state().choice.has_value()) return "";
+    return nova_vm->state().choice->question.c_str();
+}
+
+const char* nova_get_choice_id(void* vm, int index) {
+    auto* nova_vm = cast_vm(vm);
+    if (!nova_vm || !nova_vm->state().choice.has_value()) return "";
+    const auto& options = nova_vm->state().choice->options;
+    if (index < 0 || static_cast<size_t>(index) >= options.size()) return "";
+    return options[static_cast<size_t>(index)].id.c_str();
+}
+
+const char* nova_get_choice_target(void* vm, int index) {
+    auto* nova_vm = cast_vm(vm);
+    if (!nova_vm || !nova_vm->state().choice.has_value()) return "";
+    const auto& options = nova_vm->state().choice->options;
+    if (index < 0 || static_cast<size_t>(index) >= options.size()) return "";
+    return options[static_cast<size_t>(index)].target.c_str();
+}
+
+int nova_has_choices(void* vm) {
+    auto* nova_vm = cast_vm(vm);
+    return (nova_vm && nova_vm->state().choice.has_value() && nova_vm->state().choice->isShow) ? 1 : 0;
+}
+
 const char* nova_get_sprite_position(void* vm, int index) {
     auto* nova_vm = cast_vm(vm);
     if (!nova_vm || index < 0) return "";
     const auto& sprites = nova_vm->state().sprites;
     if (static_cast<size_t>(index) >= sprites.size()) return "";
-    return sprites[static_cast<size_t>(index)].position.c_str();
+    const auto& sprite = sprites[static_cast<size_t>(index)];
+    return sprite.position ? sprite.position->c_str() : "";
+}
+
+const char* nova_get_sprite_x(void* vm, int index) {
+    auto* nova_vm = cast_vm(vm);
+    if (!nova_vm || index < 0) return "";
+    const auto& sprites = nova_vm->state().sprites;
+    if (static_cast<size_t>(index) >= sprites.size()) return "";
+    const auto& sprite = sprites[static_cast<size_t>(index)];
+    return sprite.x ? sprite.x->c_str() : "";
+}
+
+const char* nova_get_sprite_y(void* vm, int index) {
+    auto* nova_vm = cast_vm(vm);
+    if (!nova_vm || index < 0) return "";
+    const auto& sprites = nova_vm->state().sprites;
+    if (static_cast<size_t>(index) >= sprites.size()) return "";
+    const auto& sprite = sprites[static_cast<size_t>(index)];
+    return sprite.y ? sprite.y->c_str() : "";
+}
+
+const char* nova_get_sprite_opacity(void* vm, int index) {
+    auto* nova_vm = cast_vm(vm);
+    if (!nova_vm || index < 0) return "";
+    const auto& sprites = nova_vm->state().sprites;
+    if (static_cast<size_t>(index) >= sprites.size()) return "";
+    static std::string value;
+    const auto& sprite = sprites[static_cast<size_t>(index)];
+    if (!sprite.opacity) return "";
+    value = std::to_string(*sprite.opacity);
+    return value.c_str();
+}
+
+const char* nova_get_sprite_z_index(void* vm, int index) {
+    auto* nova_vm = cast_vm(vm);
+    if (!nova_vm || index < 0) return "";
+    const auto& sprites = nova_vm->state().sprites;
+    if (static_cast<size_t>(index) >= sprites.size()) return "";
+    static std::string value;
+    const auto& sprite = sprites[static_cast<size_t>(index)];
+    if (!sprite.zIndex) return "";
+    value = std::to_string(*sprite.zIndex);
+    return value.c_str();
+}
+
+int nova_get_sfx_count(void* vm) {
+    auto* nova_vm = cast_vm(vm);
+    return nova_vm ? static_cast<int>(nova_vm->state().sfx.size()) : 0;
+}
+
+const char* nova_get_sfx_id(void* vm, int index) {
+    auto* nova_vm = cast_vm(vm);
+    if (!nova_vm || index < 0) return "";
+    const auto& sfx = nova_vm->state().sfx;
+    if (static_cast<size_t>(index) >= sfx.size()) return "";
+    return sfx[static_cast<size_t>(index)].id.c_str();
+}
+
+const char* nova_get_sfx_path(void* vm, int index) {
+    auto* nova_vm = cast_vm(vm);
+    if (!nova_vm || index < 0) return "";
+    const auto& sfx = nova_vm->state().sfx;
+    if (static_cast<size_t>(index) >= sfx.size()) return "";
+    return sfx[static_cast<size_t>(index)].path.c_str();
+}
+
+double nova_get_sfx_volume(void* vm, int index) {
+    auto* nova_vm = cast_vm(vm);
+    if (!nova_vm || index < 0) return 1.0;
+    const auto& sfx = nova_vm->state().sfx;
+    if (static_cast<size_t>(index) >= sfx.size()) return 1.0;
+    return sfx[static_cast<size_t>(index)].volume;
+}
+
+int nova_get_sfx_loop(void* vm, int index) {
+    auto* nova_vm = cast_vm(vm);
+    if (!nova_vm || index < 0) return 0;
+    const auto& sfx = nova_vm->state().sfx;
+    if (static_cast<size_t>(index) >= sfx.size()) return 0;
+    return sfx[static_cast<size_t>(index)].loop ? 1 : 0;
+}
+
+int nova_get_theme_count(void* vm) {
+    auto* nova_vm = cast_vm(vm);
+    return nova_vm ? static_cast<int>(nova_vm->themeDefinitions().size()) : 0;
+}
+
+const char* nova_get_theme_name(void* vm, int index) {
+    auto* nova_vm = cast_vm(vm);
+    if (!nova_vm || index < 0) return "";
+    static std::vector<std::string> names;
+    names.clear();
+    for (const auto& entry : nova_vm->themeDefinitions()) {
+        names.push_back(entry.first);
+    }
+    if (static_cast<size_t>(index) >= names.size()) return "";
+    return names[static_cast<size_t>(index)].c_str();
+}
+
+int nova_get_theme_property_count(void* vm, const char* themeId) {
+    auto* nova_vm = cast_vm(vm);
+    if (!nova_vm || !themeId) return 0;
+    auto it = nova_vm->themeDefinitions().find(themeId);
+    if (it == nova_vm->themeDefinitions().end()) return 0;
+    return static_cast<int>(it->second.properties.size());
+}
+
+const char* nova_get_theme_property_key(void* vm, const char* themeId, int index) {
+    auto* nova_vm = cast_vm(vm);
+    if (!nova_vm || !themeId || index < 0) return "";
+    auto it = nova_vm->themeDefinitions().find(themeId);
+    if (it == nova_vm->themeDefinitions().end()) return "";
+    static std::vector<std::string> keys;
+    keys.clear();
+    for (const auto& entry : it->second.properties) {
+        keys.push_back(entry.first);
+    }
+    if (static_cast<size_t>(index) >= keys.size()) return "";
+    return keys[static_cast<size_t>(index)].c_str();
+}
+
+const char* nova_get_theme_property_value(void* vm, const char* themeId, const char* key) {
+    auto* nova_vm = cast_vm(vm);
+    if (!nova_vm || !themeId || !key) return "";
+    auto it = nova_vm->themeDefinitions().find(themeId);
+    if (it == nova_vm->themeDefinitions().end()) return "";
+    auto propIt = it->second.properties.find(key);
+    if (propIt == it->second.properties.end()) return "";
+    return propIt->second.c_str();
 }
 
 const char* nova_export_runtime_state_json(void* vm, size_t* outSize) {

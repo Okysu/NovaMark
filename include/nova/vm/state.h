@@ -16,12 +16,12 @@ struct TextConfigState {
 /// @brief 精灵状态
 struct SpriteState {
     std::string id;
-    std::string url;
-    double x = 0.0;
-    double y = 0.0;
-    std::string position;
-    double opacity = 1.0;
-    int zIndex = 0;
+    std::optional<std::string> url;
+    std::optional<std::string> x;
+    std::optional<std::string> y;
+    std::optional<std::string> position;
+    std::optional<double> opacity;
+    std::optional<int> zIndex;
 
     bool operator==(const SpriteState& other) const {
         return id == other.id && url == other.url && x == other.x && y == other.y &&

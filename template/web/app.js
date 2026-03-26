@@ -106,7 +106,9 @@ function getDebugChoices() {
     for (let i = 0; i < count; i++) {
         choices.push({
             index: i,
+            id: renderer.getChoiceId(i),
             text: renderer.getChoiceText(i),
+            target: renderer.getChoiceTarget(i),
             disabled: renderer.isChoiceDisabled(i)
         });
     }
@@ -190,17 +192,35 @@ function getDebugSnapshot() {
         background: renderer.getBackground(),
         backgroundTransition: renderer.getBackgroundTransition(),
         bgm: renderer.getBgm(),
+        bgmVolume: renderer.getBgmVolume(),
+        bgmLoop: renderer.getBgmLoop(),
         dialogue: null,
         choices: getDebugChoices(),
-        sprites: []
+        sfx: [],
+        sprites: [],
+        themes: []
     };
 
     if (renderer.hasDialogue()) {
         snapshot.dialogue = {
             speaker: renderer.getDialogueSpeaker(),
             text: renderer.getDialogueText(),
+            emotion: renderer.getDialogueEmotion(),
             color: renderer.getDialogueColor()
         };
+    }
+
+    snapshot.choiceQuestion = renderer.getChoiceQuestion();
+    snapshot.hasChoices = renderer.hasChoices();
+
+    const sfxCount = renderer.getSfxCount();
+    for (let i = 0; i < sfxCount; i++) {
+        snapshot.sfx.push({
+            id: renderer.getSfxId(i),
+            path: renderer.getSfxPath(i),
+            volume: renderer.getSfxVolume(i),
+            loop: renderer.getSfxLoop(i)
+        });
     }
 
     const spriteCount = renderer.getSpriteCount();
@@ -209,9 +229,22 @@ function getDebugSnapshot() {
             url: renderer.getSpriteUrl(i),
             x: renderer.getSpriteX(i),
             y: renderer.getSpriteY(i),
+            position: renderer.getSpritePosition(i),
             opacity: renderer.getSpriteOpacity(i),
             zIndex: renderer.getSpriteZIndex(i)
         });
+    }
+
+    const themeCount = renderer.getThemeCount();
+    for (let i = 0; i < themeCount; i++) {
+        const themeId = renderer.getThemeName(i);
+        const props = {};
+        const propCount = renderer.getThemePropertyCount(themeId);
+        for (let j = 0; j < propCount; j++) {
+            const key = renderer.getThemePropertyKey(themeId, j);
+            props[key] = renderer.getThemePropertyValue(themeId, key);
+        }
+        snapshot.themes.push({ id: themeId, properties: props });
     }
 
     return snapshot;
@@ -501,9 +534,17 @@ function getSpriteOwner(url, runtimeState) {
 }
 
 function getSpriteLane(x) {
-    if (x <= 25) return 'left';
-    if (x >= 75) return 'right';
+    const numericX = Number.parseFloat(x);
+    if (Number.isNaN(numericX)) return 'center';
+    if (numericX <= 25) return 'left';
+    if (numericX >= 75) return 'right';
     return 'center';
+}
+
+function parseSpriteNumber(value, fallback) {
+    if (!value) return fallback;
+    const parsed = Number.parseFloat(value);
+    return Number.isNaN(parsed) ? fallback : parsed;
 }
 
 async function renderVNMode() {
@@ -549,8 +590,8 @@ async function renderVNMode() {
         img.classList.toggle('is-entering', !previousSpriteKeys.has(spriteKey));
         img.classList.toggle('is-forward', Boolean(isSpeaking));
         img.dataset.owner = owner || '';
-        img.style.opacity = renderer.getSpriteOpacity(i);
-        img.style.zIndex = renderer.getSpriteZIndex(i);
+        img.style.opacity = String(parseSpriteNumber(renderer.getSpriteOpacity(i), 1));
+        img.style.zIndex = String(parseSpriteNumber(renderer.getSpriteZIndex(i), 0));
         spritesDiv.appendChild(img);
     }
     previousSpriteKeys = currentSpriteKeys;

@@ -95,18 +95,24 @@ This means:
 @sprite Lin Xiao hide
 ```
 
+### Explicit `show` Semantics
+
+- `@sprite Lin Xiao show url:linxiao_default.png position:left`: show or update the sprite with the provided properties
+- `@sprite Lin Xiao show position:left`: if `@char Lin Xiao` defines `sprite_default`, NovaMark uses it automatically
+- `@sprite Lin Xiao hide`: remove that character from the current sprite state
+
+So in common cases, you do not need to repeat the image path every time. If you only want the character to enter with their default portrait, `show` is enough.
+
 ### Specifying Exact Position
 
 You can also use coordinates:
 
 ```nvm
-@sprite Lin Xiao show url:linxiao_happy.png x:70% y:100px
+@sprite Lin Xiao show url:linxiao_happy.png x:70 y:100
 ```
 
-Values for `x` and `y` are interpreted by the client, typically supporting:
-
-- Percentages: `70%`
-- Pixels: `100px`
+NovaMark preserves the raw `x` and `y` values in runtime state and does not derive coordinates inside the VM.
+How those values are interpreted is up to the host platform.
 
 ### Emotion Sprite Shortcut
 
@@ -124,6 +130,48 @@ Lin Xiao[happy]: The weather is great today!
 ```
 
 `Lin Xiao[happy]` will automatically use the image defined in `sprite_happy`.
+
+If you omit the emotion, for example:
+
+```nvm
+Lin Xiao: I'm here.
+```
+
+NovaMark falls back to `sprite_default`.
+
+### Do sprites stay on screen forever?
+
+Current NovaMark rules are:
+
+- Within the same scene, sprites remain until you explicitly write `@sprite CharacterName hide`
+- When switching to a new scene, the current scene's sprites are cleared automatically
+
+This matches the common VN mental model more closely: **scene changes clear the stage automatically, while within a scene you control portraits as needed**.
+
+### What does sparse sprite state mean?
+
+NovaMark only exports sprite fields that were explicitly set by the author.
+
+For example:
+
+```nvm
+@sprite Lin Xiao show position:left opacity:0.8
+```
+
+The host receives:
+
+- `id`
+- `url`
+- `position`
+- `opacity`
+
+But NovaMark does not inject extra defaults such as `x=0`, `y=0`, or `zIndex=0`.
+
+Recommended host fallback order:
+
+1. Use `x/y` if present
+2. Otherwise use `position`
+3. Otherwise use the host's default dialogue portrait layout
 
 ---
 

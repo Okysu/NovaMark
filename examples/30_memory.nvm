@@ -1,8 +1,7 @@
 #scene_memory "第二章：回航记录"
 
-@bg harbour_dawn.jpg
+@bg harbour_dawn.jpg transition:fade
 @bgm ocean_waves.ogg loop:true volume:0.28
-@sprite 沈砚 show url:shenyan_normal.png position:left
 
 > 那是一个风很大的早晨，码头边停着一艘小型调查船。海平线刚刚发白，像有人在黑暗尽头划开一道细线。
 > 年轻一点的你站在登船口，手里紧紧攥着一封信。

@@ -2,12 +2,11 @@
 
 @bg library_interior.jpg transition:fade
 @bgm ocean_waves.ogg loop:true volume:0.2
-@sprite 沈砚 show url:shenyan_normal.png position:left
-@sprite 馆长 show url:curator_normal.png position:right
 
 > 门后没有楼梯，只有一条缓缓向下延展的长廊。
 > 长廊尽头，是一座巨大的圆形阅览厅。半透明的穹顶之外不是天空，而是缓慢移动的深海光影。
 > 书架像码头一样一层层向外延伸，每一本书脊都带着细小的银色编号。
+> 服务台后的灯先亮起来，一个身影从成排书架之间慢慢走近。
 
 馆长[solemn]: 欢迎回来，沈砚。
 
@@ -29,7 +28,7 @@
 @bg bookshop_night.jpg transition:fade
 > 你拉开目录柜最顶层的抽屉，里面没有卡片，只有一张张写着日期的借阅单。
 > 其中一张日期停在三年前的六月十七日，借阅者一栏写着：沈砚。
-> 借出书目一栏只写了四个字——《回航记录》。
+> 借出书目一栏只写了四个字——《回航记录》。 
 沈砚: 我真的来过。
 祁星: 那天夜里海雾很重，你是一个人来的。
 -> .library_crossroad
@@ -79,9 +78,7 @@
 
 .go_reading_room
 > 阅览室的门像潮水一样向两侧退开。室内只有一张长桌，一盏绿罩台灯，以及桌中央那本深蓝封面的书。
-
 @bg harbour_dawn.jpg transition:fade
-@sprite 祁星 show url:qixing_normal.png position:right
 
 > 你翻开第一页，纸页上没有文字，只有海边的风声。
 > 下一秒，整个房间像被海雾没过，你站在三年前的清晨码头上。

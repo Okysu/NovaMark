@@ -100,9 +100,25 @@ NOVA_WASM_API const char* nova_get_base_bg_path(void* vm);
 
 NOVA_WASM_API const char* nova_get_bg_transition(void* vm);
 
+NOVA_WASM_API const char* nova_get_bgm(void* vm);
+
+NOVA_WASM_API double nova_get_bgm_volume(void* vm);
+
+NOVA_WASM_API int nova_get_bgm_loop(void* vm);
+
 NOVA_WASM_API const char* nova_get_base_sprite_path(void* vm);
 
 NOVA_WASM_API const char* nova_get_base_audio_path(void* vm);
+
+NOVA_WASM_API const char* nova_get_dialogue_emotion(void* vm);
+
+NOVA_WASM_API const char* nova_get_choice_question(void* vm);
+
+NOVA_WASM_API const char* nova_get_choice_id(void* vm, int index);
+
+NOVA_WASM_API const char* nova_get_choice_target(void* vm, int index);
+
+NOVA_WASM_API int nova_has_choices(void* vm);
 
 NOVA_WASM_API const char* nova_export_runtime_state_json(void* vm, size_t* outSize);
 
@@ -115,6 +131,34 @@ NOVA_WASM_API unsigned long long nova_get_runtime_state_version(void* vm);
 /// @param index 精灵索引
 /// @return 位置字符串，空字符串表示无效索引或无位置信息
 NOVA_WASM_API const char* nova_get_sprite_position(void* vm, int index);
+
+NOVA_WASM_API const char* nova_get_sprite_x(void* vm, int index);
+
+NOVA_WASM_API const char* nova_get_sprite_y(void* vm, int index);
+
+NOVA_WASM_API const char* nova_get_sprite_opacity(void* vm, int index);
+
+NOVA_WASM_API const char* nova_get_sprite_z_index(void* vm, int index);
+
+NOVA_WASM_API int nova_get_sfx_count(void* vm);
+
+NOVA_WASM_API const char* nova_get_sfx_id(void* vm, int index);
+
+NOVA_WASM_API const char* nova_get_sfx_path(void* vm, int index);
+
+NOVA_WASM_API double nova_get_sfx_volume(void* vm, int index);
+
+NOVA_WASM_API int nova_get_sfx_loop(void* vm, int index);
+
+NOVA_WASM_API int nova_get_theme_count(void* vm);
+
+NOVA_WASM_API const char* nova_get_theme_name(void* vm, int index);
+
+NOVA_WASM_API int nova_get_theme_property_count(void* vm, const char* themeId);
+
+NOVA_WASM_API const char* nova_get_theme_property_key(void* vm, const char* themeId, int index);
+
+NOVA_WASM_API const char* nova_get_theme_property_value(void* vm, const char* themeId, const char* key);
 
 NOVA_WASM_API int nova_consume_runtime_state_change_flags(void* vm);
 
