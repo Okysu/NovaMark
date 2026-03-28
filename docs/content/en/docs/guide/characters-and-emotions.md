@@ -273,4 +273,4 @@ On the next page, we'll cover:
 
 Next page:
 
-- [Media and Presentation](./media-and-presentation/)
+- [Media and Presentation]({{< ref "media-and-presentation" >}})

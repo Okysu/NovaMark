@@ -225,7 +225,7 @@ Its role is not to expose all internal implementation, but to let the host relia
 - Read state
 - Save and restore snapshots
 
-For detailed C API documentation, see [C API Reference](../reference/). For Web platform bindings, see [WASM API](./wasm-api/).
+For detailed C API documentation, see [C API](../api/c-api/). For Web platform bindings, see [WASM API](./wasm-api/).
 
 ---
 
@@ -293,7 +293,7 @@ Recommend using JSON debug snapshots first to get it working, then connect forma
 
 If you are a platform integrator, continue with:
 
-- [C API Reference](../reference/) - Detailed host interface documentation
+- [C API Reference](../api/c-api/) - Detailed host interface documentation
 - [WASM API](./wasm-api/) - Web platform bindings
 - [Web Template](./web-template/) - Complete frontend example
 - [Native Integration](./native/) - Native platform guides

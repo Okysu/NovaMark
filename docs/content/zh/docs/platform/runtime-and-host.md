@@ -225,7 +225,7 @@ NovaMark 当前提供的 Web 模板，不是“唯一正确的前端”，而是
 - 读取状态
 - 保存与恢复快照
 
-关于 C API 的详细文档，请参阅 [C API 参考](../reference/)。如需 Web 平台绑定，请参阅 [WASM API](./wasm-api/)。
+关于 C API 的详细文档，请参阅 [C API 参考](../api/c-api/)。如需 Web 平台绑定，请参阅 [WASM API](./wasm-api/)。
 
 ---
 
@@ -293,7 +293,7 @@ NovaMark 当前已经把存档分成两层：
 
 如果你是平台接入方，建议继续看：
 
-- [C API 参考](../reference/) - 宿主接口详细文档
+- [C API 参考](../api/c-api/) - 宿主接口详细文档
 - [WASM API](./wasm-api/) - Web 平台绑定
 - [Web 模板](./web-template/) - 完整前端示例
 - [Native 接入](./native/) - 原生平台指南

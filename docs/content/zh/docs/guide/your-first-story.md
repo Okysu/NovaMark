@@ -130,4 +130,4 @@ weight: 2
 
 所以下一页建议看：
 
-- [状态、变量与物品](./state-and-variables/)
+- [状态、变量与物品]({{< ref "state-and-variables" >}})

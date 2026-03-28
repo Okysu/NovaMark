@@ -118,7 +118,19 @@ The host application decides:
 
 If this is your first time with NovaMark, follow this path:
 
-1. [Your First Story](./your-first-story/)
-2. [State, Variables, and Items](./state-and-variables/)
-3. [Choices, Branches, and Checks](./choices-and-checks/)
-4. Then use `Reference` for details
+1. [Your First Story]({{< ref "your-first-story" >}})
+2. [State, Variables, and Items]({{< ref "state-and-variables" >}})
+3. [Choices, Branches, and Checks]({{< ref "choices-and-checks" >}})
+4. Then use [Syntax Reference](../syntax/) or [Quick Reference](../reference/) for details
+
+This way you'll build intuition first, then learn the specifics.
+
+---
+
+## What's Next
+
+Now that you understand the basic concepts of NovaMark, it's time to get your hands dirty:
+
+Next page:
+
+- [Your First Story]({{< ref "your-first-story" >}})

@@ -225,4 +225,4 @@ endif
 
 接下来进入第二阶段，学习如何让故事更有表现力：
 
-[角色与情绪 →](./characters-and-emotions/)
+[角色与情绪 →]({{< ref "characters-and-emotions" >}})

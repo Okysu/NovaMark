@@ -350,4 +350,4 @@ The natural next questions are:
 
 Next page:
 
-- [Endings and Flags](./endings-and-flags/)
+- [Endings and Flags]({{< ref "endings-and-flags" >}})

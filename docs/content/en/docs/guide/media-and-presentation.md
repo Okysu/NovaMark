@@ -353,4 +353,4 @@ The natural next questions are:
 
 Next page:
 
-- [Scene Flow](./scene-flow/)
+- [Scene Flow]({{< ref "scene-flow" >}})

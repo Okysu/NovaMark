@@ -382,3 +382,18 @@ Don't overuse `@flag`, only mark truly important nodes. 10-20 flags in a game is
 - Reasonably control the number of endings, make each one meaningful
 
 You've now mastered NovaMark's core features and can start creating your own interactive stories.
+
+---
+
+## What's Next
+
+Congratulations! You've completed the core creator's guide for NovaMark!
+
+If you want to dive deeper into more details, we recommend looking at:
+
+- [Syntax Reference](../syntax/) - detailed syntax manual and command reference
+- [Quick Reference](../reference/) - quick lookup for syntax, state, API & configuration
+- [Installation Guide](../getting-started/installation/) - set up your development environment
+- [Quickstart](../getting-started/quickstart/) - create a project from scratch
+
+Now, start creating your interactive stories!

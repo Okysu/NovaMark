@@ -273,4 +273,4 @@ NovaMark 的设计原则是：
 
 下一页建议看：
 
-- [媒体与呈现](./media-and-presentation/)
+- [媒体与呈现]({{< ref "media-and-presentation" >}})

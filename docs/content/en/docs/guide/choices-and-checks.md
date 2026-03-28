@@ -227,4 +227,4 @@ At this point, you've mastered NovaMark's basic syntax: scenes, dialogue, state,
 
 Next, enter Phase 2 and learn how to make your story more expressive:
 
-[Characters and Emotions →](./characters-and-emotions/)
+[Characters and Emotions →]({{< ref "characters-and-emotions" >}})
