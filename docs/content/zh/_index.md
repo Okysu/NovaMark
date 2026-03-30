@@ -36,11 +36,11 @@ cmake --build build
 
 ## 文档目录
 
-- [安装指南]({{< ref "getting-started/installation" >}}) - 如何安装和配置 NovaMark
-- [快速入门]({{< ref "getting-started/quickstart" >}}) - 5 分钟创建你的第一个游戏
-- [为创作者]({{< ref "guide" >}}) - 从零开始学习 NovaMark 创作主线
-- [速查参考]({{< ref "reference" >}}) - 查语法、状态、API 与配置
-- [平台接入]({{< ref "platform" >}}) - C API、WASM、Native 与运行时模型
+- [安装指南]({{< ref "docs/getting-started/installation" >}}) - 如何安装和配置 NovaMark
+- [快速入门]({{< ref "docs/getting-started/quickstart" >}}) - 5 分钟创建你的第一个游戏
+- [为创作者]({{< ref "docs/guide" >}}) - 从零开始学习 NovaMark 创作主线
+- [速查参考]({{< ref "docs/reference" >}}) - 查语法、状态、API 与配置
+- [平台接入]({{< ref "docs/platform" >}}) - C API、WASM、Native 与运行时模型
 
 ## 示例
 

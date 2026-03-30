@@ -36,11 +36,11 @@ cmake --build build
 
 ## Documentation
 
-- [Installation Guide]({{< ref "getting-started/installation" >}}) - How to install and configure NovaMark
-- [Quick Start]({{< ref "getting-started/quickstart" >}}) - Create your first game in 5 minutes
-- [For Creators]({{< ref "guide" >}}) - Learn NovaMark through the creator-first guide
-- [Quick Reference]({{< ref "reference" >}}) - Look up syntax, state, API, and configuration
-- [Platform Integration]({{< ref "platform" >}}) - C API, WASM, Native, and runtime model
+- [Installation Guide]({{< ref "docs/getting-started/installation" >}}) - How to install and configure NovaMark
+- [Quick Start]({{< ref "docs/getting-started/quickstart" >}}) - Create your first game in 5 minutes
+- [For Creators]({{< ref "docs/guide" >}}) - Learn NovaMark through the creator-first guide
+- [Quick Reference]({{< ref "docs/reference" >}}) - Look up syntax, state, API, and configuration
+- [Platform Integration]({{< ref "docs/platform" >}}) - C API, WASM, Native, and runtime model
 
 ## Example
 
