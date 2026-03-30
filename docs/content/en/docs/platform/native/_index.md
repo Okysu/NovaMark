@@ -48,9 +48,9 @@ Use the C API to directly integrate NovaMark VM and implement native UI renderin
 
 Choose the corresponding integration guide based on your target platform:
 
-- [iOS Integration Guide](./ios/) - Integrate NovaMark on iPhone / iPad
-- [Android Integration Guide](./android/) - Integrate NovaMark in Android applications
-- [Desktop Integration Guide](./desktop/) - Integrate NovaMark in desktop applications
+- [iOS Integration Guide]({{< ref "ios" >}}) - Integrate NovaMark on iPhone / iPad
+- [Android Integration Guide]({{< ref "android" >}}) - Integrate NovaMark in Android applications
+- [Desktop Integration Guide]({{< ref "desktop" >}}) - Integrate NovaMark in desktop applications
 
 ## Core Concepts
 

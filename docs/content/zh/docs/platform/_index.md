@@ -31,16 +31,16 @@ bookCollapseSection: true
 
 | 文档 | 说明 |
 |------|------|
-| [WASM API](./wasm-api/) | WebAssembly 接口规范，在浏览器中运行 NovaMark VM |
-| [Web 渲染模板](./web-template/) | 开箱即用的 Web 渲染器模板（Chat/VN 模式） |
+| [WASM API]({{< ref "wasm-api" >}}) | WebAssembly 接口规范，在浏览器中运行 NovaMark VM |
+| [Web 渲染模板]({{< ref "web-template" >}}) | 开箱即用的 Web 渲染器模板（Chat/VN 模式） |
 
 ### Native 平台
 
 | 文档 | 说明 |
 |------|------|
-| [运行时与宿主](./runtime-and-host/) | 理解 VM 与宿主的职责边界、状态同步机制 |
-| [Native 接入](./native/) | iOS / Android / Desktop 接入指南 |
-| [C API](../api/c-api/) | 原生 C 接口，用于集成到桌面/移动应用 |
+| [运行时与宿主]({{< ref "runtime-and-host" >}}) | 理解 VM 与宿主的职责边界、状态同步机制 |
+| [Native 接入]({{< ref "native" >}}) | iOS / Android / Desktop 接入指南 |
+| [C API]({{< ref "../api/c-api" >}}) | 原生 C 接口，用于集成到桌面/移动应用 |
 
 ### 参考手册
 

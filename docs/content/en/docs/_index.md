@@ -32,12 +32,10 @@ You will learn:
 
 Recommended entry points:
 
-- [What is NovaMark](./guide/what-is-novamark/)
-- [Your First Story](./guide/your-first-story/)
-- [State, Variables, and Items](./guide/state-and-variables/)
-- [Choices, Branches, and Checks](./guide/choices-and-checks/)
-
-- [What is NovaMark](./guide/what-is-novamark/)
+- [What is NovaMark]({{< ref "guide/what-is-novamark" >}})
+- [Your First Story]({{< ref "guide/your-first-story" >}})
+- [State, Variables, and Items]({{< ref "guide/state-and-variables" >}})
+- [Choices, Branches, and Checks]({{< ref "guide/choices-and-checks" >}})
 
 ### 2. For Platform / Rendering / Distribution Integrators
 

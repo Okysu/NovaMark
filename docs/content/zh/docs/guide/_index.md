@@ -35,16 +35,16 @@ bookCollapseSection: true
 
 按照顺序阅读：
 
-1. [什么是 NovaMark](./what-is-novamark/) —— 了解设计理念和适用场景
-2. [第一段故事](./your-first-story/) —— 写出第一个可运行的脚本
-3. [状态、变量与物品](./state-and-variables/) —— 学会让故事"记住"事情
-4. [选择、分支与检定](./choices-and-checks/) —— 掌握分支与条件判断
+1. [什么是 NovaMark]({{< ref "what-is-novamark" >}}) —— 了解设计理念和适用场景
+2. [第一段故事]({{< ref "your-first-story" >}}) —— 写出第一个可运行的脚本
+3. [状态、变量与物品]({{< ref "state-and-variables" >}}) —— 学会让故事"记住"事情
+4. [选择、分支与检定]({{< ref "choices-and-checks" >}}) —— 掌握分支与条件判断
 
 ### 第二阶段：进阶叙事
 
 完成基础后继续：
 
-1. [角色与情绪](./characters-and-emotions/) —— 定义角色、立绘与情绪状态
-2. [媒体与呈现](./media-and-presentation/) —— 背景图、BGM、音效与演出
-3. [场景组织与调用](./scene-flow/) —— 标签、跳转与多场景组织
-4. [结局与标记](./endings-and-flags/) —— 多结局与全局标记
+1. [角色与情绪]({{< ref "characters-and-emotions" >}}) —— 定义角色、立绘与情绪状态
+2. [媒体与呈现]({{< ref "media-and-presentation" >}}) —— 背景图、BGM、音效与演出
+3. [场景组织与调用]({{< ref "scene-flow" >}}) —— 标签、跳转与多场景组织
+4. [结局与标记]({{< ref "endings-and-flags" >}}) —— 多结局与全局标记

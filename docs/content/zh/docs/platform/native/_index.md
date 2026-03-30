@@ -48,9 +48,9 @@ NovaMark 支持两种主要的原生接入方式：
 
 根据你的目标平台，选择对应的接入指南：
 
-- [iOS 接入指南](./ios/) - 在 iPhone / iPad 上集成 NovaMark
-- [Android 接入指南](./android/) - 在 Android 应用中集成 NovaMark
-- [Desktop 接入指南](./desktop/) - 在桌面应用中集成 NovaMark
+- [iOS 接入指南]({{< ref "ios" >}}) - 在 iPhone / iPad 上集成 NovaMark
+- [Android 接入指南]({{< ref "android" >}}) - 在 Android 应用中集成 NovaMark
+- [Desktop 接入指南]({{< ref "desktop" >}}) - 在桌面应用中集成 NovaMark
 
 ## 核心概念
 

@@ -31,16 +31,16 @@ If you are integrating NovaMark into your own products, this section is more imp
 
 | Document | Description |
 |----------|-------------|
-| [WASM API](./wasm-api/) | WebAssembly interface specification for running NovaMark VM in the browser |
-| [Web Rendering Template](./web-template/) | Ready-to-use Web renderer template (Chat/VN modes) |
+| [WASM API]({{< ref "wasm-api" >}}) | WebAssembly interface specification for running NovaMark VM in the browser |
+| [Web Rendering Template]({{< ref "web-template" >}}) | Ready-to-use Web renderer template (Chat/VN modes) |
 
 ### Native Platform
 
 | Document | Description |
 |----------|-------------|
-| [Runtime and Host](./runtime-and-host/) | Understand the VM and host responsibility boundary, state synchronization mechanism |
-| [Native Integration](./native/) | iOS / Android / Desktop integration guides |
-| [C API](../api/c-api/) | Native C interface for integrating into desktop/mobile applications |
+| [Runtime and Host]({{< ref "runtime-and-host" >}}) | Understand the VM and host responsibility boundary, state synchronization mechanism |
+| [Native Integration]({{< ref "native" >}}) | iOS / Android / Desktop integration guides |
+| [C API]({{< ref "../api/c-api" >}}) | Native C interface for integrating into desktop/mobile applications |
 
 ### Reference Manual
 

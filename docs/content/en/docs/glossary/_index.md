@@ -18,8 +18,8 @@ It does not draw UI directly, and it does not decide animations, layouts, HUD be
 
 Related docs:
 
-- [Runtime, Host, and Platform Integration](../platform/runtime-and-host/)
-- [API Reference](../api/)
+- [Runtime, Host, and Platform Integration]({{< ref "../platform/runtime-and-host" >}})
+- [API Reference]({{< ref "../api" >}})
 
 ## Runtime State (NovaState)
 
@@ -31,8 +31,8 @@ You can think of it as:
 
 Related docs:
 
-- [Runtime State](../api/runtime-state/)
-- [Runtime, Host, and Platform Integration](../platform/runtime-and-host/)
+- [Runtime State]({{< ref "../api/runtime-state" >}})
+- [Runtime, Host, and Platform Integration]({{< ref "../platform/runtime-and-host" >}})
 
 ## Host
 

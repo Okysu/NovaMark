@@ -13,9 +13,9 @@ bookCollapseSection: true
 - 精确字段查询
 - C API / 运行时状态参考
 
-如果你是第一次接触 NovaMark，建议先阅读 [为平台、渲染与发行扩展方](../platform/) 或 [速查参考](../reference/)。
+如果你是第一次接触 NovaMark，建议先阅读 [为平台、渲染与发行扩展方]({{< ref "../platform" >}}) 或 [速查参考]({{< ref "../reference" >}})。
 
 ## 入口
 
-- [运行时状态](./runtime-state/)
-- [C API](./c-api/)
+- [运行时状态]({{< ref "runtime-state" >}})
+- [C API]({{< ref "c-api" >}})

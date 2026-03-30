@@ -13,9 +13,9 @@ This section is useful for:
 - Precise field lookup
 - C API / runtime state reference
 
-If you're new to NovaMark, start from [Platform Integration](../platform/) or [Reference](../reference/), then return here for exact details.
+If you're new to NovaMark, start from [Platform Integration]({{< ref "../platform" >}}) or [Reference]({{< ref "../reference" >}}), then return here for exact details.
 
 ## Entries
 
-- [Runtime State](./runtime-state/)
-- [C API](./c-api)
+- [Runtime State]({{< ref "runtime-state" >}})
+- [C API]({{< ref "c-api" >}})

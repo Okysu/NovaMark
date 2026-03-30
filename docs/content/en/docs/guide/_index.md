@@ -35,16 +35,16 @@ What you need to understand here is:
 
 Read in order:
 
-1. [What is NovaMark](./what-is-novamark/) - understand the design philosophy and use cases
-2. [Your First Story](./your-first-story/) - write your first runnable script
-3. [State, Variables, and Items](./state-and-variables/) - learn how to make your story "remember" things
-4. [Choices, Branches, and Checks](./choices-and-checks/) - master branching and conditional logic
+1. [What is NovaMark]({{< ref "what-is-novamark" >}}) - understand the design philosophy and use cases
+2. [Your First Story]({{< ref "your-first-story" >}}) - write your first runnable script
+3. [State, Variables, and Items]({{< ref "state-and-variables" >}}) - learn how to make your story "remember" things
+4. [Choices, Branches, and Checks]({{< ref "choices-and-checks" >}}) - master branching and conditional logic
 
 ### Phase 2: Advanced Narrative
 
 Continue after completing the basics:
 
-1. [Characters and Emotions](./characters-and-emotions/) - define characters, sprites, and emotional states
-2. [Media and Presentation](./media-and-presentation/) - backgrounds, BGM, sound effects, and staging
-3. [Scene Flow](./scene-flow/) - labels, jumps, and multi-scene organization
-4. [Endings and Flags](./endings-and-flags/) - multiple endings and global flags
+1. [Characters and Emotions]({{< ref "characters-and-emotions" >}}) - define characters, sprites, and emotional states
+2. [Media and Presentation]({{< ref "media-and-presentation" >}}) - backgrounds, BGM, sound effects, and staging
+3. [Scene Flow]({{< ref "scene-flow" >}}) - labels, jumps, and multi-scene organization
+4. [Endings and Flags]({{< ref "endings-and-flags" >}}) - multiple endings and global flags
