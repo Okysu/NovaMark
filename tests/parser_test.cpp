@@ -681,6 +681,17 @@ TEST_F(ParserTest, EndingCommandWithChineseName) {
     EXPECT_EQ(ending->name(), "坏结局_01");
 }
 
+TEST_F(ParserTest, EndingCommandWithTitle) {
+    auto result = parse("@ending warm_memories \"结局：余温尚存\"\n");
+    ASSERT_TRUE(result.is_ok());
+    auto program = as_program(result.unwrap());
+
+    auto ending = as_ending(program->statements()[0].get());
+    ASSERT_NE(ending, nullptr);
+    EXPECT_EQ(ending->name(), "warm_memories");
+    EXPECT_EQ(ending->title(), "结局：余温尚存");
+}
+
 TEST_F(ParserTest, FlagCommand) {
     auto result = parse("@flag chest_resolved\n");
     ASSERT_TRUE(result.is_ok());
@@ -797,6 +808,33 @@ TEST_F(ParserTest, LogicalAndOrExpression) {
     auto expr = as_binary_expr(branch->condition());
     ASSERT_NE(expr, nullptr);
     EXPECT_EQ(expr->op(), "and");
+}
+
+TEST_F(ParserTest, HasFlagOrExpression) {
+    auto result = parse(
+        "if has_flag(\"shared_food\") or has_flag(\"fed_cat\")\n"
+        "> ok\n"
+        "endif\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+}
+
+TEST_F(ParserTest, VarFunctionWithStringArgument) {
+    auto result = parse("@var mood = var(\"情绪\")\n");
+    ASSERT_TRUE(result.is_ok());
+
+    auto program = as_program(result.unwrap());
+    auto var_def = as_var_def(program->statements()[0].get());
+    ASSERT_NE(var_def, nullptr);
+
+    auto call = as_call_expr(var_def->init_value());
+    ASSERT_NE(call, nullptr);
+    EXPECT_EQ(call->name(), "var");
+    ASSERT_EQ(call->arguments().size(), 1u);
+    auto arg = as_literal(call->arguments()[0].get());
+    ASSERT_NE(arg, nullptr);
+    EXPECT_TRUE(arg->is_string());
+    EXPECT_EQ(arg->as_string(), "情绪");
 }
 
 TEST_F(ParserTest, RandomFunctionWithTwoArgs) {

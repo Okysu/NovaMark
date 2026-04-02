@@ -396,6 +396,7 @@ void SemanticAnalyzer::check_function_call(const std::string& name,
         {"has_flag", 1},
         {"has_item", 1},
         {"item_count", 1},
+        {"var", 1},
         {"roll", 1},
         {"random", 2},
         {"chance", 1},
@@ -431,13 +432,16 @@ void SemanticAnalyzer::check_function_call(const std::string& name,
         return;
     }
 
-    if (name == "has_item" || name == "item_count" || name == "has_flag" || name == "has_ending") {
+    if (name == "has_item" || name == "item_count" || name == "has_flag" || name == "has_ending" || name == "var") {
         auto* lit = dynamic_cast<LiteralNode*>(args[0]);
         auto* id = dynamic_cast<IdentifierNode*>(args[0]);
         if (!id && (!lit || !lit->is_string())) {
             m_diagnostics.error(SemanticError::InvalidFunctionCall,
                 "function " + name + " expects an identifier or string argument", loc);
             return;
+        }
+        if (id && name == "var") {
+            check_variable_ref(id->name(), id->location());
         }
         return;
     }

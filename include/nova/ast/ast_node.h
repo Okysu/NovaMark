@@ -530,15 +530,17 @@ public:
 /// @brief @ending 结局触发节点
 class EndingNode : public AstNode {
 public:
-    EndingNode(SourceLocation loc, std::string name)
-        : AstNode(std::move(loc)), m_name(std::move(name)) {}
+    EndingNode(SourceLocation loc, std::string name, std::string title = {})
+        : AstNode(std::move(loc)), m_name(std::move(name)), m_title(std::move(title)) {}
     
     NodeType type() const override { return NodeType::Ending; }
     
     const std::string& name() const { return m_name; }
+    const std::string& title() const { return m_title; }
 
 private:
     std::string m_name;
+    std::string m_title;
 };
 
 /// @brief @flag 标记设置节点

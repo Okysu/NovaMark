@@ -136,6 +136,61 @@ bool is_string_like_argument(const AstNode* node) {
     return as_identifier(node) != nullptr || (as_literal(node) != nullptr && as_literal(node)->is_string());
 }
 
+bool are_values_equal(const VarValue& left, const VarValue& right) {
+    if (left.index() == right.index()) {
+        return left == right;
+    }
+
+    if (std::holds_alternative<double>(left) && std::holds_alternative<bool>(right)) {
+        return (std::get<double>(left) != 0.0) == std::get<bool>(right);
+    }
+    if (std::holds_alternative<bool>(left) && std::holds_alternative<double>(right)) {
+        return std::get<bool>(left) == (std::get<double>(right) != 0.0);
+    }
+
+    return false;
+}
+
+bool compare_values(const VarValue& left, const VarValue& right, const std::string& op) {
+    if (op == "==") {
+        return are_values_equal(left, right);
+    }
+    if (op == "!=") {
+        return !are_values_equal(left, right);
+    }
+
+    if (std::holds_alternative<std::string>(left) && std::holds_alternative<std::string>(right)) {
+        const auto& lhs = std::get<std::string>(left);
+        const auto& rhs = std::get<std::string>(right);
+        if (op == "<") return lhs < rhs;
+        if (op == "<=") return lhs <= rhs;
+        if (op == ">") return lhs > rhs;
+        if (op == ">=") return lhs >= rhs;
+    }
+
+    double lhs = 0.0;
+    double rhs = 0.0;
+
+    if (std::holds_alternative<double>(left)) {
+        lhs = std::get<double>(left);
+    } else if (std::holds_alternative<bool>(left)) {
+        lhs = std::get<bool>(left) ? 1.0 : 0.0;
+    }
+
+    if (std::holds_alternative<double>(right)) {
+        rhs = std::get<double>(right);
+    } else if (std::holds_alternative<bool>(right)) {
+        rhs = std::get<bool>(right) ? 1.0 : 0.0;
+    }
+
+    if (op == "<") return lhs < rhs;
+    if (op == "<=") return lhs <= rhs;
+    if (op == ">") return lhs > rhs;
+    if (op == ">=") return lhs >= rhs;
+
+    return false;
+}
+
 const DiceExprNode* as_dice(const AstNode* node) {
     return dynamic_cast<const DiceExprNode*>(node);
 }
@@ -937,23 +992,27 @@ VarValue NovaVM::evaluateExpression(const AstNode* expr) {
     }
     
     if (auto bin = as_binary(expr)) {
-        double left = evaluateAsNumber(bin->left());
-        double right = evaluateAsNumber(bin->right());
         const auto& op = bin->op();
-        
-        if (op == "+") return left + right;
-        if (op == "-") return left - right;
-        if (op == "*") return left * right;
-        if (op == "/") return right != 0 ? left / right : 0.0;
-        if (op == "%") return right != 0 ? std::fmod(left, right) : 0.0;
+
         if (op == "and") return evaluateCondition(bin->left()) && evaluateCondition(bin->right());
         if (op == "or") return evaluateCondition(bin->left()) || evaluateCondition(bin->right());
-        if (op == "<") return left < right;
-        if (op == "<=") return left <= right;
-        if (op == ">") return left > right;
-        if (op == ">=") return left >= right;
-        if (op == "==") return left == right;
-        if (op == "!=") return left != right;
+
+        VarValue left = evaluateExpression(bin->left());
+        VarValue right = evaluateExpression(bin->right());
+        if (op == "<" || op == "<=" || op == ">" || op == ">=" || op == "==" || op == "!=") {
+            return compare_values(left, right, op);
+        }
+
+        double left_num = 0.0;
+        double right_num = 0.0;
+        if (std::holds_alternative<double>(left)) left_num = std::get<double>(left);
+        if (std::holds_alternative<double>(right)) right_num = std::get<double>(right);
+        
+        if (op == "+") return left_num + right_num;
+        if (op == "-") return left_num - right_num;
+        if (op == "*") return left_num * right_num;
+        if (op == "/") return right_num != 0 ? left_num / right_num : 0.0;
+        if (op == "%") return right_num != 0 ? std::fmod(left_num, right_num) : 0.0;
     }
     
     if (auto unary = as_unary(expr)) {
@@ -991,6 +1050,9 @@ bool NovaVM::evaluateCondition(const AstNode* expr) {
     }
     if (std::holds_alternative<double>(val)) {
         return std::get<double>(val) != 0.0;
+    }
+    if (std::holds_alternative<std::string>(val)) {
+        return !std::get<std::string>(val).empty();
     }
     return false;
 }
@@ -1032,6 +1094,14 @@ VarValue NovaVM::evaluateFunctionCall(const CallExprNode* call) {
     if (name == "item_count" && !args.empty()) {
         const std::string target = get_string_like_argument(args[0].get());
         return !target.empty() ? static_cast<double>(m_inventory.count(target)) : 0.0;
+    }
+    if (name == "var" && !args.empty()) {
+        const std::string target = get_string_like_argument(args[0].get());
+        if (target.empty()) {
+            return std::monostate{};
+        }
+        auto value = m_variables.get(target);
+        return value.value_or(VarValue{std::monostate{}});
     }
     if (name == "roll" && !args.empty()) {
         auto lit = as_literal(args[0].get());

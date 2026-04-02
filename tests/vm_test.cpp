@@ -659,6 +659,46 @@ TEST_F(VMTest, VMSpritePositionStringPassThrough) {
     EXPECT_EQ(*vm.state().sprites.front().position, "left");
 }
 
+TEST_F(VMTest, VMVarFunctionSupportsStringComparisonInIf) {
+    auto result = parse(
+        "@var 心情 = \"开心\"\n"
+        "#scene_start \"Start\"\n"
+        "if var(心情) == \"开心\"\n"
+        "> 命中\n"
+        "else\n"
+        "> 未命中\n"
+        "endif\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+
+    NovaVM vm;
+    vm.load(result.unwrap());
+    vm.advance();
+
+    ASSERT_TRUE(vm.state().dialogue.has_value());
+    EXPECT_EQ(vm.state().dialogue->text, "命中");
+}
+
+TEST_F(VMTest, VMIdentifierStringComparisonInIf) {
+    auto result = parse(
+        "@var 路线 = \"真结局\"\n"
+        "#scene_start \"Start\"\n"
+        "if 路线 == \"真结局\"\n"
+        "> 匹配成功\n"
+        "else\n"
+        "> 匹配失败\n"
+        "endif\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+
+    NovaVM vm;
+    vm.load(result.unwrap());
+    vm.advance();
+
+    ASSERT_TRUE(vm.state().dialogue.has_value());
+    EXPECT_EQ(vm.state().dialogue->text, "匹配成功");
+}
+
 // ============================================
 // Serializer Tests
 // ============================================

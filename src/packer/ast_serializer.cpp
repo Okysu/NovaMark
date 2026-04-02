@@ -294,6 +294,7 @@ void AstSerializer::serializeReturn(const ReturnNode* node) {
 void AstSerializer::serializeEnding(const EndingNode* node) {
     m_writer.writeByte(static_cast<uint8_t>(OpCode::NodeEnding));
     m_writer.writeString(node->name());
+    m_writer.writeString(node->title());
 }
 
 void AstSerializer::serializeFlag(const FlagNode* node) {
@@ -738,7 +739,8 @@ std::unique_ptr<ReturnNode> AstDeserializer::deserializeReturn() {
 
 std::unique_ptr<EndingNode> AstDeserializer::deserializeEnding() {
     std::string name = m_reader->readString();
-    return std::make_unique<EndingNode>(SourceLocation{}, std::move(name));
+    std::string title = m_reader->readString();
+    return std::make_unique<EndingNode>(SourceLocation{}, std::move(name), std::move(title));
 }
 
 std::unique_ptr<FlagNode> AstDeserializer::deserializeFlag() {

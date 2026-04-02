@@ -1048,10 +1048,16 @@ Result<AstPtr> Parser::parse_ending_command() {
     }
     std::string name = current().value;
     advance();
+
+    std::string title;
+    if (check(TokenType::StringLiteral)) {
+        title = current().value;
+        advance();
+    }
     
     if (check(TokenType::Newline)) advance();
     
-    return Ok(AstPtr(new EndingNode(loc, std::move(name))));
+    return Ok(AstPtr(new EndingNode(loc, std::move(name), std::move(title))));
 }
 
 Result<AstPtr> Parser::parse_flag_command() {
