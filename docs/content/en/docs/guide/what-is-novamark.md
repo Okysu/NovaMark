@@ -121,7 +121,7 @@ If this is your first time with NovaMark, follow this path:
 1. [Your First Story]({{< ref "your-first-story" >}})
 2. [State, Variables, and Items]({{< ref "state-and-variables" >}})
 3. [Choices, Branches, and Checks]({{< ref "choices-and-checks" >}})
-4. Then use [Syntax Reference](../syntax/) or [Quick Reference](../reference/) for details
+4. Then use [Syntax Reference]({{< ref "/docs/syntax" >}}) or [Quick Reference]({{< ref "/docs/reference" >}}) for details
 
 This way you'll build intuition first, then learn the specifics.
 

@@ -391,9 +391,9 @@ Congratulations! You've completed the core creator's guide for NovaMark!
 
 If you want to dive deeper into more details, we recommend looking at:
 
-- [Syntax Reference](../syntax/) - detailed syntax manual and command reference
-- [Quick Reference](../reference/) - quick lookup for syntax, state, API & configuration
-- [Installation Guide](../getting-started/installation/) - set up your development environment
-- [Quickstart](../getting-started/quickstart/) - create a project from scratch
+- [Syntax Reference]({{< ref "/docs/syntax" >}}) - detailed syntax manual and command reference
+- [Quick Reference]({{< ref "/docs/reference" >}}) - quick lookup for syntax, state, API & configuration
+- [Installation Guide]({{< ref "/docs/getting-started/installation" >}}) - set up your development environment
+- [Quickstart]({{< ref "/docs/getting-started/quickstart" >}}) - create a project from scratch
 
 Now, start creating your interactive stories!

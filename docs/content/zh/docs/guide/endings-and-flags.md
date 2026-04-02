@@ -391,9 +391,9 @@ endif
 
 如果你想深入了解更多细节，建议接下来看：
 
-- [语法参考](../syntax/) - 详细的语法手册和命令参考
-- [速查参考](../reference/) - 快速查找语法、状态、API 与配置
-- [安装指南](../getting-started/installation/) - 搭建开发环境
-- [快速入门](../getting-started/quickstart/) - 从零开始创建项目
+- [语法参考]({{< ref "/docs/syntax" >}}) - 详细的语法手册和命令参考
+- [速查参考]({{< ref "/docs/reference" >}}) - 快速查找语法、状态、API 与配置
+- [安装指南]({{< ref "/docs/getting-started/installation" >}}) - 搭建开发环境
+- [快速入门]({{< ref "/docs/getting-started/quickstart" >}}) - 从零开始创建项目
 
 现在，开始创作你的互动故事吧！
