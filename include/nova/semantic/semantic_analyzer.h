@@ -47,6 +47,12 @@ private:
     
     /// @brief 收集单个节点中的定义
     void collect_from_node(const AstNode* node);
+
+    /// @brief 按顺序分析一组语句（支持块级作用域）
+    void analyze_statement_sequence(const std::vector<AstPtr>& statements, bool new_block_scope);
+
+    /// @brief 在当前作用域中定义变量
+    void define_variable_symbol(const VarDefNode* var);
     
     /// @brief 检查单个节点中的引用
     void check_node_references(const AstNode* node);

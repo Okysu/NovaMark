@@ -82,6 +82,8 @@ protected:
 /// @brief 使用智能指针管理 AST 节点
 using AstPtr = std::unique_ptr<AstNode>;
 
+class InterpolatedTextNode;
+
 /// @brief 程序节点（根节点）
 class ProgramNode : public AstNode {
 public:
@@ -186,11 +188,14 @@ public:
     const std::string& speaker() const { return m_speaker; }
     const std::string& emotion() const { return m_emotion; }
     const std::string& text() const { return m_text; }
+    const InterpolatedTextNode* interpolated_text() const { return m_interpolated_text.get(); }
+    void set_interpolated_text(std::unique_ptr<InterpolatedTextNode> t) { m_interpolated_text = std::move(t); }
 
 private:
     std::string m_speaker;
     std::string m_emotion;
     std::string m_text;
+    std::unique_ptr<InterpolatedTextNode> m_interpolated_text;
 };
 
 /// @brief 旁白语句节点
@@ -202,9 +207,12 @@ public:
     NodeType type() const override { return NodeType::Narrator; }
     
     const std::string& text() const { return m_text; }
+    const InterpolatedTextNode* interpolated_text() const { return m_interpolated_text.get(); }
+    void set_interpolated_text(std::unique_ptr<InterpolatedTextNode> t) { m_interpolated_text = std::move(t); }
 
 private:
     std::string m_text;
+    std::unique_ptr<InterpolatedTextNode> m_interpolated_text;
 };
 
 /// @brief 场景定义节点
@@ -249,11 +257,14 @@ public:
     const std::string& text() const { return m_text; }
     const std::string& target() const { return m_target; }
     const AstNode* condition() const { return m_condition.get(); }
+    const InterpolatedTextNode* interpolated_text() const { return m_interpolated_text.get(); }
+    void set_interpolated_text(std::unique_ptr<InterpolatedTextNode> t) { m_interpolated_text = std::move(t); }
 
 private:
     std::string m_text;
     std::string m_target;
     AstPtr m_condition;
+    std::unique_ptr<InterpolatedTextNode> m_interpolated_text;
 };
 
 /// @brief 选择分支节点
@@ -727,6 +738,7 @@ public:
         Type type;
         std::string content;
         std::string style;
+        AstPtr expression;
     };
     
     InterpolatedTextNode(SourceLocation loc)
@@ -738,15 +750,15 @@ public:
     const std::vector<Segment>& segments() const { return m_segments; }
     
     void add_plain_text(std::string text) {
-        m_segments.push_back({Segment::Type::PlainText, std::move(text), {}});
+        m_segments.push_back({Segment::Type::PlainText, std::move(text), {}, nullptr});
     }
     
-    void add_interpolation(std::string var_name) {
-        m_segments.push_back({Segment::Type::Interpolation, std::move(var_name), {}});
+    void add_interpolation(std::string expr_source, AstPtr expr = nullptr) {
+        m_segments.push_back({Segment::Type::Interpolation, std::move(expr_source), {}, std::move(expr)});
     }
     
     void add_inline_style(std::string style, std::string text) {
-        m_segments.push_back({Segment::Type::InlineStyle, std::move(text), std::move(style)});
+        m_segments.push_back({Segment::Type::InlineStyle, std::move(text), std::move(style), nullptr});
     }
     
     bool is_plain_text() const {

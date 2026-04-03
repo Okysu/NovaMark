@@ -185,6 +185,8 @@ private:
     std::string resolveCharacterSprite(const std::string& speaker, const std::string& emotion) const;
     double evaluateDiceRoll(const std::string& expr);
     void markRuntimeStateChanged(int flags);
+    std::string resolveInterpolatedText(const InterpolatedTextNode* node);
+    std::string varValueToString(const VarValue& val);
 };
 
 } // namespace nova

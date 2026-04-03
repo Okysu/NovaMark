@@ -113,11 +113,43 @@ void AstSerializer::serializeDialogue(const DialogueNode* node) {
     m_writer.writeString(node->speaker());
     m_writer.writeString(node->emotion());
     m_writer.writeString(node->text());
+    if (node->interpolated_text() && !node->interpolated_text()->segments().empty()) {
+        uint32_t segCount = static_cast<uint32_t>(node->interpolated_text()->segments().size());
+        m_writer.writeU32(segCount);
+        for (const auto& seg : node->interpolated_text()->segments()) {
+            m_writer.writeByte(static_cast<uint8_t>(seg.type));
+            m_writer.writeString(seg.content);
+            if (seg.type == InterpolatedTextNode::Segment::Type::Interpolation && seg.expression) {
+                m_writer.writeByte(1);
+                serializeExpression(seg.expression.get());
+            } else {
+                m_writer.writeByte(0);
+            }
+        }
+    } else {
+        m_writer.writeU32(0);
+    }
 }
 
 void AstSerializer::serializeNarrator(const NarratorNode* node) {
     m_writer.writeByte(static_cast<uint8_t>(OpCode::NodeNarrator));
     m_writer.writeString(node->text());
+    if (node->interpolated_text() && !node->interpolated_text()->segments().empty()) {
+        uint32_t segCount = static_cast<uint32_t>(node->interpolated_text()->segments().size());
+        m_writer.writeU32(segCount);
+        for (const auto& seg : node->interpolated_text()->segments()) {
+            m_writer.writeByte(static_cast<uint8_t>(seg.type));
+            m_writer.writeString(seg.content);
+            if (seg.type == InterpolatedTextNode::Segment::Type::Interpolation && seg.expression) {
+                m_writer.writeByte(1);
+                serializeExpression(seg.expression.get());
+            } else {
+                m_writer.writeByte(0);
+            }
+        }
+    } else {
+        m_writer.writeU32(0);
+    }
 }
 
 void AstSerializer::serializeSceneDef(const SceneDefNode* node) {
@@ -153,6 +185,23 @@ void AstSerializer::serializeChoiceOption(const ChoiceOptionNode* node) {
         serializeExpression(node->condition());
     } else {
         m_writer.writeByte(0);
+    }
+
+    if (node->interpolated_text() && !node->interpolated_text()->segments().empty()) {
+        uint32_t segCount = static_cast<uint32_t>(node->interpolated_text()->segments().size());
+        m_writer.writeU32(segCount);
+        for (const auto& seg : node->interpolated_text()->segments()) {
+            m_writer.writeByte(static_cast<uint8_t>(seg.type));
+            m_writer.writeString(seg.content);
+            if (seg.type == InterpolatedTextNode::Segment::Type::Interpolation && seg.expression) {
+                m_writer.writeByte(1);
+                serializeExpression(seg.expression.get());
+            } else {
+                m_writer.writeByte(0);
+            }
+        }
+    } else {
+        m_writer.writeU32(0);
     }
 }
 
@@ -543,13 +592,53 @@ std::unique_ptr<DialogueNode> AstDeserializer::deserializeDialogue() {
     std::string emotion = m_reader->readString();
     std::string text = m_reader->readString();
     
-    return std::make_unique<DialogueNode>(SourceLocation{}, std::move(speaker), 
-                                           std::move(emotion), std::move(text));
+    auto node = std::make_unique<DialogueNode>(SourceLocation{}, std::move(speaker), 
+                                               std::move(emotion), std::move(text));
+    uint32_t segCount = m_reader->readU32();
+    if (segCount > 0) {
+        auto interp = std::make_unique<InterpolatedTextNode>(SourceLocation{});
+        for (uint32_t i = 0; i < segCount && !m_hasError; ++i) {
+            auto segType = static_cast<InterpolatedTextNode::Segment::Type>(m_reader->readByte());
+            std::string content = m_reader->readString();
+            uint8_t hasExpr = m_reader->readByte();
+            AstPtr expr;
+            if (hasExpr) {
+                expr = deserializeExpression();
+            }
+            if (segType == InterpolatedTextNode::Segment::Type::Interpolation) {
+                interp->add_interpolation(std::move(content), std::move(expr));
+            } else {
+                interp->add_plain_text(std::move(content));
+            }
+        }
+        node->set_interpolated_text(std::move(interp));
+    }
+    return node;
 }
 
 std::unique_ptr<NarratorNode> AstDeserializer::deserializeNarrator() {
     std::string text = m_reader->readString();
-    return std::make_unique<NarratorNode>(SourceLocation{}, std::move(text));
+    auto node = std::make_unique<NarratorNode>(SourceLocation{}, std::move(text));
+    uint32_t segCount = m_reader->readU32();
+    if (segCount > 0) {
+        auto interp = std::make_unique<InterpolatedTextNode>(SourceLocation{});
+        for (uint32_t i = 0; i < segCount && !m_hasError; ++i) {
+            auto segType = static_cast<InterpolatedTextNode::Segment::Type>(m_reader->readByte());
+            std::string content = m_reader->readString();
+            uint8_t hasExpr = m_reader->readByte();
+            AstPtr expr;
+            if (hasExpr) {
+                expr = deserializeExpression();
+            }
+            if (segType == InterpolatedTextNode::Segment::Type::Interpolation) {
+                interp->add_interpolation(std::move(content), std::move(expr));
+            } else {
+                interp->add_plain_text(std::move(content));
+            }
+        }
+        node->set_interpolated_text(std::move(interp));
+    }
+    return node;
 }
 
 std::unique_ptr<SceneDefNode> AstDeserializer::deserializeSceneDef() {
@@ -584,8 +673,30 @@ std::unique_ptr<ChoiceNode> AstDeserializer::deserializeChoice() {
             condition = deserializeExpression();
         }
         
-        node->add_option(std::make_unique<ChoiceOptionNode>(SourceLocation{}, 
-            std::move(text), std::move(target), std::move(condition)));
+        auto optNode = std::make_unique<ChoiceOptionNode>(SourceLocation{}, 
+            text, std::move(target), std::move(condition));
+
+        uint32_t segCount = m_reader->readU32();
+        if (segCount > 0) {
+            auto interp = std::make_unique<InterpolatedTextNode>(SourceLocation{});
+            for (uint32_t j = 0; j < segCount && !m_hasError; ++j) {
+                auto segType = static_cast<InterpolatedTextNode::Segment::Type>(m_reader->readByte());
+                std::string content = m_reader->readString();
+                uint8_t hasExpr = m_reader->readByte();
+                AstPtr expr;
+                if (hasExpr) {
+                    expr = deserializeExpression();
+                }
+                if (segType == InterpolatedTextNode::Segment::Type::Interpolation) {
+                    interp->add_interpolation(std::move(content), std::move(expr));
+                } else {
+                    interp->add_plain_text(std::move(content));
+                }
+            }
+            optNode->set_interpolated_text(std::move(interp));
+        }
+
+        node->add_option(std::move(optNode));
     }
     
     return node;

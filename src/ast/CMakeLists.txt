@@ -2,6 +2,7 @@
 
 add_library(nova-ast STATIC
     ast_node.cpp
+    ast_snapshot.cpp
 )
 
 target_include_directories(nova-ast PUBLIC

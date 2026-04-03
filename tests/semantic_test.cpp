@@ -284,6 +284,59 @@ TEST_F(SemanticTest, CheckWithMissingBranches) {
     EXPECT_EQ(result.diagnostics.warning_count(), 2u);
 }
 
+TEST_F(SemanticTest, CheckBranchVariableSequentialUse) {
+    auto result = analyze(
+        "@var SAN = 60\n"
+        "#scene_test \"Test\"\n"
+        "@check false\n"
+        "@fail\n"
+        "  @var san_loss = 3\n"
+        "  @set SAN = SAN - san_loss\n"
+        "@endcheck\n"
+    );
+    EXPECT_TRUE(result.success) << result.diagnostics.to_string();
+}
+
+TEST_F(SemanticTest, CheckBranchVariableUseBeforeDefinitionFails) {
+    auto result = analyze(
+        "@var SAN = 60\n"
+        "#scene_test \"Test\"\n"
+        "@check false\n"
+        "@fail\n"
+        "  @set SAN = SAN - san_loss\n"
+        "  @var san_loss = 3\n"
+        "@endcheck\n"
+    );
+    EXPECT_FALSE(result.success);
+    EXPECT_EQ(result.diagnostics.error_count(), 1u);
+}
+
+TEST_F(SemanticTest, CheckBranchVariableDoesNotLeakOutsideBlock) {
+    auto result = analyze(
+        "@var SAN = 60\n"
+        "#scene_test \"Test\"\n"
+        "@check true\n"
+        "@success\n"
+        "  @var san_loss = 1\n"
+        "@endcheck\n"
+        "@set SAN = SAN - san_loss\n"
+    );
+    EXPECT_FALSE(result.success);
+    EXPECT_EQ(result.diagnostics.error_count(), 1u);
+}
+
+TEST_F(SemanticTest, IfBranchVariableSequentialUse) {
+    auto result = analyze(
+        "@var SAN = 60\n"
+        "#scene_test \"Test\"\n"
+        "if true\n"
+        "  @var san_loss = 2\n"
+        "  @set SAN = SAN - san_loss\n"
+        "endif\n"
+    );
+    EXPECT_TRUE(result.success) << result.diagnostics.to_string();
+}
+
 // ============================================
 // 完整场景测试
 // ============================================

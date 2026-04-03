@@ -112,6 +112,45 @@ void SemanticAnalyzer::collect_definitions(const ProgramNode* program) {
     }
 }
 
+void SemanticAnalyzer::define_variable_symbol(const VarDefNode* var) {
+    if (!var) return;
+
+    const std::string scope = m_symbols.current_variable_scope();
+    if (m_symbols.exists_in_current_scope(var->name())) {
+        m_diagnostics.error(SemanticError::DuplicateVariable,
+            "duplicate variable definition: " + var->name(),
+            var->location());
+        return;
+    }
+
+    m_symbols.define(var->name(), SymbolKind::Variable,
+                    var->location(), scope);
+}
+
+void SemanticAnalyzer::analyze_statement_sequence(const std::vector<AstPtr>& statements,
+                                                 bool new_block_scope) {
+    if (new_block_scope) {
+        m_symbols.enter_block();
+    }
+
+    for (const auto& stmt : statements) {
+        if (!stmt) {
+            continue;
+        }
+
+        if (stmt->type() == NodeType::VarDef) {
+            define_variable_symbol(as_var_def(stmt.get()));
+        }
+
+        check_node_references(stmt.get());
+        check_node_structure(stmt.get());
+    }
+
+    if (new_block_scope) {
+        m_symbols.leave_block();
+    }
+}
+
 void SemanticAnalyzer::collect_from_node(const AstNode* node) {
     if (!node) return;
     
@@ -131,14 +170,7 @@ void SemanticAnalyzer::collect_from_node(const AstNode* node) {
         
         case NodeType::VarDef: {
             auto var = as_var_def(node);
-            if (m_symbols.exists(var->name(), m_symbols.current_scene())) {
-                m_diagnostics.error(SemanticError::DuplicateVariable,
-                    "duplicate variable definition: " + var->name(),
-                    var->location());
-            } else {
-                m_symbols.define(var->name(), SymbolKind::Variable,
-                                var->location(), m_symbols.current_scene());
-            }
+            define_variable_symbol(var);
             break;
         }
         
@@ -201,6 +233,15 @@ void SemanticAnalyzer::collect_from_node(const AstNode* node) {
 
 void SemanticAnalyzer::check_references(const ProgramNode* program) {
     for (const auto& stmt : program->statements()) {
+        if (!stmt) {
+            continue;
+        }
+
+        if (stmt->type() == NodeType::VarDef) {
+            check_node_references(stmt.get());
+            continue;
+        }
+
         check_node_references(stmt.get());
     }
 }
@@ -246,12 +287,8 @@ void SemanticAnalyzer::check_node_references(const AstNode* node) {
             if (branch->condition()) {
                 check_expression(branch->condition());
             }
-            for (const auto& stmt : branch->then_branch()) {
-                check_node_references(stmt.get());
-            }
-            for (const auto& stmt : branch->else_branch()) {
-                check_node_references(stmt.get());
-            }
+            analyze_statement_sequence(branch->then_branch(), true);
+            analyze_statement_sequence(branch->else_branch(), true);
             break;
         }
         
@@ -281,12 +318,8 @@ void SemanticAnalyzer::check_node_references(const AstNode* node) {
             if (check->condition()) {
                 check_expression(check->condition());
             }
-            for (const auto& stmt : check->success_branch()) {
-                check_node_references(stmt.get());
-            }
-            for (const auto& stmt : check->failure_branch()) {
-                check_node_references(stmt.get());
-            }
+            analyze_statement_sequence(check->success_branch(), true);
+            analyze_statement_sequence(check->failure_branch(), true);
             break;
         }
         
@@ -342,11 +375,12 @@ void SemanticAnalyzer::check_expression(const AstNode* expr) {
 }
 
 void SemanticAnalyzer::check_variable_ref(const std::string& name, SourceLocation loc) {
-    if (!m_symbols.exists(name, m_symbols.current_scene())) {
+    const std::string scope = m_symbols.current_variable_scope();
+    if (!m_symbols.exists(name, scope)) {
         m_diagnostics.error(SemanticError::UndefinedVariable,
             "undefined variable: " + name, loc);
     } else {
-        m_symbols.mark_used(name, m_symbols.current_scene());
+        m_symbols.mark_used(name, scope);
     }
 }
 

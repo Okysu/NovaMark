@@ -772,7 +772,9 @@ void NovaVM::executeDialogue(const DialogueNode* node) {
     diag.isShow = true;
     diag.speaker = node->speaker();
     diag.emotion = node->emotion();
-    diag.text = node->text();
+    diag.text = node->interpolated_text()
+        ? resolveInterpolatedText(node->interpolated_text())
+        : node->text();
     auto it = m_characterDefinitions.find(diag.speaker);
     if (it != m_characterDefinitions.end()) {
         diag.color = it->second.color;
@@ -797,7 +799,10 @@ void NovaVM::executeDialogue(const DialogueNode* node) {
 
 void NovaVM::executeNarrator(const NarratorNode* node) {
     if (!node) return;
-    m_state.dialogue = DialogueState{true, "", node->text(), "", ""};
+    std::string text = node->interpolated_text()
+        ? resolveInterpolatedText(node->interpolated_text())
+        : node->text();
+    m_state.dialogue = DialogueState{true, "", std::move(text), "", ""};
 }
 
 void NovaVM::executeJump(const JumpNode* node) {
@@ -822,7 +827,9 @@ void NovaVM::executeChoice(const ChoiceNode* node) {
         if (optNode) {
             ChoiceOption co;
             co.id = std::to_string(idx++);
-            co.text = optNode->text();
+            co.text = optNode->interpolated_text()
+                ? resolveInterpolatedText(optNode->interpolated_text())
+                : optNode->text();
             co.target = optNode->target();
             co.disabled = optNode->condition() && !evaluateCondition(optNode->condition());
             choice.options.push_back(co);
@@ -1179,6 +1186,44 @@ double NovaVM::evaluateDiceRoll(const std::string& expr) {
         total += dist(rng);
     }
     return static_cast<double>(total + modifier);
+}
+
+std::string NovaVM::varValueToString(const VarValue& val) {
+    if (std::holds_alternative<double>(val)) {
+        double d = std::get<double>(val);
+        if (d == static_cast<double>(static_cast<int64_t>(d))) {
+            return std::to_string(static_cast<int64_t>(d));
+        }
+        std::ostringstream oss;
+        oss << d;
+        return oss.str();
+    }
+    if (std::holds_alternative<std::string>(val)) return std::get<std::string>(val);
+    if (std::holds_alternative<bool>(val)) return std::get<bool>(val) ? "true" : "false";
+    return "";
+}
+
+std::string NovaVM::resolveInterpolatedText(const InterpolatedTextNode* node) {
+    if (!node) return "";
+    std::string result;
+    for (const auto& seg : node->segments()) {
+        switch (seg.type) {
+            case InterpolatedTextNode::Segment::Type::PlainText:
+                result += seg.content;
+                break;
+            case InterpolatedTextNode::Segment::Type::Interpolation:
+                if (seg.expression) {
+                    result += varValueToString(evaluateExpression(seg.expression.get()));
+                } else {
+                    result += seg.content;
+                }
+                break;
+            case InterpolatedTextNode::Segment::Type::InlineStyle:
+                result += seg.content;
+                break;
+        }
+    }
+    return result;
 }
 
 } // namespace nova

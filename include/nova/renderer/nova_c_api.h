@@ -17,6 +17,11 @@ extern "C" {
 typedef struct NovaVM NovaVM;
 
 typedef struct {
+    const char* path;
+    const char* content;
+} NovaMemoryScript;
+
+typedef struct {
     const char* id;
     const char* url;
     const char* x;
@@ -117,5 +122,9 @@ NOVA_API const char* nova_get_variable_string(NovaVM* vm, const char* name);
 
 NOVA_API size_t nova_get_inventory_count(NovaVM* vm, const char* itemId);
 NOVA_API int nova_has_item(NovaVM* vm, const char* itemId);
+
+NOVA_API char* nova_export_ast_snapshot_from_path(const char* path);
+NOVA_API char* nova_export_ast_snapshot_from_scripts(const NovaMemoryScript* scripts, size_t count);
+NOVA_API void nova_string_free(char* str);
 
 } // extern "C"

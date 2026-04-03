@@ -111,12 +111,13 @@ Result<Token> Lexer::next_token() {
     
     if (c == '>') {
         SourceLocation loc = here();
+        bool was_first_non_ws = is_first_non_whitespace_on_line();
         advance();
         if (current() == '=') {
             advance();
             return Ok(Token{TokenType::GreaterEqual, ">=", loc});
         }
-        if (!is_first_non_whitespace_on_line()) {
+        if (!was_first_non_ws) {
             return Ok(Token{TokenType::Greater, ">", loc});
         }
         if (at_end() || current() == '\n') {

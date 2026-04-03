@@ -1,10 +1,15 @@
 #include "nova/parser/parser.h"
+#include "nova/lexer/lexer.h"
 
 namespace nova {
 
 Parser::Parser(std::vector<Token> tokens)
     : m_tokens(std::move(tokens))
 {
+}
+
+Result<AstPtr> Parser::parse_single_expression() {
+    return parse_expression();
 }
 
 Result<AstPtr> Parser::parse() {
@@ -177,7 +182,11 @@ Result<AstPtr> Parser::parse_narrator() {
     std::string text = parse_property_value();
     if (!text.empty()) {
         if (check(TokenType::Newline)) advance();
-        return Ok(AstPtr(new NarratorNode(loc, std::move(text))));
+        auto node = std::make_unique<NarratorNode>(loc, text);
+        if (text.find("{{") != std::string::npos) {
+            node->set_interpolated_text(parse_interpolated_text(text));
+        }
+        return Ok(AstPtr(node.release()));
     }
     
     if (check(TokenType::Newline)) {
@@ -212,8 +221,12 @@ Result<AstPtr> Parser::parse_dialogue() {
     std::string text = parse_property_value();
     
     if (check(TokenType::Newline)) advance();
-    
-    return Ok(AstPtr(new DialogueNode(loc, std::move(speaker), std::move(emotion), std::move(text))));
+
+    auto node = std::make_unique<DialogueNode>(loc, std::move(speaker), std::move(emotion), text);
+    if (text.find("{{") != std::string::npos) {
+        node->set_interpolated_text(parse_interpolated_text(text));
+    }
+    return Ok(AstPtr(node.release()));
 }
 
 Result<AstPtr> Parser::parse_scene_def() {
@@ -315,6 +328,15 @@ Result<AstPtr> Parser::parse_choice_option() {
                 text += ")";
                 advance();
                 break;
+            case TokenType::LeftBrace:
+                if (!text.empty() && text.back() != '{') text += " ";
+                text += tok.value;
+                advance();
+                break;
+            case TokenType::RightBrace:
+                text += tok.value;
+                advance();
+                break;
             default:
                 if (!text.empty()) text += " ";
                 text += tok.value;
@@ -358,7 +380,11 @@ Result<AstPtr> Parser::parse_choice_option() {
     
     if (check(TokenType::Newline)) advance();
     
-    return Ok(AstPtr(new ChoiceOptionNode(loc, std::move(text), std::move(target), std::move(condition))));
+    auto node = std::make_unique<ChoiceOptionNode>(loc, text, std::move(target), std::move(condition));
+    if (text.find("{{") != std::string::npos) {
+        node->set_interpolated_text(parse_interpolated_text(text));
+    }
+    return Ok(AstPtr(node.release()));
 }
 
 Result<AstPtr> Parser::parse_directive() {
@@ -1273,8 +1299,26 @@ std::unique_ptr<InterpolatedTextNode> Parser::parse_interpolated_text(const std:
             pos += 2;
             size_t end = text.find("}}", pos);
             if (end != std::string::npos) {
-                std::string var_name = text.substr(pos, end - pos);
-                result->add_interpolation(var_name);
+                std::string expr_source = text.substr(pos, end - pos);
+                size_t start = expr_source.find_first_not_of(" \t");
+                size_t last = expr_source.find_last_not_of(" \t");
+                if (start != std::string::npos) {
+                    expr_source = expr_source.substr(start, last - start + 1);
+                }
+
+                Lexer expr_lexer(expr_source, "<interpolation>");
+                auto tokens_result = expr_lexer.tokenize();
+                if (tokens_result.is_ok()) {
+                    Parser expr_parser(std::move(tokens_result).unwrap());
+                    auto expr_result = expr_parser.parse_single_expression();
+                    if (expr_result.is_ok()) {
+                        result->add_interpolation(expr_source, std::move(expr_result).unwrap());
+                    } else {
+                        result->add_plain_text("{{" + expr_source + "}}");
+                    }
+                } else {
+                    result->add_plain_text("{{" + expr_source + "}}");
+                }
                 pos = end + 2;
             } else {
                 plain += "{{";

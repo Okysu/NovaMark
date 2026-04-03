@@ -8,6 +8,7 @@
 #include "nova/core/result.h"
 #include <string>
 #include <vector>
+#include <memory>
 
 namespace nova {
 
@@ -19,6 +20,11 @@ struct PackResult {
     size_t assetCount;
     size_t bytecodeSize;
     size_t totalSize;
+};
+
+struct MemoryScript {
+    std::string path;
+    std::string content;
 };
 
 /// @brief NovaMark 打包器
@@ -62,6 +68,14 @@ PackResult packProject(
     const std::string& scriptDir,
     const std::string& assetDir,
     const std::string& outputPath
+);
+
+Result<std::unique_ptr<ProgramNode>> buildCombinedProgramFromScripts(
+    const std::vector<MemoryScript>& scripts
+);
+
+Result<std::unique_ptr<ProgramNode>> buildCombinedProgramFromPath(
+    const std::string& path
 );
 
 } // namespace nova

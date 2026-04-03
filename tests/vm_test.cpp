@@ -4,6 +4,7 @@
 #include "nova/vm/inventory.h"
 #include "nova/vm/save_data.h"
 #include "nova/vm/serializer.h"
+#include "nova/ast/ast_snapshot.h"
 #include "nova/packer/packer.h"
 #include "nova/packer/ast_serializer.h"
 #include "nova/packer/nvmp_format.h"
@@ -11,7 +12,10 @@
 #include "nova/lexer/lexer.h"
 #include "nova/ast/ast_node.h"
 
+#include <nlohmann/json.hpp>
+
 #include <cstdint>
+#include <filesystem>
 #include <fstream>
 
 using namespace nova;
@@ -31,7 +35,188 @@ protected:
     const ProgramNode* as_program(const AstPtr& ast) {
         return dynamic_cast<const ProgramNode*>(ast.get());
     }
+
+    std::filesystem::path make_temp_dir(const std::string& name) {
+        auto dir = std::filesystem::temp_directory_path() / name;
+        std::filesystem::remove_all(dir);
+        std::filesystem::create_directories(dir);
+        return dir;
+    }
 };
+
+TEST_F(VMTest, ExportAstSnapshotFromMemoryScriptsBuildsCombinedProgram) {
+    std::vector<MemoryScript> scripts = {
+        {"02_scene.nvm", "#scene_second \"Second\"\n> Second line\n"},
+        {"01_scene.nvm", "#scene_start \"Start\"\n> First line\n"}
+    };
+
+    auto snapshot = nlohmann::json::parse(export_ast_snapshot_string_from_scripts(scripts));
+
+    ASSERT_TRUE(snapshot.contains("root"));
+    ASSERT_TRUE(snapshot["root"].contains("children"));
+    ASSERT_EQ(snapshot["root"]["children"].size(), 4u);
+    EXPECT_EQ(snapshot["root"]["children"][0]["type"], "SceneDef");
+    EXPECT_EQ(snapshot["root"]["children"][0]["name"], "scene_second");
+    EXPECT_EQ(snapshot["root"]["children"][2]["type"], "SceneDef");
+    EXPECT_EQ(snapshot["root"]["children"][2]["name"], "scene_start");
+}
+
+TEST_F(VMTest, ExportAstSnapshotFromPathUsesProjectScriptsPathAndNaturalSort) {
+    auto projectDir = make_temp_dir("novamark_ast_snapshot_project");
+    auto scriptsDir = projectDir / "story";
+    std::filesystem::create_directories(scriptsDir);
+
+    {
+        std::ofstream projectFile(projectDir / "project.yaml");
+        projectFile << "name: ast_snapshot_demo\n";
+        projectFile << "scripts_path: story\n";
+    }
+
+    {
+        std::ofstream script10(scriptsDir / "10_end.nvm");
+        script10 << "#scene_end \"End\"\n> End\n";
+    }
+
+    {
+        std::ofstream script2(scriptsDir / "2_mid.nvm");
+        script2 << "#scene_mid \"Mid\"\n> Mid\n";
+    }
+
+    {
+        std::ofstream script1(scriptsDir / "1_start.nvm");
+        script1 << "#scene_start \"Start\"\n> Start\n";
+    }
+
+    auto snapshot = nlohmann::json::parse(export_ast_snapshot_string_from_path(projectDir.string()));
+
+    ASSERT_TRUE(snapshot.contains("root"));
+    const auto& children = snapshot["root"]["children"];
+    ASSERT_EQ(children.size(), 6u);
+    EXPECT_EQ(children[0]["name"], "scene_start");
+    EXPECT_EQ(children[2]["name"], "scene_mid");
+    EXPECT_EQ(children[4]["name"], "scene_end");
+
+    std::filesystem::remove_all(projectDir);
+}
+
+// ============================================
+// Interpolation Tests
+// ============================================
+
+TEST_F(VMTest, InterpolationNarratorResolvesVariable) {
+    auto result = parse(
+        "@var hp = 100\n"
+        "#scene_start \"Start\"\n"
+        "> Your HP is {{hp}} points\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+    NovaVM vm;
+    vm.load(result.unwrap());
+    vm.advance();
+    ASSERT_TRUE(vm.state().dialogue.has_value());
+    EXPECT_EQ(vm.state().dialogue->text, "Your HP is 100 points");
+}
+
+TEST_F(VMTest, InterpolationDialogueResolvesVariable) {
+    auto result = parse(
+        "@var name = \"林晓\"\n"
+        "#scene_start \"Start\"\n"
+        "Alice: Hello {{name}}!\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+    NovaVM vm;
+    vm.load(result.unwrap());
+    vm.advance();
+    ASSERT_TRUE(vm.state().dialogue.has_value());
+    EXPECT_EQ(vm.state().dialogue->speaker, "Alice");
+    EXPECT_EQ(vm.state().dialogue->text, "Hello 林晓!");
+}
+
+TEST_F(VMTest, InterpolationResolvesExpression) {
+    auto result = parse(
+        "@var hp = 100\n"
+        "#scene_start \"Start\"\n"
+        "> Remaining: {{hp - 10}} HP\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+    NovaVM vm;
+    vm.load(result.unwrap());
+    vm.advance();
+    ASSERT_TRUE(vm.state().dialogue.has_value());
+    EXPECT_EQ(vm.state().dialogue->text, "Remaining: 90 HP");
+}
+
+TEST_F(VMTest, InterpolationResolvesFunction) {
+    auto result = parse(
+        "#scene_start \"Start\"\n"
+        "> Has flag: {{has_flag(\"test\")}}\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+    NovaVM vm;
+    vm.load(result.unwrap());
+    vm.advance();
+    ASSERT_TRUE(vm.state().dialogue.has_value());
+    EXPECT_EQ(vm.state().dialogue->text, "Has flag: false");
+}
+
+TEST_F(VMTest, InterpolationChoiceOptionResolvesVariable) {
+    auto result = parse(
+        "@var cost = 50\n"
+        "#scene_start \"Start\"\n"
+        "? Buy item?\n"
+        "- [Pay {{cost}} gold] -> .buy\n"
+        ".buy\n"
+        "> Bought!\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+    NovaVM vm;
+    vm.load(result.unwrap());
+    vm.advance();
+    ASSERT_TRUE(vm.state().choice.has_value());
+    ASSERT_EQ(vm.state().choice->options.size(), 1u);
+    EXPECT_EQ(vm.state().choice->options[0].text, "Pay 50 gold");
+}
+
+TEST_F(VMTest, InterpolationUnclosedBracesStaysPlainText) {
+    auto result = parse(
+        "#scene_start \"Start\"\n"
+        "> Unclosed {{var text\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+    NovaVM vm;
+    vm.load(result.unwrap());
+    vm.advance();
+    ASSERT_TRUE(vm.state().dialogue.has_value());
+    EXPECT_EQ(vm.state().dialogue->text, "Unclosed {{var text");
+}
+
+TEST_F(VMTest, InterpolationPlainTextWithoutBracesUnchanged) {
+    auto result = parse(
+        "#scene_start \"Start\"\n"
+        "> Normal text without interpolation\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+    NovaVM vm;
+    vm.load(result.unwrap());
+    vm.advance();
+    ASSERT_TRUE(vm.state().dialogue.has_value());
+    EXPECT_EQ(vm.state().dialogue->text, "Normal text without interpolation");
+}
+
+TEST_F(VMTest, InterpolationMultipleExpressions) {
+    auto result = parse(
+        "@var hp = 100\n"
+        "@var mp = 50\n"
+        "#scene_start \"Start\"\n"
+        "> HP: {{hp}} / MP: {{mp}}\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+    NovaVM vm;
+    vm.load(result.unwrap());
+    vm.advance();
+    ASSERT_TRUE(vm.state().dialogue.has_value());
+    EXPECT_EQ(vm.state().dialogue->text, "HP: 100 / MP: 50");
+}
 
 // ============================================
 // VariableManager Tests

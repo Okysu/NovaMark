@@ -59,6 +59,18 @@ public:
     
     /// @brief 获取当前场景名
     const std::string& current_scene() const { return m_current_scene; }
+
+    /// @brief 进入块级作用域（用于 if/check 分支）
+    void enter_block();
+
+    /// @brief 离开块级作用域
+    void leave_block();
+
+    /// @brief 获取当前变量作用域键
+    std::string current_variable_scope() const;
+
+    /// @brief 仅检查当前精确作用域内是否存在
+    bool exists_in_current_scope(const std::string& name) const;
     
     /// @brief 清空符号表
     void clear();
@@ -67,7 +79,9 @@ private:
     std::unordered_map<std::string, Symbol> m_global_symbols;
     std::unordered_map<std::string, Symbol> m_local_symbols;  // 带作用域的符号
     std::string m_current_scene;
-    
+    std::vector<std::string> m_block_scopes;
+    int m_next_block_id = 0;
+
     std::string make_key(const std::string& name, const std::string& scope) const {
         return scope.empty() ? name : scope + "::" + name;
     }

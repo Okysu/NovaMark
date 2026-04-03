@@ -1,8 +1,11 @@
 #include "nova/renderer/nova_c_api.h"
+#include "nova/ast/ast_snapshot.h"
+#include "nova/packer/packer.h"
 #include "nova/vm/vm.h"
 #include "nova/vm/serializer.h"
 #include "nova/packer/nvmp_writer.h"
 #include <algorithm>
+#include <cstdlib>
 #include <cstring>
 #include <string>
 #include <vector>
@@ -22,6 +25,20 @@ struct NovaVM {
     std::vector<std::string> themeNameCache;
     std::unordered_map<std::string, std::vector<std::string>> themePropertyKeyCache;
 };
+
+namespace {
+
+char* copy_string(const std::string& value) {
+    char* buffer = static_cast<char*>(std::malloc(value.size() + 1));
+    if (!buffer) {
+        return nullptr;
+    }
+
+    std::memcpy(buffer, value.c_str(), value.size() + 1);
+    return buffer;
+}
+
+}
 
 extern "C" {
 
@@ -319,6 +336,45 @@ size_t nova_get_inventory_count(NovaVM* vm, const char* itemId) {
 int nova_has_item(NovaVM* vm, const char* itemId) {
     if (!itemId) return 0;
     return vm->vm.inventory().has(std::string(itemId)) ? 1 : 0;
+}
+
+char* nova_export_ast_snapshot_from_path(const char* path) {
+    if (!path) {
+        return nullptr;
+    }
+
+    try {
+        return copy_string(nova::export_ast_snapshot_string_from_path(path));
+    } catch (...) {
+        return nullptr;
+    }
+}
+
+char* nova_export_ast_snapshot_from_scripts(const NovaMemoryScript* scripts, size_t count) {
+    if (!scripts || count == 0) {
+        return nullptr;
+    }
+
+    std::vector<nova::MemoryScript> memoryScripts;
+    memoryScripts.reserve(count);
+    for (size_t i = 0; i < count; ++i) {
+        memoryScripts.push_back({
+            scripts[i].path ? scripts[i].path : "",
+            scripts[i].content ? scripts[i].content : ""
+        });
+    }
+
+    try {
+        return copy_string(nova::export_ast_snapshot_string_from_scripts(memoryScripts));
+    } catch (...) {
+        return nullptr;
+    }
+}
+
+void nova_string_free(char* str) {
+    if (str) {
+        std::free(str);
+    }
 }
 
 } // extern "C"

@@ -12,6 +12,7 @@ public:
     explicit Parser(std::vector<Token> tokens);
     
     Result<AstPtr> parse();
+    Result<AstPtr> parse_single_expression();
     
 private:
     std::vector<Token> m_tokens;
