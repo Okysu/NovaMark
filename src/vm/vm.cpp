@@ -313,6 +313,7 @@ void NovaVM::load(const ProgramNode* program) {
     buildSceneIndex();
     buildDefinitionRegistry();
     m_statementIndex = 0;
+    m_pendingStatements.clear();
     m_state.status = VMStatus::Running;
     applyFrontMatterDefaults();
     
@@ -507,9 +508,26 @@ void NovaVM::advance() {
     }
     
     const auto& programStatements = m_program->statements();
-    std::string scene_at_start = m_currentScene;
     
     while (true) {
+        if (!m_pendingStatements.empty()) {
+            const AstNode* stmt = m_pendingStatements.front();
+            m_pendingStatements.pop_front();
+
+            executeStatement(stmt);
+
+            if (m_state.status == VMStatus::WaitingChoice ||
+                m_state.status == VMStatus::Ended) {
+                return;
+            }
+
+            if (m_state.dialogue || m_state.choice) {
+                return;
+            }
+
+            continue;
+        }
+
         auto sceneIt = m_scenes.find(m_currentScene);
         if (sceneIt == m_scenes.end()) {
             m_state.status = VMStatus::Ended;
@@ -528,7 +546,6 @@ void NovaVM::advance() {
                     m_statementIndex = 0;
                     m_state.currentScene = m_currentScene;
                     m_state.currentLabel.clear();
-                    scene_at_start = m_currentScene;
                     continue;
                 }
             }
@@ -550,10 +567,6 @@ void NovaVM::advance() {
         
         if (m_state.status == VMStatus::WaitingChoice ||
             m_state.status == VMStatus::Ended) {
-            return;
-        }
-
-        if (m_currentScene != scene_at_start) {
             return;
         }
         
@@ -606,10 +619,12 @@ bool NovaVM::jumpToScene(const std::string& sceneName) {
     if (it == m_scenes.end()) return false;
 
     clearDialogueManagedSprites();
+    m_pendingStatements.clear();
     
     m_currentScene = sceneName;
     m_statementIndex = 0;
     m_state.currentScene = sceneName;
+    m_state.currentLabel.clear();
     return true;
 }
 
@@ -634,6 +649,7 @@ bool NovaVM::jumpToLabel(const std::string& labelName) {
     auto labelIt = sceneIt->second.labels.find(key);
     if (labelIt == sceneIt->second.labels.end()) return false;
     
+    m_pendingStatements.clear();
     m_statementIndex = labelIt->second;
     m_state.currentLabel = key;
     return true;
@@ -652,6 +668,7 @@ void NovaVM::returnFromCall() {
     
     auto [scene, index] = m_callStack.back();
     m_callStack.pop_back();
+    m_pendingStatements.clear();
     
     m_currentScene = scene;
     m_statementIndex = index;
@@ -665,7 +682,16 @@ void NovaVM::reset() {
     m_statementIndex = 0;
     m_callStack.clear();
     m_dialogueManagedSprites.clear();
+    m_pendingStatements.clear();
     markRuntimeStateChanged(RuntimeStateChangeVariables | RuntimeStateChangeInventory);
+}
+
+void NovaVM::prependPendingStatements(const std::vector<AstPtr>& statements) {
+    for (auto it = statements.rbegin(); it != statements.rend(); ++it) {
+        if (it->get()) {
+            m_pendingStatements.push_front(it->get());
+        }
+    }
 }
 
 void NovaVM::executeStatement(const AstNode* node) {
@@ -812,14 +838,8 @@ void NovaVM::executeBranch(const BranchNode* node) {
     
     bool cond = evaluateCondition(node->condition());
     auto& branch = cond ? node->then_branch() : node->else_branch();
-    
-    for (const auto& stmt : branch) {
-        executeStatement(stmt.get());
-        if (m_state.status == VMStatus::WaitingChoice || 
-            m_state.status == VMStatus::Ended) {
-            return;
-        }
-    }
+
+    prependPendingStatements(branch);
 }
 
 void NovaVM::executeSet(const SetCommandNode* node) {
@@ -970,10 +990,8 @@ void NovaVM::executeCheck(const CheckCommandNode* node) {
     
     bool success = evaluateCondition(node->condition());
     auto& branch = success ? node->success_branch() : node->failure_branch();
-    
-    for (const auto& stmt : branch) {
-        executeStatement(stmt.get());
-    }
+
+    prependPendingStatements(branch);
 }
 
 VarValue NovaVM::evaluateExpression(const AstNode* expr) {

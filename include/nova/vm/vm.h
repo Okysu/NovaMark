@@ -6,6 +6,7 @@
 #include "nova/vm/save_data.h"
 #include "nova/ast/ast_node.h"
 #include <cstdint>
+#include <deque>
 #include <memory>
 #include <functional>
 #include <unordered_set>
@@ -148,6 +149,7 @@ private:
     
     std::vector<std::pair<std::string, size_t>> m_callStack;
     std::unordered_set<std::string> m_dialogueManagedSprites;
+    std::deque<const AstNode*> m_pendingStatements;
 
     uint64_t m_runtimeStateVersion = 0;
     int m_runtimeStateChangeFlags = RuntimeStateChangeNone;
@@ -157,6 +159,7 @@ private:
     void executeGlobalStatements();
     void applyFrontMatterDefaults();
     void clearDialogueManagedSprites();
+    void prependPendingStatements(const std::vector<AstPtr>& statements);
     void executeStatement(const AstNode* node);
     void executeDialogue(const DialogueNode* node);
     void executeNarrator(const NarratorNode* node);

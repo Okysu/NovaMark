@@ -306,7 +306,6 @@ TEST_F(VMTest, VMExecuteJump) {
     NovaVM vm;
     vm.load(result.unwrap());
     vm.advance();
-    vm.advance();
     
     EXPECT_EQ(vm.state().currentScene, "scene_next");
     EXPECT_TRUE(vm.state().dialogue.has_value());
@@ -417,6 +416,69 @@ TEST_F(VMTest, VMExecuteBranchTrue) {
     
     EXPECT_TRUE(vm.state().dialogue.has_value());
     EXPECT_EQ(vm.state().dialogue->text, "True branch");
+}
+
+TEST_F(VMTest, VMExecuteBranchMultipleStatementsSequentially) {
+    auto result = parse(
+        "@var talked_to_boss = true\n"
+        "#scene_start \"Start\"\n"
+        "if talked_to_boss\n"
+        "  老板: 还记得你。\n"
+        "  我: 您还记得我？\n"
+        "  > 那碗饭，多了几分人情味。\n"
+        "else\n"
+        "  > 没有人认出我。\n"
+        "endif\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+
+    NovaVM vm;
+    vm.load(result.unwrap());
+
+    vm.advance();
+    ASSERT_TRUE(vm.state().dialogue.has_value());
+    EXPECT_EQ(vm.state().dialogue->speaker, "老板");
+    EXPECT_EQ(vm.state().dialogue->text, "还记得你。");
+
+    vm.advance();
+    ASSERT_TRUE(vm.state().dialogue.has_value());
+    EXPECT_EQ(vm.state().dialogue->speaker, "我");
+    EXPECT_EQ(vm.state().dialogue->text, "您还记得我？");
+
+    vm.advance();
+    ASSERT_TRUE(vm.state().dialogue.has_value());
+    EXPECT_EQ(vm.state().dialogue->speaker, "");
+    EXPECT_EQ(vm.state().dialogue->text, "那碗饭，多了几分人情味。");
+}
+
+TEST_F(VMTest, VMJumpContinuesIntoTargetSceneWithoutSkippingDialogue) {
+    auto result = parse(
+        "#scene_start \"Start\"\n"
+        "-> scene_present\n"
+        "#scene_present \"Present\"\n"
+        "> 这一次，时间是充裕的。\n"
+        "> 我终于吃到了心心念念的碗底。\n"
+        "@ending present_end\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+
+    NovaVM vm;
+    vm.load(result.unwrap());
+
+    vm.advance();
+    ASSERT_TRUE(vm.state().dialogue.has_value());
+    EXPECT_EQ(vm.state().currentScene, "scene_present");
+    EXPECT_EQ(vm.state().dialogue->text, "这一次，时间是充裕的。");
+    EXPECT_FALSE(vm.state().ending.has_value());
+
+    vm.advance();
+    ASSERT_TRUE(vm.state().dialogue.has_value());
+    EXPECT_EQ(vm.state().dialogue->text, "我终于吃到了心心念念的碗底。");
+    EXPECT_FALSE(vm.state().ending.has_value());
+
+    vm.advance();
+    EXPECT_TRUE(vm.state().ending.has_value());
+    EXPECT_EQ(*vm.state().ending, "present_end");
 }
 
 TEST_F(VMTest, VMExecuteBgCommand) {
@@ -1581,14 +1643,10 @@ TEST_F(VMTest, VMCallAndReturn) {
         
     vm.advance();
     EXPECT_EQ(vm.currentScene(), "scene_shop");
-    
-    vm.advance();
     EXPECT_EQ(vm.state().dialogue->text, "In shop");
         
     vm.advance();
     EXPECT_EQ(vm.currentScene(), "scene_main");
-    
-    vm.advance();
     EXPECT_EQ(vm.state().dialogue->text, "Back to main");
 }
 
@@ -1868,11 +1926,6 @@ TEST_F(VMTest, VMDialogueManagedSpritesClearOnSceneJump) {
     vm.advance();
 
     EXPECT_TRUE(vm.state().sprites.empty());
-    EXPECT_FALSE(vm.state().dialogue.has_value());
-
-    vm.advance();
-
-    EXPECT_TRUE(vm.state().sprites.empty());
     ASSERT_TRUE(vm.state().dialogue.has_value());
     EXPECT_EQ(vm.state().dialogue->text, "arrived");
 }
@@ -1889,11 +1942,6 @@ TEST_F(VMTest, VMExplicitSpritesClearOnSceneJump) {
 
     NovaVM vm;
     vm.load(result.unwrap());
-    vm.advance();
-
-    EXPECT_TRUE(vm.state().sprites.empty());
-    EXPECT_FALSE(vm.state().dialogue.has_value());
-
     vm.advance();
 
     EXPECT_TRUE(vm.state().sprites.empty());
