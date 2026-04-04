@@ -108,6 +108,59 @@ novaDebug.snapshot().runtimeState
 
 用于检查当前变量、背包和定义元数据。
 
+## AST 快照导出
+
+除了运行时状态快照，NovaMark 还提供 **AST 快照导出**，用于调试解析结果、构建 Creator 工具链、或验证脚本最终被编译成了什么结构。
+
+它和运行时状态快照的区别是：
+
+- **运行时状态快照**：描述“游戏当前运行到了哪里、变量是什么、界面该显示什么”
+- **AST 快照**：描述“脚本被解析后形成了什么语法树”
+
+### C++ 导出接口
+
+```cpp
+std::string export_ast_snapshot_string(const ProgramNode* program);
+std::string export_ast_snapshot_string_from_scripts(const std::vector<MemoryScript>& scripts);
+std::string export_ast_snapshot_string_from_path(const std::string& path);
+```
+
+### C API 导出接口
+
+```c
+char* nova_export_ast_snapshot_from_path(const char* path);
+char* nova_export_ast_snapshot_from_scripts(const NovaMemoryScript* scripts, size_t count);
+```
+
+### 适用场景
+
+- 调试 Parser 输出
+- 校验多脚本项目最终合并后的 Program 结构
+- 为 Creator / 编辑器提供 AST 浏览能力
+- 为测试或 CI 导出稳定的 JSON 结构进行比对
+
+### 输出格式
+
+AST 快照当前以 **JSON 字符串** 形式导出。顶层结构示意：
+
+```json
+{
+  "version": 1,
+  "root": {
+    "type": "Program",
+    "children": []
+  }
+}
+```
+
+对于包含文本插值的节点，快照中会额外出现 `InterpolatedText` 结构，并记录分段信息，例如：
+
+- `PlainText`：普通文本片段
+- `Interpolation`：`{{expr}}` 插值片段
+- `InlineStyle`：`{style:text}` 内联样式片段
+
+这让上层工具不仅能看到原始文本，还能精确知道文本内部哪些部分是表达式、哪些部分是样式。
+
 ## 存档格式说明
 
 NovaMark 当前推荐的职责划分是：

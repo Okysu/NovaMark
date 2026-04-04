@@ -114,6 +114,59 @@ novaDebug.snapshot().runtimeState
 
 For inspecting current variables, inventory, and definition metadata.
 
+## AST Snapshot Export
+
+In addition to runtime state snapshots, NovaMark also provides **AST snapshot export** for debugging parse results, building Creator/editor tooling, and verifying the structure produced from scripts.
+
+The difference is:
+
+- **Runtime state snapshot**: describes where the game is now, what variables contain, and what the UI should display
+- **AST snapshot**: describes the syntax tree produced after parsing the scripts
+
+### C++ export APIs
+
+```cpp
+std::string export_ast_snapshot_string(const ProgramNode* program);
+std::string export_ast_snapshot_string_from_scripts(const std::vector<MemoryScript>& scripts);
+std::string export_ast_snapshot_string_from_path(const std::string& path);
+```
+
+### C API export APIs
+
+```c
+char* nova_export_ast_snapshot_from_path(const char* path);
+char* nova_export_ast_snapshot_from_scripts(const NovaMemoryScript* scripts, size_t count);
+```
+
+### Common use cases
+
+- Debugging parser output
+- Verifying the final merged `Program` structure in multi-script projects
+- Providing AST browsing in Creator / editor tools
+- Exporting stable JSON for test or CI comparisons
+
+### Output format
+
+AST snapshots are currently exported as **JSON strings**. The top-level shape looks like this:
+
+```json
+{
+  "version": 1,
+  "root": {
+    "type": "Program",
+    "children": []
+  }
+}
+```
+
+For nodes containing interpolated text, the snapshot includes an `InterpolatedText` structure with segment metadata such as:
+
+- `PlainText`: normal text segment
+- `Interpolation`: a `{{expr}}` segment
+- `InlineStyle`: an inline `{style:text}` segment
+
+This lets tools understand not only the original text, but also which parts are expressions and which parts are styling markers.
+
 ## Save Format
 
 NovaMark recommends this responsibility split:

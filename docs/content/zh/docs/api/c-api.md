@@ -118,6 +118,28 @@ const char* nova_export_runtime_state_json(void* vm, size_t* outSize);
 
 适合 GUI 与调试工具一次性读取完整运行时状态。
 
+### AST 快照导出
+
+当前 C API 也提供 AST 快照导出接口：
+
+```c
+char* nova_export_ast_snapshot_from_path(const char* path);
+char* nova_export_ast_snapshot_from_scripts(const NovaMemoryScript* scripts, size_t count);
+```
+
+这两个接口返回 **AST JSON 字符串**，适合：
+
+- 编辑器 / Creator 可视化语法树
+- 调试脚本解析结果
+- 多文件项目合并结果检查
+
+其中：
+
+- `nova_export_ast_snapshot_from_path`：从项目路径导出
+- `nova_export_ast_snapshot_from_scripts`：从内存脚本数组导出
+
+如果文本中使用了 `{{}}` 插值或 `{style:text}` 内联样式，导出的 AST 快照中会保留对应的文本分段信息。
+
 ## 回调
 
 ### nova_set_state_callback

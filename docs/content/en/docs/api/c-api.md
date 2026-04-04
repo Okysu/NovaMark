@@ -118,6 +118,28 @@ Returns a JSON string containing:
 
 Suitable for GUI and debugging tools to read complete runtime state in one call.
 
+### AST Snapshot Export
+
+The C API also provides AST snapshot export:
+
+```c
+char* nova_export_ast_snapshot_from_path(const char* path);
+char* nova_export_ast_snapshot_from_scripts(const NovaMemoryScript* scripts, size_t count);
+```
+
+These functions return **AST JSON strings**, suitable for:
+
+- Visualizing syntax trees in editor / Creator tools
+- Debugging script parse results
+- Inspecting merged output from multi-file projects
+
+Specifically:
+
+- `nova_export_ast_snapshot_from_path`: export from a project path
+- `nova_export_ast_snapshot_from_scripts`: export from in-memory script arrays
+
+If the text contains `{{}}` interpolation or `{style:text}` inline styling, the exported AST snapshot preserves the corresponding text segment metadata.
+
 ## Callbacks
 
 ### nova_set_state_callback

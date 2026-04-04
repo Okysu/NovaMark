@@ -135,7 +135,22 @@ This means:
 @set met_spirit = true
 ```
 
-`@set` supports expressions, so you don't always need to create temporary variables.
+`@set` supports expressions, and now also uses **set-or-create** semantics: if the variable on the left side does not exist yet, it will be created in the current scope.
+
+For example:
+
+```nvm
+@set hp = 100
+@set gold = hp + 20
+```
+
+However, variables read on the **right side** must still already exist.
+
+```nvm
+@set hp = gold + 20 // still an error if gold is undefined
+```
+
+If you want to make it explicit that a piece of state is declared ahead of time, you can still use `@var`.
 
 ---
 

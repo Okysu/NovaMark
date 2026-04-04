@@ -127,6 +127,15 @@ void SemanticAnalyzer::define_variable_symbol(const VarDefNode* var) {
                     var->location(), scope);
 }
 
+void SemanticAnalyzer::ensure_variable_symbol(const std::string& name, SourceLocation loc) {
+    const std::string scope = m_symbols.current_variable_scope();
+    if (m_symbols.exists(name, scope)) {
+        return;
+    }
+
+    m_symbols.define(name, SymbolKind::Variable, std::move(loc), scope);
+}
+
 void SemanticAnalyzer::analyze_statement_sequence(const std::vector<AstPtr>& statements,
                                                  bool new_block_scope) {
     if (new_block_scope) {
@@ -294,10 +303,10 @@ void SemanticAnalyzer::check_node_references(const AstNode* node) {
         
         case NodeType::SetCommand: {
             auto set = as_set_cmd(node);
-            check_variable_ref(set->name(), set->location());
             if (set->value()) {
                 check_expression(set->value());
             }
+            ensure_variable_symbol(set->name(), set->location());
             break;
         }
         

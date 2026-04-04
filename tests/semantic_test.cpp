@@ -62,13 +62,30 @@ TEST_F(SemanticTest, VariableDefinition) {
     EXPECT_TRUE(result.success);
 }
 
-TEST_F(SemanticTest, UndefinedVariable) {
+TEST_F(SemanticTest, SetCreatesVariableWhenMissing) {
     auto result = analyze(
         "#scene_test \"Test\"\n"
         "@set hp = 100\n"
     );
+    EXPECT_TRUE(result.success) << result.diagnostics.to_string();
+}
+
+TEST_F(SemanticTest, SetReadStillRequiresExistingVariable) {
+    auto result = analyze(
+        "#scene_test \"Test\"\n"
+        "@set hp = gold + 1\n"
+    );
     EXPECT_FALSE(result.success);
     EXPECT_EQ(result.diagnostics.error_count(), 1u);
+}
+
+TEST_F(SemanticTest, SetCreatedVariableCanBeUsedLater) {
+    auto result = analyze(
+        "#scene_test \"Test\"\n"
+        "@set hp = 100\n"
+        "@set mp = hp + 5\n"
+    );
+    EXPECT_TRUE(result.success) << result.diagnostics.to_string();
 }
 
 // ============================================
@@ -291,6 +308,19 @@ TEST_F(SemanticTest, CheckBranchVariableSequentialUse) {
         "@check false\n"
         "@fail\n"
         "  @var san_loss = 3\n"
+        "  @set SAN = SAN - san_loss\n"
+        "@endcheck\n"
+    );
+    EXPECT_TRUE(result.success) << result.diagnostics.to_string();
+}
+
+TEST_F(SemanticTest, CheckBranchSetCreatesScopedVariableAndAllowsLaterReadsInSameBlock) {
+    auto result = analyze(
+        "@var SAN = 60\n"
+        "#scene_test \"Test\"\n"
+        "@check true\n"
+        "@success\n"
+        "  @set san_loss = 1\n"
         "  @set SAN = SAN - san_loss\n"
         "@endcheck\n"
     );

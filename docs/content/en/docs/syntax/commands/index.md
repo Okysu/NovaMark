@@ -243,7 +243,7 @@ Play a sound effect.
 
 ### @set - Modify Variable
 
-Modify variable value.
+Modify a variable value. If the variable does not exist yet, `@set` creates it in the current scope.
 
 ```nvm
 @set hp = 80
@@ -252,6 +252,19 @@ Modify variable value.
 ```
 
 Supports: `+`, `-`, `*`, `/`, `%`
+
+Notes:
+
+- The variable name on the left side uses set-or-create semantics
+- Variable references on the right side must still already be available
+
+For example:
+
+```nvm
+@set hp = 100         // creates hp if it does not exist yet
+@set mp = hp + 10     // valid because hp now exists
+@set gold = coins + 1 // still an error if coins is undefined
+```
 
 ---
 

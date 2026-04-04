@@ -53,6 +53,8 @@ private:
 
     /// @brief 在当前作用域中定义变量
     void define_variable_symbol(const VarDefNode* var);
+
+    void ensure_variable_symbol(const std::string& name, SourceLocation loc);
     
     /// @brief 检查单个节点中的引用
     void check_node_references(const AstNode* node);
