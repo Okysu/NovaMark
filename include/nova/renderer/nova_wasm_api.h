@@ -90,6 +90,11 @@ NOVA_WASM_API int nova_is_ended(void* vm);
 /// @return 结局 ID，NULL 表示无结局
 NOVA_WASM_API const char* nova_get_ending_id(void* vm);
 
+/// @brief 获取结局标题（如果游戏已结束且有结局）
+/// @param vm VM 实例
+/// @return 结局标题，NULL 表示无标题
+NOVA_WASM_API const char* nova_get_ending_title(void* vm);
+
 NOVA_WASM_API const char* nova_get_default_font(void* vm);
 
 NOVA_WASM_API int nova_get_default_font_size(void* vm);

@@ -13,7 +13,7 @@ using json = nlohmann::json;
 namespace {
 
 constexpr char SAVE_MAGIC[] = "NVMSAVE";
-constexpr uint32_t SAVE_VERSION = 3;
+constexpr uint32_t SAVE_VERSION = 4;
 
 template<typename T>
 void write_pod(std::vector<uint8_t>& out, const T& value) {
@@ -225,6 +225,7 @@ std::string GameStateSerializer::serialize(const GameState& state) {
     j["currentTheme"] = state.currentTheme;
     j["themeProperties"] = state.themeProperties;
     j["ending"] = state.ending;
+    j["endingTitle"] = state.endingTitle;
     j["sprites"] = json::array();
     for (const auto& sp : state.sprites) {
         json sprite = {{"id", sp.id}};
@@ -299,6 +300,7 @@ bool GameStateSerializer::deserialize(const std::string& jsonStr, GameState& sta
         }
         state.themeProperties = j.value("themeProperties", std::unordered_map<std::string, std::string>{});
         if (j.contains("ending") && !j["ending"].is_null()) state.ending = j["ending"].get<std::string>();
+        if (j.contains("endingTitle") && !j["endingTitle"].is_null()) state.endingTitle = j["endingTitle"].get<std::string>();
 
         state.sprites.clear();
         if (j.contains("sprites")) {
@@ -491,6 +493,7 @@ std::vector<uint8_t> GameStateSerializer::serializeSaveBinary(const SaveData& sa
         }
     }
     write_pod(out, save.state.ending.has_value()); if (save.state.ending) write_string(out, *save.state.ending);
+    write_optional_string(out, save.state.endingTitle);
     write_call_stack(out, save.state.callStack);
     write_map_string_key(out, save.state.numberVariables);
     write_string_map(out, save.state.stringVariables);
@@ -513,7 +516,7 @@ bool GameStateSerializer::deserializeSaveBinary(const std::vector<uint8_t>& data
     offset += sizeof(SAVE_MAGIC) - 1;
 
     uint32_t version = 0;
-    if (!read_pod(data, offset, version) || (version != 1 && version != 2 && version != SAVE_VERSION)) {
+    if (!read_pod(data, offset, version) || (version != 1 && version != 2 && version != 3 && version != SAVE_VERSION)) {
         return false;
     }
 
@@ -671,6 +674,12 @@ bool GameStateSerializer::deserializeSaveBinary(const std::vector<uint8_t>& data
             return false;
         }
         save.state.ending = std::move(ending);
+    }
+
+    if (version >= 4) {
+        if (!read_optional_string(data, offset, save.state.endingTitle)) {
+            return false;
+        }
     }
 
     if (!read_call_stack(data, offset, save.state.callStack) ||

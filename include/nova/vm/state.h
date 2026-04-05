@@ -111,6 +111,7 @@ struct NovaState {
     std::optional<ChoiceState> choice;
     
     std::optional<std::string> ending;
+    std::optional<std::string> endingTitle;
     
     void clear() {
         status = VMStatus::Running;
@@ -122,6 +123,7 @@ struct NovaState {
         dialogue.reset();
         choice.reset();
         ending.reset();
+        endingTitle.reset();
     }
     
     void clearDialogue() {

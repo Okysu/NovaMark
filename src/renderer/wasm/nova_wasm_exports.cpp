@@ -183,6 +183,12 @@ const char* nova_get_ending_id(void* vm) {
     return nova_vm->state().ending->c_str();
 }
 
+const char* nova_get_ending_title(void* vm) {
+    auto* nova_vm = cast_vm(vm);
+    if (!nova_vm || !nova_vm->state().endingTitle.has_value()) return nullptr;
+    return nova_vm->state().endingTitle->c_str();
+}
+
 const char* nova_get_default_font(void* vm) {
     auto* nova_vm = cast_vm(vm);
     if (!nova_vm) return "sans-serif";

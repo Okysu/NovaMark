@@ -30,6 +30,7 @@ struct GameState {
     std::optional<DialogueState> dialogue;
     std::optional<ChoiceState> choice;
     std::optional<std::string> ending;
+    std::optional<std::string> endingTitle;
     
     std::vector<std::pair<std::string, size_t>> callStack;
     
@@ -58,6 +59,7 @@ struct GameState {
         dialogue.reset();
         choice.reset();
         ending.reset();
+        endingTitle.reset();
         callStack.clear();
         numberVariables.clear();
         stringVariables.clear();
