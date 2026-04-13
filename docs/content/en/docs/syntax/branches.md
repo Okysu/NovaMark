@@ -17,6 +17,19 @@ Let players make choices that affect the story direction.
 - [Option text] -> .label
 ```
 
+In addition to single-line options, NovaMark now supports **block-style options** for flows such as “update state first, then jump”.
+
+```nvm
+? 1. Feeling uneasy, worried, or irritable
+- [Never]
+  @set score = score + 0
+  -> .q2
+- [Sometimes]
+  @set score = score + 1
+  @flag answered_q1
+  -> .q2
+```
+
 ### Example
 
 ```nvm
@@ -46,10 +59,71 @@ Some options can be shown or disabled based on conditions:
 ? How do you proceed?
 - [Continue forward] -> .continue
 - [Use key] -> .use_key
-- [Use magic stone] if has_item("magic_stone") -> .use_stone
+- [Use magic stone] -> .use_stone if has_item("magic_stone")
 ```
 
 **Condition syntax**: `if condition_expression`
+
+Block-style options also support a condition in the option header:
+
+```nvm
+? How do you proceed?
+- [Use key] if has_item("key")
+  @flag used_key
+  -> .open_door
+- [Leave]
+  -> .leave
+```
+
+### Block-Style Options
+
+Use a block-style option when you want to execute a small whitelist of actions after selection, then jump.
+
+```nvm
+? Stress test
+- [Never]
+  @set score = score + 0
+  -> .q2
+- [Constantly]
+  @set score = score + 3
+  @flag high_stress
+  -> .q2
+```
+
+The execution order is fixed:
+
+1. The player selects the option
+2. The actions in the block run in order
+3. The final `-> target` runs
+
+### Block-Style Option Restrictions
+
+The first version of block-style options has these constraints:
+
+- The last statement in the option block must be `-> target`
+- Before the final jump, only these actions are currently allowed:
+  - `@set`
+  - `@flag`
+  - `@give`
+  - `@take`
+- You cannot use `@bg`, `@check`, nested choices, or other statements inside the block
+- Single-line options and block-style options cannot be mixed together
+
+### Invalid Examples
+
+```nvm
+- [Sometimes]
+  @set score = score + 1
+```
+
+This is invalid because it is missing the trailing jump.
+
+```nvm
+- [Sometimes] -> .q2
+  @set score = score + 1
+```
+
+This is also invalid because a single-line option cannot be followed by an indented block.
 
 ### Choice Option Details
 
@@ -57,8 +131,9 @@ Some options can be shown or disabled based on conditions:
 |------|-------------|
 | `-` | Option start marker |
 | `[text]` | Option text shown to player |
-| `if condition` | Optional condition check |
 | `-> target` | Target to jump to after selection |
+| `if condition` | Optional condition check. In single-line syntax it comes after the target; in block-style syntax it appears in the option header |
+| indented block | Optional block body that allows `@set/@flag/@give/@take` before a final jump |
 
 ## Condition Check (@check)
 

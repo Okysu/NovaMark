@@ -95,7 +95,92 @@ The client can present it as:
 
 ---
 
-## 4. `@check`: Explicit Success/Failure Checks
+## 4. Block-Style Choices: Update State, Then Jump
+
+When you are building questionnaires, rating scales, personality tests, or score-based surveys, a plain jump is often not enough.
+
+For example, you may want to:
+
+- add points to `score` after an answer is selected
+- set a `flag`
+- then move to the next question
+
+In that case, you can use a **block-style option**:
+
+```nvm
+? 1. Feeling uneasy, worried, or irritable
+- [Never]
+  @set score = score + 0
+  -> .q2
+- [Sometimes]
+  @set score = score + 1
+  -> .q2
+- [Often]
+  @set score = score + 2
+  -> .q2
+- [Constantly]
+  @set score = score + 3
+  @flag stress_high
+  -> .q2
+```
+
+### How to Think About It
+
+- run a small amount of state update logic first
+- then jump to the next label or scene
+
+The execution order is fixed:
+
+> option selected → run block actions → run the final jump
+
+### When It Fits Best
+
+This is especially useful for:
+
+- mental health scales
+- stat-based questionnaires
+- affection/relationship scoring
+- lightweight survey scoring
+
+If the selected option leads to a larger narrative segment, media control, or more complex logic, a dedicated label is still the better fit.
+
+### Current Restrictions
+
+In the first version, block-style options only allow:
+
+- `@set`
+- `@flag`
+- `@give`
+- `@take`
+- a final `-> target`
+
+So this is valid:
+
+```nvm
+- [Show results]
+  @flag viewed_result
+  -> .evaluation
+```
+
+This is now also valid:
+
+```nvm
+- [Use potion]
+  @give potion 1
+  -> .next
+```
+
+This is still not supported:
+
+```nvm
+- [Change background]
+  @bg room_day.png
+  -> .next
+```
+
+---
+
+## 5. `@check`: Explicit Success/Failure Checks
 
 When you want to express "this isn't just a condition, it's a check," use `@check`.
 
@@ -124,7 +209,7 @@ Compared to regular `if`, it's better suited for:
 
 ---
 
-## 5. Formal Syntax for `@check`
+## 6. Formal Syntax for `@check`
 
 ```nvm
 @check condition_expression
@@ -143,7 +228,7 @@ Not the older bare keyword style.
 
 ---
 
-## 6. What Conditions Can You Use in Checks
+## 7. What Conditions Can You Use in Checks
 
 ### 6.1 Numeric Comparison
 
@@ -171,7 +256,7 @@ Not the older bare keyword style.
 
 ---
 
-## 7. When to Use Which
+## 8. When to Use Which
 
 This is the most important practical question.
 
@@ -183,13 +268,15 @@ When you just want to decide "whether to execute some content" based on state.
 
 When you want the player to actively decide where to go or what to do next.
 
+If a choice only needs “a small amount of state update + a jump”, prefer a block-style option.
+
 ### Use `@check`
 
 When you want to express a check with clear success/failure semantics.
 
 ---
 
-## 8. A Combined Example
+## 9. A Combined Example
 
 ```nvm
 ? How do you handle this door?
