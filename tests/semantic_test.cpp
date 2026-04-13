@@ -228,6 +228,26 @@ TEST_F(SemanticTest, BlockStyleChoiceOptionIsValid) {
     EXPECT_TRUE(result.success) << result.diagnostics.to_string();
 }
 
+TEST_F(SemanticTest, BlockStyleChoiceOptionAllowsGiveAndTake) {
+    auto result = analyze(
+        "#scene_test \"Test\"\n"
+        "@item potion\n"
+        "  name: \"Potion\"\n"
+        "@end\n"
+        "@item coin\n"
+        "  name: \"Coin\"\n"
+        "@end\n"
+        "? 你最近如何？\n"
+        "- [交出药水]\n"
+        "  @take potion 1\n"
+        "  @give coin 5\n"
+        "  -> .next\n"
+        ".next\n"
+        "> 下一题\n"
+    );
+    EXPECT_TRUE(result.success) << result.diagnostics.to_string();
+}
+
 TEST_F(SemanticTest, BlockStyleChoiceOptionRequiresTrailingJump) {
     auto result = analyze(
         "@var score = 0\n"
@@ -249,7 +269,7 @@ TEST_F(SemanticTest, BlockStyleChoiceOptionRejectsNonWhitelistedCommand) {
         "@end\n"
         "? 你最近如何？\n"
         "- [有时]\n"
-        "  @give potion 1\n"
+        "  @bg room_day.png\n"
         "  -> .next\n"
         ".next\n"
         "> 下一题\n"

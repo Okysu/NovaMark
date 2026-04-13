@@ -547,12 +547,16 @@ void SemanticAnalyzer::check_node_structure(const AstNode* node) {
                 for (size_t i = 0; i < body.size(); ++i) {
                     const auto* stmt = body[i].get();
                     const bool is_last = i + 1 == body.size();
-                    const bool is_allowed_action = stmt && (stmt->type() == NodeType::SetCommand || stmt->type() == NodeType::Flag);
+                    const bool is_allowed_action = stmt && (
+                        stmt->type() == NodeType::SetCommand ||
+                        stmt->type() == NodeType::Flag ||
+                        stmt->type() == NodeType::GiveCommand ||
+                        stmt->type() == NodeType::TakeCommand);
                     const bool is_jump = stmt && stmt->type() == NodeType::Jump;
 
                     if ((is_last && !is_jump) || (!is_last && !is_allowed_action)) {
                         m_diagnostics.error(SemanticError::InvalidChoiceAction,
-                            "block-style choice option only allows @set/@flag before a final '-> target'",
+                            "block-style choice option only allows @set/@flag/@give/@take before a final '-> target'",
                             stmt ? stmt->location() : opt_node->location());
                     }
                 }
