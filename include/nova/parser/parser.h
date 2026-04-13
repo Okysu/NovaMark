@@ -33,6 +33,8 @@ private:
     Result<AstPtr> parse_scene_def();
     Result<AstPtr> parse_choice();
     Result<AstPtr> parse_choice_option();
+    Result<std::string> parse_choice_target();
+    Result<std::vector<AstPtr>> parse_choice_option_body(int parent_column);
     Result<AstPtr> parse_if();
     Result<AstPtr> parse_char_def();
     Result<AstPtr> parse_item_def();

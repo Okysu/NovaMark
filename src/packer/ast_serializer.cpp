@@ -187,6 +187,12 @@ void AstSerializer::serializeChoiceOption(const ChoiceOptionNode* node) {
         m_writer.writeByte(0);
     }
 
+    uint32_t bodyCount = static_cast<uint32_t>(node->body().size());
+    m_writer.writeU32(bodyCount);
+    for (const auto& stmt : node->body()) {
+        serializeNode(stmt.get());
+    }
+
     if (node->interpolated_text() && !node->interpolated_text()->segments().empty()) {
         uint32_t segCount = static_cast<uint32_t>(node->interpolated_text()->segments().size());
         m_writer.writeU32(segCount);
@@ -676,10 +682,18 @@ std::unique_ptr<ChoiceNode> AstDeserializer::deserializeChoice() {
         auto optNode = std::make_unique<ChoiceOptionNode>(SourceLocation{}, 
             text, std::move(target), std::move(condition));
 
+        uint32_t bodyCount = m_reader->readU32();
+        for (uint32_t j = 0; j < bodyCount && !m_hasError; ++j) {
+            auto stmt = deserializeNode();
+            if (stmt) {
+                optNode->add_body_statement(std::move(stmt));
+            }
+        }
+
         uint32_t segCount = m_reader->readU32();
         if (segCount > 0) {
             auto interp = std::make_unique<InterpolatedTextNode>(SourceLocation{});
-            for (uint32_t j = 0; j < segCount && !m_hasError; ++j) {
+            for (uint32_t k = 0; k < segCount && !m_hasError; ++k) {
                 auto segType = static_cast<InterpolatedTextNode::Segment::Type>(m_reader->readByte());
                 std::string content = m_reader->readString();
                 uint8_t hasExpr = m_reader->readByte();

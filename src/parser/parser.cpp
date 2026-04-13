@@ -295,6 +295,15 @@ Result<AstPtr> Parser::parse_choice() {
             return option_result;
         }
         choice->add_option(std::move(option_result.unwrap()));
+
+        while (check(TokenType::Newline)) {
+            advance();
+        }
+
+        if (!at_end() && current().location.column > loc.column && !check(TokenType::Minus)) {
+            return make_error<AstPtr>(ErrorKind::UnexpectedToken,
+                "single-line choice options cannot be followed by an indented block; use block-style choice syntax instead");
+        }
     }
     
     return Ok(AstPtr(choice.release()));
@@ -348,27 +357,35 @@ Result<AstPtr> Parser::parse_choice_option() {
     if (!match(TokenType::RightBracket)) {
         return make_error<AstPtr>(ErrorKind::ExpectedToken, "expected ']' after choice text");
     }
-    
-    if (!match(TokenType::Arrow)) {
-        return make_error<AstPtr>(ErrorKind::ExpectedToken, "expected '->' after choice text");
-    }
-    
-    std::string target;
-    if (check(TokenType::Dot)) {
-        advance();
-        if (!check(TokenType::Identifier)) {
-            return make_error<AstPtr>(ErrorKind::ExpectedToken, "expected label name after '.'");
-        }
-        target = "." + current().value;
-        advance();
-    } else if (check(TokenType::Identifier)) {
-        target = current().value;
-        advance();
-    } else {
-        return make_error<AstPtr>(ErrorKind::ExpectedToken, "expected target scene name or label");
-    }
-    
+
     AstPtr condition;
+
+    if (check(TokenType::Arrow)) {
+        advance();
+
+        auto target_result = parse_choice_target();
+        if (target_result.is_err()) {
+            return Result<AstPtr>(target_result.error());
+        }
+
+        if (check(TokenType::KwIf)) {
+            advance();
+            auto expr_result = parse_expression();
+            if (expr_result.is_err()) {
+                return expr_result;
+            }
+            condition = std::move(expr_result.unwrap());
+        }
+
+        if (check(TokenType::Newline)) advance();
+
+        auto node = std::make_unique<ChoiceOptionNode>(loc, text, std::move(target_result.unwrap()), std::move(condition));
+        if (text.find("{{") != std::string::npos) {
+            node->set_interpolated_text(parse_interpolated_text(text));
+        }
+        return Ok(AstPtr(node.release()));
+    }
+
     if (check(TokenType::KwIf)) {
         advance();
         auto expr_result = parse_expression();
@@ -377,14 +394,82 @@ Result<AstPtr> Parser::parse_choice_option() {
         }
         condition = std::move(expr_result.unwrap());
     }
-    
-    if (check(TokenType::Newline)) advance();
-    
-    auto node = std::make_unique<ChoiceOptionNode>(loc, text, std::move(target), std::move(condition));
+
+    if (!match(TokenType::Newline)) {
+        return make_error<AstPtr>(ErrorKind::ExpectedToken,
+            "expected '->' after choice text or a newline to start block-style choice syntax");
+    }
+
+    auto body_result = parse_choice_option_body(loc.column);
+    if (body_result.is_err()) {
+        return Result<AstPtr>(body_result.error());
+    }
+
+    auto node = std::make_unique<ChoiceOptionNode>(loc, text, "", std::move(condition));
     if (text.find("{{") != std::string::npos) {
         node->set_interpolated_text(parse_interpolated_text(text));
     }
+
+    for (auto& stmt : body_result.unwrap()) {
+        node->add_body_statement(std::move(stmt));
+    }
+
     return Ok(AstPtr(node.release()));
+}
+
+Result<std::string> Parser::parse_choice_target() {
+    std::string target;
+    if (check(TokenType::Dot)) {
+        advance();
+        if (!check(TokenType::Identifier)) {
+            return make_error<std::string>(ErrorKind::ExpectedToken, "expected label name after '.'");
+        }
+        target = "." + current().value;
+        advance();
+    } else if (check(TokenType::Identifier)) {
+        target = current().value;
+        advance();
+    } else {
+        return make_error<std::string>(ErrorKind::ExpectedToken, "expected target scene name or label");
+    }
+
+    return Ok(std::move(target));
+}
+
+Result<std::vector<AstPtr>> Parser::parse_choice_option_body(int parent_column) {
+    std::vector<AstPtr> body;
+
+    while (check(TokenType::Newline)) {
+        advance();
+    }
+
+    while (!at_end()) {
+        if (check(TokenType::Newline)) {
+            advance();
+            continue;
+        }
+
+        if (current().location.column <= parent_column) {
+            break;
+        }
+
+        auto stmt_result = parse_statement();
+        if (stmt_result.is_err()) {
+            return Result<std::vector<AstPtr>>(stmt_result.error());
+        }
+        body.push_back(std::move(stmt_result.unwrap()));
+
+        while (check(TokenType::Newline)) {
+            advance();
+        }
+    }
+
+    if (body.empty()) {
+        return make_error<std::vector<AstPtr>>(ErrorKind::ExpectedToken,
+            "expected indented choice option body");
+    }
+
+    return Ok(std::move(body));
 }
 
 Result<AstPtr> Parser::parse_directive() {

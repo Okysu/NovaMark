@@ -40,6 +40,10 @@ protected:
     const ChoiceNode* as_choice(const AstNode* node) {
         return dynamic_cast<const ChoiceNode*>(node);
     }
+
+    const ChoiceOptionNode* as_choice_option(const AstNode* node) {
+        return dynamic_cast<const ChoiceOptionNode*>(node);
+    }
     
     const VarDefNode* as_var_def(const AstNode* node) {
         return dynamic_cast<const VarDefNode*>(node);
@@ -297,6 +301,55 @@ TEST_F(ParserTest, ChoiceWithCondition) {
     auto choice = as_choice(program->statements()[0].get());
     ASSERT_NE(choice, nullptr);
     ASSERT_EQ(choice->options().size(), 1u);
+}
+
+TEST_F(ParserTest, BlockStyleChoiceOptionParsesBody) {
+    auto result = parse(
+        "? 你最近如何？\n"
+        "- [有时]\n"
+        "  @set score = score + 1\n"
+        "  @flag answered\n"
+        "  -> .q2\n"
+        ".q2\n"
+        "> 下一题\n"
+    );
+    ASSERT_TRUE(result.is_ok()) << result.error().message;
+    auto program = as_program(result.unwrap());
+    ASSERT_NE(program, nullptr);
+    auto choice = as_choice(program->statements()[0].get());
+    ASSERT_NE(choice, nullptr);
+    ASSERT_EQ(choice->options().size(), 1u);
+
+    auto option = as_choice_option(choice->options()[0].get());
+    ASSERT_NE(option, nullptr);
+    EXPECT_EQ(option->target(), "");
+    ASSERT_EQ(option->body().size(), 3u);
+    EXPECT_EQ(option->body()[0]->type(), NodeType::SetCommand);
+    EXPECT_EQ(option->body()[1]->type(), NodeType::Flag);
+    EXPECT_EQ(option->body()[2]->type(), NodeType::Jump);
+    auto jump = as_jump(option->body()[2].get());
+    ASSERT_NE(jump, nullptr);
+    EXPECT_EQ(jump->target(), ".q2");
+}
+
+TEST_F(ParserTest, BlockStyleChoiceOptionParsesHeaderCondition) {
+    auto result = parse(
+        "? 你最近如何？\n"
+        "- [有时] if score < 3\n"
+        "  @set score = score + 1\n"
+        "  -> .q2\n"
+        ".q2\n"
+        "> 下一题\n"
+    );
+    ASSERT_TRUE(result.is_ok()) << result.error().message;
+    auto program = as_program(result.unwrap());
+    ASSERT_NE(program, nullptr);
+    auto choice = as_choice(program->statements()[0].get());
+    ASSERT_NE(choice, nullptr);
+    auto option = as_choice_option(choice->options()[0].get());
+    ASSERT_NE(option, nullptr);
+    ASSERT_NE(option->condition(), nullptr);
+    ASSERT_EQ(option->body().size(), 2u);
 }
 
 // ============================================

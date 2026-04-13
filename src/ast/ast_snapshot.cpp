@@ -164,6 +164,7 @@ json node_json(const AstNode* node) {
             result["text"] = option->text();
             result["target"] = option->target();
             result["condition"] = node_json(option->condition());
+            result["body"] = children_json(option->body());
             break;
         }
         case NodeType::Choice: {

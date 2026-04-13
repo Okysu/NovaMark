@@ -177,6 +177,33 @@ TEST_F(VMTest, InterpolationChoiceOptionResolvesVariable) {
     EXPECT_EQ(vm.state().choice->options[0].text, "Pay 50 gold");
 }
 
+TEST_F(VMTest, BlockStyleChoiceOptionExecutesPreludeBeforeJump) {
+    auto result = parse(
+        "@var score = 0\n"
+        "#scene_start \"Start\"\n"
+        "? 请选择\n"
+        "- [有时]\n"
+        "  @set score = score + 1\n"
+        "  @flag answered\n"
+        "  -> .next\n"
+        ".next\n"
+        "> Score: {{score}} / {{has_flag(\"answered\")}}\n"
+    );
+    ASSERT_TRUE(result.is_ok()) << result.error().message;
+
+    NovaVM vm;
+    vm.load(result.unwrap());
+    vm.advance();
+    ASSERT_TRUE(vm.state().choice.has_value());
+    ASSERT_EQ(vm.state().choice->options.size(), 1u);
+
+    ASSERT_TRUE(vm.choose("0"));
+    vm.advance();
+
+    ASSERT_TRUE(vm.state().dialogue.has_value());
+    EXPECT_EQ(vm.state().dialogue->text, "Score: 1 / true");
+}
+
 TEST_F(VMTest, InterpolationUnclosedBracesStaysPlainText) {
     auto result = parse(
         "#scene_start \"Start\"\n"

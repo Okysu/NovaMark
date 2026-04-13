@@ -576,37 +576,41 @@ void NovaVM::advance() {
     }
 }
 
-namespace {
-void select_choice_by_index(nova::NovaVM& vm, int index) {
-    auto& state = const_cast<nova::NovaState&>(vm.state());
-    if (state.status != nova::VMStatus::WaitingChoice || !state.choice) return;
-
-    if (index < 0 || index >= static_cast<int>(state.choice->options.size())) return;
-
-    nova::ChoiceOption opt = state.choice->options[index];
-    state.clearChoice();
-    state.clearDialogue();
-    state.status = nova::VMStatus::Running;
-
-    if (!opt.target.empty() && opt.target[0] == '.') {
-        vm.jumpToLabel(opt.target.substr(1));
-    } else {
-        vm.jumpToScene(opt.target);
-    }
-}
-}
-
 bool NovaVM::choose(const std::string& choiceId) {
     if (m_state.status != VMStatus::WaitingChoice || !m_state.choice) return false;
 
     for (int i = 0; i < static_cast<int>(m_state.choice->options.size()); ++i) {
         if (m_state.choice->options[i].id == choiceId) {
-            select_choice_by_index(*this, i);
-            return true;
+            return selectChoiceByIndex(i);
         }
     }
 
     return false;
+}
+
+bool NovaVM::selectChoiceByIndex(int index) {
+    if (m_state.status != VMStatus::WaitingChoice || !m_state.choice) return false;
+    if (index < 0 || index >= static_cast<int>(m_state.choice->options.size())) return false;
+
+    ChoiceOption opt = m_state.choice->options[static_cast<size_t>(index)];
+    const ChoiceOptionNode* opt_node = static_cast<size_t>(index) < m_activeChoiceOptions.size()
+        ? m_activeChoiceOptions[static_cast<size_t>(index)]
+        : nullptr;
+
+    m_state.clearChoice();
+    m_state.clearDialogue();
+    m_state.status = VMStatus::Running;
+
+    if (opt_node && !opt_node->body().empty()) {
+        prependPendingStatements(opt_node->body());
+        return true;
+    }
+
+    if (!opt.target.empty() && opt.target[0] == '.') {
+        return jumpToLabel(opt.target.substr(1));
+    }
+
+    return jumpToScene(opt.target);
 }
 
 void NovaVM::setEntryPoint(const std::string& sceneName) {
@@ -683,6 +687,7 @@ void NovaVM::reset() {
     m_callStack.clear();
     m_dialogueManagedSprites.clear();
     m_pendingStatements.clear();
+    m_activeChoiceOptions.clear();
     markRuntimeStateChanged(RuntimeStateChangeVariables | RuntimeStateChangeInventory);
 }
 
@@ -820,6 +825,7 @@ void NovaVM::executeChoice(const ChoiceNode* node) {
     ChoiceState choice;
     choice.isShow = true;
     choice.question = node->question();
+    m_activeChoiceOptions.clear();
     
     int idx = 0;
     for (const auto& opt : node->options()) {
@@ -833,6 +839,7 @@ void NovaVM::executeChoice(const ChoiceNode* node) {
             co.target = optNode->target();
             co.disabled = optNode->condition() && !evaluateCondition(optNode->condition());
             choice.options.push_back(co);
+            m_activeChoiceOptions.push_back(optNode);
         }
     }
     

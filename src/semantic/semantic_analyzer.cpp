@@ -54,6 +54,10 @@ const SetCommandNode* as_set_cmd(const AstNode* node) {
     return dynamic_cast<const SetCommandNode*>(node);
 }
 
+const FlagNode* as_flag_cmd(const AstNode* node) {
+    return dynamic_cast<const FlagNode*>(node);
+}
+
 const GiveCommandNode* as_give_cmd(const AstNode* node) {
     return dynamic_cast<const GiveCommandNode*>(node);
 }
@@ -282,9 +286,14 @@ void SemanticAnalyzer::check_node_references(const AstNode* node) {
             for (const auto& opt : choice->options()) {
                 auto opt_node = as_choice_option(opt.get());
                 if (opt_node) {
-                    check_jump_target(opt_node->target(), opt_node->location());
+                    if (!opt_node->target().empty()) {
+                        check_jump_target(opt_node->target(), opt_node->location());
+                    }
                     if (opt_node->condition()) {
                         check_expression(opt_node->condition());
+                    }
+                    if (!opt_node->body().empty()) {
+                        analyze_statement_sequence(opt_node->body(), true);
                     }
                 }
             }
@@ -509,6 +518,44 @@ void SemanticAnalyzer::check_node_structure(const AstNode* node) {
             if (choice->options().empty()) {
                 m_diagnostics.error(SemanticError::EmptyChoice,
                     "choice must have at least one option", choice->location());
+            }
+
+            for (const auto& opt : choice->options()) {
+                auto opt_node = as_choice_option(opt.get());
+                if (!opt_node) {
+                    continue;
+                }
+
+                if (opt_node->body().empty()) {
+                    if (opt_node->target().empty()) {
+                        m_diagnostics.error(SemanticError::MissingChoiceTarget,
+                            "choice option must have a target or end with '-> target' in block-style syntax",
+                            opt_node->location());
+                    }
+                    continue;
+                }
+
+                const auto& body = opt_node->body();
+                const auto* last_stmt = body.back().get();
+                if (!last_stmt || last_stmt->type() != NodeType::Jump) {
+                    m_diagnostics.error(SemanticError::MissingChoiceTarget,
+                        "block-style choice option must end with '-> target'",
+                        opt_node->location());
+                    continue;
+                }
+
+                for (size_t i = 0; i < body.size(); ++i) {
+                    const auto* stmt = body[i].get();
+                    const bool is_last = i + 1 == body.size();
+                    const bool is_allowed_action = stmt && (stmt->type() == NodeType::SetCommand || stmt->type() == NodeType::Flag);
+                    const bool is_jump = stmt && stmt->type() == NodeType::Jump;
+
+                    if ((is_last && !is_jump) || (!is_last && !is_allowed_action)) {
+                        m_diagnostics.error(SemanticError::InvalidChoiceAction,
+                            "block-style choice option only allows @set/@flag before a final '-> target'",
+                            stmt ? stmt->location() : opt_node->location());
+                    }
+                }
             }
             break;
         }

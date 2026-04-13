@@ -346,6 +346,16 @@ class NovaRenderer {
         return this.getString(this.vm._nova_wasm_get_sprite_position(index));
     }
 
+    getEndingId() {
+        const ptr = this.vm._nova_wasm_get_ending_id();
+        return ptr ? this.getString(ptr) : null;
+    }
+
+    getEndingTitle() {
+        const ptr = this.vm._nova_wasm_get_ending_title();
+        return ptr ? this.getString(ptr) : null;
+    }
+
     async playBgm(assetName, loop, volume) {
         if (this.currentBgmUrl === assetName) return;
 

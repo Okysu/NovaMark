@@ -213,6 +213,67 @@ TEST_F(SemanticTest, EmptyChoice) {
     EXPECT_FALSE(result.success);
 }
 
+TEST_F(SemanticTest, BlockStyleChoiceOptionIsValid) {
+    auto result = analyze(
+        "@var score = 0\n"
+        "#scene_test \"Test\"\n"
+        "? 你最近如何？\n"
+        "- [有时]\n"
+        "  @set score = score + 1\n"
+        "  @flag answered\n"
+        "  -> .next\n"
+        ".next\n"
+        "> 下一题\n"
+    );
+    EXPECT_TRUE(result.success) << result.diagnostics.to_string();
+}
+
+TEST_F(SemanticTest, BlockStyleChoiceOptionRequiresTrailingJump) {
+    auto result = analyze(
+        "@var score = 0\n"
+        "#scene_test \"Test\"\n"
+        "? 你最近如何？\n"
+        "- [有时]\n"
+        "  @set score = score + 1\n"
+        ".next\n"
+        "> 下一题\n"
+    );
+    EXPECT_FALSE(result.success);
+}
+
+TEST_F(SemanticTest, BlockStyleChoiceOptionRejectsNonWhitelistedCommand) {
+    auto result = analyze(
+        "#scene_test \"Test\"\n"
+        "@item potion\n"
+        "  name: \"Potion\"\n"
+        "@end\n"
+        "? 你最近如何？\n"
+        "- [有时]\n"
+        "  @give potion 1\n"
+        "  -> .next\n"
+        ".next\n"
+        "> 下一题\n"
+    );
+    EXPECT_FALSE(result.success);
+}
+
+TEST_F(SemanticTest, CheckCommandSupportsBlockStyleChoiceOption) {
+    auto result = analyze(
+        "@var score = 0\n"
+        "#scene_test \"Test\"\n"
+        "@check true\n"
+        "@success\n"
+        "? 你最近如何？\n"
+        "- [有时]\n"
+        "  @set score = score + 1\n"
+        "  -> .next\n"
+        "@endcheck\n"
+        ".next\n"
+        "> 下一题\n"
+    );
+    EXPECT_TRUE(result.success) << result.diagnostics.to_string();
+}
+
 // ============================================
 // 函数调用测试
 // ============================================

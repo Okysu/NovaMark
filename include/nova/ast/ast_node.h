@@ -259,12 +259,16 @@ public:
     const AstNode* condition() const { return m_condition.get(); }
     const InterpolatedTextNode* interpolated_text() const { return m_interpolated_text.get(); }
     void set_interpolated_text(std::unique_ptr<InterpolatedTextNode> t) { m_interpolated_text = std::move(t); }
+    std::vector<AstPtr>& body() { return m_body; }
+    const std::vector<AstPtr>& body() const { return m_body; }
+    void add_body_statement(AstPtr stmt) { m_body.push_back(std::move(stmt)); }
 
 private:
     std::string m_text;
     std::string m_target;
     AstPtr m_condition;
     std::unique_ptr<InterpolatedTextNode> m_interpolated_text;
+    std::vector<AstPtr> m_body;
 };
 
 /// @brief 选择分支节点

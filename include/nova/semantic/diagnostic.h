@@ -30,6 +30,8 @@ enum class SemanticError {
     MissingSuccessBranch,
     MissingFailBranch,
     EmptyChoice,
+    MissingChoiceTarget,
+    InvalidChoiceAction,
     UnreachableCode,
     UnusedVariable,
 };

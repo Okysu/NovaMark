@@ -150,6 +150,7 @@ private:
     std::vector<std::pair<std::string, size_t>> m_callStack;
     std::unordered_set<std::string> m_dialogueManagedSprites;
     std::deque<const AstNode*> m_pendingStatements;
+    std::vector<const ChoiceOptionNode*> m_activeChoiceOptions;
 
     uint64_t m_runtimeStateVersion = 0;
     int m_runtimeStateChangeFlags = RuntimeStateChangeNone;
@@ -160,6 +161,7 @@ private:
     void applyFrontMatterDefaults();
     void clearDialogueManagedSprites();
     void prependPendingStatements(const std::vector<AstPtr>& statements);
+    bool selectChoiceByIndex(int index);
     void executeStatement(const AstNode* node);
     void executeDialogue(const DialogueNode* node);
     void executeNarrator(const NarratorNode* node);
