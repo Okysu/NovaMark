@@ -23,6 +23,10 @@ std::string indent(size_t depth) {
     return std::string(depth * INDENT_WIDTH, ' ');
 }
 
+std::string reserved_none_sentinel_literal() {
+    return "\"" + std::string(RESERVED_NONE_SENTINEL) + "\"";
+}
+
 std::string escape_string(const std::string& text) {
     std::string escaped;
     escaped.reserve(text.size());
@@ -102,7 +106,7 @@ std::optional<std::string> extract_call_argument(const std::string& value, const
     return raw;
 }
 
-std::string normalize_literal_booleans_and_nulls(const std::string& value) {
+std::string normalize_literal_booleans_and_none_sentinel(const std::string& value) {
     std::string result;
     result.reserve(value.size());
 
@@ -143,7 +147,7 @@ std::string normalize_literal_booleans_and_nulls(const std::string& value) {
             } else if (word == "False") {
                 result += "false";
             } else if (word == "None") {
-                result += "null";
+                result += reserved_none_sentinel_literal();
             } else {
                 result += word;
             }
@@ -312,7 +316,7 @@ bool rewrite_simple_assignment(const std::string& expression, std::string& rewri
             return false;
         }
 
-        rewritten = left + " = " + left + " " + std::string(1, token[0]) + " " + normalize_literal_booleans_and_nulls(right);
+        rewritten = left + " = " + left + " " + std::string(1, token[0]) + " " + normalize_literal_booleans_and_none_sentinel(right);
         return true;
     }
 
@@ -338,12 +342,12 @@ bool rewrite_simple_assignment(const std::string& expression, std::string& rewri
         return false;
     }
 
-    rewritten = left + " = " + normalize_literal_booleans_and_nulls(right);
+    rewritten = left + " = " + normalize_literal_booleans_and_none_sentinel(right);
     return true;
 }
 
 std::string normalize_expression(const std::string& expression) {
-    return normalize_literal_booleans_and_nulls(trim(expression));
+    return normalize_literal_booleans_and_none_sentinel(trim(expression));
 }
 
 std::string normalize_menu_condition_suffix(const std::string& condition) {

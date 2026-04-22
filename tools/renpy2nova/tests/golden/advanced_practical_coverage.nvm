@@ -5,7 +5,7 @@
 
 @var affection = true
 
-@var relic = null
+@var relic = "__RENPY2NOVA_RESERVED_NONE_SENTINEL__"
 
 #scene_start "start"
 @bg room transition:fade
@@ -14,7 +14,7 @@ if affection == true
     @bgm theme.ogg loop:true volume:0.75
     Eileen: 欢迎回来。
 else
-    if relic == null
+    if relic == "__RENPY2NOVA_RESERVED_NONE_SENTINEL__"
         @sfx door.wav volume:0.5
         > 你还没拿到遗物。
     else
@@ -24,7 +24,7 @@ else
 endif
 ? 接下来要做什么？
 - [继续前进] -> scene_next_scene if affection == true
-- [查看遗物] -> scene_relic_scene if relic != null
+- [查看遗物] -> scene_relic_scene if relic != "__RENPY2NOVA_RESERVED_NONE_SENTINEL__"
 @return
 
 #scene_next_scene "next_scene"

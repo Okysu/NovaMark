@@ -114,6 +114,10 @@ std::string normalize_newlines(std::string text) {
     return result;
 }
 
+std::string reserved_none_literal() {
+    return std::string("\"") + RESERVED_NONE_SENTINEL + "\"";
+}
+
 std::vector<char*> make_argv(std::vector<std::string>& args) {
     std::vector<char*> argv;
     argv.reserve(args.size());
@@ -854,6 +858,7 @@ TEST(Renpy2NovaAnalyzerTest, ClassifiesUnsupportedConstructsAndPythonMarkers) {
 }
 
 TEST(Renpy2NovaPipelineTest, AnalyzerEmitterAndConverterRemainCompileReady) {
+    const std::string none_literal = reserved_none_literal();
     const std::string source =
         "define e = Character(\"Eileen\", color=\"#C0FFEE\", image=\"eileen_default\")\n"
         "default affection = True\n"
@@ -881,19 +886,22 @@ TEST(Renpy2NovaPipelineTest, AnalyzerEmitterAndConverterRemainCompileReady) {
         "    image eileen happy = \"eileen_happy.png\"\n";
 
     const std::string expected_output =
-        "@char Eileen\n"
-        "    color: #C0FFEE\n"
-        "    sprite_default: eileen_default.png\n"
-        "@end\n"
+        std::string(
+            "@char Eileen\n"
+            "    color: #C0FFEE\n"
+            "    sprite_default: eileen_default.png\n"
+            "@end\n"
+            "\n"
+            "@var affection = true\n"
+            "\n"
+            "#scene_start \"start\"\n"
+            "@bg room transition:fade\n"
+            "@sprite eileen show happy position:left transition:dissolve\n"
+            "Eileen: Hello\n"
+            "> Narration\n"
+            "@set affinity = ")
+        + none_literal +
         "\n"
-        "@var affection = true\n"
-        "\n"
-        "#scene_start \"start\"\n"
-        "@bg room transition:fade\n"
-        "@sprite eileen show happy position:left transition:dissolve\n"
-        "Eileen: Hello\n"
-        "> Narration\n"
-        "@set affinity = null\n"
         "if affection == true\n"
         "    @bgm theme.ogg loop:true volume:0.8\n"
         "else\n"

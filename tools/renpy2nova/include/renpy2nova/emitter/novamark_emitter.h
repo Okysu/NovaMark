@@ -7,6 +7,9 @@
 
 namespace nova::renpy2nova {
 
+/// @brief renpy2nova 为 Ren'Py/Python None 保留的 NovaMark 字符串哨兵值。
+inline constexpr char RESERVED_NONE_SENTINEL[] = "__RENPY2NOVA_RESERVED_NONE_SENTINEL__";
+
 /// @brief NovaMark 输出生成器。
 class NovamarkEmitter {
 public:

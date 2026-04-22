@@ -1,12 +1,12 @@
 @var affinity = true
 
-@var seen_side = null
+@var seen_side = "__RENPY2NOVA_RESERVED_NONE_SENTINEL__"
 
 #scene_start "start"
 > 你想做什么？
 ? 请选择路线
 - [前往主线] -> scene_main_route if affinity == true
-- [查看支线] if seen_side == null
+- [查看支线] if seen_side == "__RENPY2NOVA_RESERVED_NONE_SENTINEL__"
     @call scene_side_story
 @return
 
