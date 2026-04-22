@@ -1,0 +1,23 @@
+@var clue_ready = false
+
+@var visited_secret = false
+
+#scene_start "start"
+> 你要先做什么？
+? 请选择行动
+- [直接前进] -> scene_main_route
+- [准备后调查]
+    @set clue_ready = true
+    @call scene_secret_route
+@return
+
+#scene_main_route "main_route"
+> 你继续前进。
+@return
+
+#scene_secret_route "secret_route"
+if clue_ready == true
+    @set visited_secret = true
+endif
+> 你带着准备好的线索进入支线。
+@return

@@ -100,14 +100,36 @@ The execution order is fixed:
 
 The first version of block-style options has these constraints:
 
-- The last statement in the option block must be `-> target`
-- Before the final jump, only these actions are currently allowed:
+- The last statement in the option block must be one of:
+  - `-> target` (jump to a label or scene)
+  - `@call scene` (invoke a sub-scene)
+- Before the terminal statement, only the following prelude commands are allowed:
   - `@set`
   - `@flag`
   - `@give`
   - `@take`
+- `@return` is not allowed inside a choice body
+- Nothing may follow `@call` within the same choice block
 - You cannot use `@bg`, `@check`, nested choices, or other statements inside the block
 - Single-line options and block-style options cannot be mixed together
+
+### Valid Examples
+
+Ending with `-> target`:
+
+```nvm
+- [Use potion]
+  @give potion 1
+  -> .next
+```
+
+Ending with `@call scene`:
+
+```nvm
+- [Visit the shop]
+  @set visited_shop = true
+  @call shop_scene
+```
 
 ### Invalid Examples
 
@@ -116,7 +138,7 @@ The first version of block-style options has these constraints:
   @set score = score + 1
 ```
 
-This is invalid because it is missing the trailing jump.
+This is invalid because it is missing a terminal statement.
 
 ```nvm
 - [Sometimes] -> .q2
@@ -124,6 +146,14 @@ This is invalid because it is missing the trailing jump.
 ```
 
 This is also invalid because a single-line option cannot be followed by an indented block.
+
+```nvm
+- [Call and continue]
+  @call shop_scene
+  @set shop_visited = true
+```
+
+No statements are allowed after `@call` in the same choice body.
 
 ### Choice Option Details
 

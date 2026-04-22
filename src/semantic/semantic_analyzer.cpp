@@ -34,6 +34,10 @@ const JumpNode* as_jump(const AstNode* node) {
     return dynamic_cast<const JumpNode*>(node);
 }
 
+const CallNode* as_call(const AstNode* node) {
+    return dynamic_cast<const CallNode*>(node);
+}
+
 const DialogueNode* as_dialogue(const AstNode* node) {
     return dynamic_cast<const DialogueNode*>(node);
 }
@@ -278,6 +282,12 @@ void SemanticAnalyzer::check_node_references(const AstNode* node) {
         case NodeType::Jump: {
             auto jump = as_jump(node);
             check_jump_target(jump->target(), jump->location());
+            break;
+        }
+
+        case NodeType::Call: {
+            auto call = as_call(node);
+            check_jump_target(call->target(), call->location());
             break;
         }
         
@@ -537,11 +547,14 @@ void SemanticAnalyzer::check_node_structure(const AstNode* node) {
 
                 const auto& body = opt_node->body();
                 const auto* last_stmt = body.back().get();
-                if (!last_stmt || last_stmt->type() != NodeType::Jump) {
+                const bool has_terminal_action = last_stmt && (
+                    last_stmt->type() == NodeType::Jump ||
+                    last_stmt->type() == NodeType::Call);
+
+                if (!has_terminal_action) {
                     m_diagnostics.error(SemanticError::MissingChoiceTarget,
-                        "block-style choice option must end with '-> target'",
+                        "block-style choice option must end with '-> target' or '@call scene'",
                         opt_node->location());
-                    continue;
                 }
 
                 for (size_t i = 0; i < body.size(); ++i) {
@@ -552,11 +565,13 @@ void SemanticAnalyzer::check_node_structure(const AstNode* node) {
                         stmt->type() == NodeType::Flag ||
                         stmt->type() == NodeType::GiveCommand ||
                         stmt->type() == NodeType::TakeCommand);
-                    const bool is_jump = stmt && stmt->type() == NodeType::Jump;
+                    const bool is_terminal_action = stmt && (
+                        stmt->type() == NodeType::Jump ||
+                        stmt->type() == NodeType::Call);
 
-                    if ((is_last && !is_jump) || (!is_last && !is_allowed_action)) {
+                    if ((is_last && !is_terminal_action) || (!is_last && !is_allowed_action)) {
                         m_diagnostics.error(SemanticError::InvalidChoiceAction,
-                            "block-style choice option only allows @set/@flag/@give/@take before a final '-> target'",
+                            "block-style choice option only allows @set/@flag/@give/@take before a final '-> target' or '@call scene'",
                             stmt ? stmt->location() : opt_node->location());
                     }
                 }

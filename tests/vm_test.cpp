@@ -204,6 +204,40 @@ TEST_F(VMTest, BlockStyleChoiceOptionExecutesPreludeBeforeJump) {
     EXPECT_EQ(vm.state().dialogue->text, "Score: 1 / true");
 }
 
+TEST_F(VMTest, BlockStyleChoiceOptionExecutesTerminalCallAndReturns) {
+    auto result = parse(
+        "@var visited = 0\n"
+        "#scene_main \"Main\"\n"
+        "? 去哪里？\n"
+        "- [去商店]\n"
+        "  @set visited = visited + 1\n"
+        "  @call scene_shop\n"
+        "> 回到主线 {{visited}}\n"
+        "#scene_shop \"Shop\"\n"
+        "> 商店 {{visited}}\n"
+        "@return\n"
+    );
+    ASSERT_TRUE(result.is_ok()) << result.error().message;
+
+    NovaVM vm;
+    vm.load(result.unwrap());
+    vm.advance();
+    ASSERT_TRUE(vm.state().choice.has_value());
+    ASSERT_EQ(vm.state().choice->options.size(), 1u);
+
+    ASSERT_TRUE(vm.choose("0"));
+
+    vm.advance();
+    ASSERT_TRUE(vm.state().dialogue.has_value());
+    EXPECT_EQ(vm.currentScene(), "scene_shop");
+    EXPECT_EQ(vm.state().dialogue->text, "商店 1");
+
+    vm.advance();
+    ASSERT_TRUE(vm.state().dialogue.has_value());
+    EXPECT_EQ(vm.currentScene(), "scene_main");
+    EXPECT_EQ(vm.state().dialogue->text, "回到主线 1");
+}
+
 TEST_F(VMTest, InterpolationUnclosedBracesStaysPlainText) {
     auto result = parse(
         "#scene_start \"Start\"\n"

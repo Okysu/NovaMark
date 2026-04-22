@@ -1,0 +1,9 @@
+#scene_start "start"
+? 请选择去向
+- [进入支线]
+    @call scene_side_route
+@return
+
+#scene_side_route "side_route"
+> 这里是安全终端调用。
+@return

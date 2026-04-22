@@ -36,6 +36,10 @@ protected:
     const JumpNode* as_jump(const AstNode* node) {
         return dynamic_cast<const JumpNode*>(node);
     }
+
+    const CallNode* as_call(const AstNode* node) {
+        return dynamic_cast<const CallNode*>(node);
+    }
     
     const ChoiceNode* as_choice(const AstNode* node) {
         return dynamic_cast<const ChoiceNode*>(node);
@@ -350,6 +354,34 @@ TEST_F(ParserTest, BlockStyleChoiceOptionParsesHeaderCondition) {
     ASSERT_NE(option, nullptr);
     ASSERT_NE(option->condition(), nullptr);
     ASSERT_EQ(option->body().size(), 2u);
+}
+
+TEST_F(ParserTest, BlockStyleChoiceOptionParsesTerminalCallBody) {
+    auto result = parse(
+        "? 要去哪里？\n"
+        "- [去商店]\n"
+        "  @set visited_shop = true\n"
+        "  @call scene_shop\n"
+        "#scene_shop \"Shop\"\n"
+        "@return\n"
+    );
+    ASSERT_TRUE(result.is_ok()) << result.error().message;
+
+    auto program = as_program(result.unwrap());
+    ASSERT_NE(program, nullptr);
+    auto choice = as_choice(program->statements()[0].get());
+    ASSERT_NE(choice, nullptr);
+    ASSERT_EQ(choice->options().size(), 1u);
+
+    auto option = as_choice_option(choice->options()[0].get());
+    ASSERT_NE(option, nullptr);
+    ASSERT_EQ(option->body().size(), 2u);
+    EXPECT_EQ(option->body()[0]->type(), NodeType::SetCommand);
+    EXPECT_EQ(option->body()[1]->type(), NodeType::Call);
+
+    auto call = as_call(option->body()[1].get());
+    ASSERT_NE(call, nullptr);
+    EXPECT_EQ(call->target(), "scene_shop");
 }
 
 // ============================================

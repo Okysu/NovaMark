@@ -146,15 +146,23 @@ If the selected option leads to a larger narrative segment, media control, or mo
 
 ### Current Restrictions
 
-In the first version, block-style options only allow:
+The syntax for block-style options has two parts:
+
+**Prelude**: Only the following four whitelisted commands are allowed:
 
 - `@set`
 - `@flag`
 - `@give`
 - `@take`
-- a final `-> target`
 
-So this is valid:
+**Terminal**: The final statement must be one of:
+
+- `-> target` (jump to a label or scene)
+- `@call scene` (invoke a sub-scene; execution returns to the calling scene afterward)
+
+`@return` is not allowed inside a choice body. Nothing may follow `@call` within the same block.
+
+So these are all valid:
 
 ```nvm
 - [Show results]
@@ -162,21 +170,33 @@ So this is valid:
   -> .evaluation
 ```
 
-This is now also valid:
-
 ```nvm
 - [Use potion]
   @give potion 1
   -> .next
 ```
 
-This is still not supported:
+```nvm
+- [Visit the shop]
+  @set visited_shop = true
+  @call shop_scene
+```
+
+These are still not supported:
 
 ```nvm
 - [Change background]
   @bg room_day.png
   -> .next
 ```
+
+```nvm
+- [Call and continue]
+  @call shop_scene
+  @set shop_visited = true
+```
+
+No statements are allowed after `@call` in the same choice body.
 
 ---
 

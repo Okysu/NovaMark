@@ -1,0 +1,9 @@
+#scene_start "start"
+? 请选择路线
+- [先调用再说话]
+    // TODO source: line 3; reason: Menu choice body contains a call shape that cannot be converted safely to NovaMark block choices.; action: Rewrite this choice body manually so control flow after the call is preserved explicitly, or simplify it to an allowed @set prelude plus terminal @call.; original: "先调用再说话":
+@return
+
+#scene_side_route "side_route"
+> 支线内容。
+@return

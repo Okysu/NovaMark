@@ -248,6 +248,29 @@ TEST_F(SemanticTest, BlockStyleChoiceOptionAllowsGiveAndTake) {
     EXPECT_TRUE(result.success) << result.diagnostics.to_string();
 }
 
+TEST_F(SemanticTest, BlockStyleChoiceOptionAllowsTerminalCall) {
+    auto result = analyze(
+        "#scene_test \"Test\"\n"
+        "? 要去哪里？\n"
+        "- [去商店]\n"
+        "  @flag visited_shop\n"
+        "  @call scene_shop\n"
+        "#scene_shop \"Shop\"\n"
+        "@return\n"
+    );
+    EXPECT_TRUE(result.success) << result.diagnostics.to_string();
+}
+
+TEST_F(SemanticTest, BlockStyleChoiceOptionTerminalCallRequiresDefinedScene) {
+    auto result = analyze(
+        "#scene_test \"Test\"\n"
+        "? 要去哪里？\n"
+        "- [去商店]\n"
+        "  @call scene_shop\n"
+    );
+    EXPECT_FALSE(result.success);
+}
+
 TEST_F(SemanticTest, BlockStyleChoiceOptionRequiresTrailingJump) {
     auto result = analyze(
         "@var score = 0\n"
@@ -257,6 +280,31 @@ TEST_F(SemanticTest, BlockStyleChoiceOptionRequiresTrailingJump) {
         "  @set score = score + 1\n"
         ".next\n"
         "> 下一题\n"
+    );
+    EXPECT_FALSE(result.success);
+}
+
+TEST_F(SemanticTest, BlockStyleChoiceOptionRejectsReturn) {
+    auto result = analyze(
+        "#scene_test \"Test\"\n"
+        "? 要去哪里？\n"
+        "- [返回]\n"
+        "  @return\n"
+    );
+    EXPECT_FALSE(result.success);
+}
+
+TEST_F(SemanticTest, BlockStyleChoiceOptionRejectsNonTerminalCall) {
+    auto result = analyze(
+        "#scene_test \"Test\"\n"
+        "? 要去哪里？\n"
+        "- [先去商店再继续]\n"
+        "  @call scene_shop\n"
+        "  -> .next\n"
+        ".next\n"
+        "> 下一题\n"
+        "#scene_shop \"Shop\"\n"
+        "@return\n"
     );
     EXPECT_FALSE(result.success);
 }

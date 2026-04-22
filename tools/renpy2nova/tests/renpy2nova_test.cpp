@@ -21,6 +21,8 @@ namespace {
 
 namespace fs = filesystem_compat;
 
+std::string normalize_newlines(std::string text);
+
 size_t next_temp_dir_id() {
     static size_t counter = 0;
     return ++counter;
@@ -36,7 +38,7 @@ std::string read_text_file(const fs::path& path) {
 
     std::ostringstream buffer;
     buffer << input.rdbuf();
-    return buffer.str();
+    return normalize_newlines(buffer.str());
 }
 
 struct FixtureExpectation {
@@ -1019,6 +1021,202 @@ TEST(Renpy2NovaEmitterTest, EmitsCharacterMenuAndInlineTodoComments) {
     EXPECT_TRUE(result.report().needs_manual_intervention());
 }
 
+TEST(Renpy2NovaEmitterTest, PreservesPreludeBeforeTerminalCallInMenuChoiceBody) {
+    RenpyProject project;
+
+    RenpyNode label;
+    label.kind = RenpyNodeKind::Label;
+    label.name = "start";
+    label.line = 1;
+
+    RenpyNode menu;
+    menu.kind = RenpyNodeKind::Menu;
+    menu.value = "请选择行动";
+    menu.line = 2;
+
+    RenpyNode choice;
+    choice.kind = RenpyNodeKind::MenuChoice;
+    choice.value = "准备后调查";
+    choice.line = 3;
+
+    RenpyNode prelude;
+    prelude.kind = RenpyNodeKind::DollarStatement;
+    prelude.name = "clue_ready = True";
+    prelude.line = 4;
+
+    RenpyNode call;
+    call.kind = RenpyNodeKind::Call;
+    call.name = "secret_route";
+    call.line = 5;
+
+    choice.children = {prelude, call};
+    menu.children.push_back(choice);
+    label.children.push_back(menu);
+    project.statements = {label};
+
+    NovamarkEmitter emitter;
+    auto result = emitter.emit(project);
+
+    ASSERT_TRUE(result.is_ok());
+    EXPECT_EQ(
+        result.unwrap(),
+        "#scene_start \"start\"\n"
+        "? 请选择行动\n"
+        "- [准备后调查]\n"
+        "    @set clue_ready = true\n"
+        "    @call scene_secret_route\n"
+    );
+    EXPECT_TRUE(result.report().entries().empty());
+}
+
+TEST(Renpy2NovaEmitterTest, PreservesSafeTerminalCallInMenuChoiceBody) {
+    RenpyProject project;
+
+    RenpyNode label;
+    label.kind = RenpyNodeKind::Label;
+    label.name = "start";
+    label.line = 1;
+
+    RenpyNode menu;
+    menu.kind = RenpyNodeKind::Menu;
+    menu.value = "请选择去向";
+    menu.line = 2;
+
+    RenpyNode choice;
+    choice.kind = RenpyNodeKind::MenuChoice;
+    choice.value = "进入支线";
+    choice.line = 3;
+
+    RenpyNode call;
+    call.kind = RenpyNodeKind::Call;
+    call.name = "side_route";
+    call.line = 4;
+
+    choice.children = {call};
+    menu.children.push_back(choice);
+    label.children.push_back(menu);
+    project.statements = {label};
+
+    NovamarkEmitter emitter;
+    auto result = emitter.emit(project);
+
+    ASSERT_TRUE(result.is_ok());
+    EXPECT_EQ(
+        result.unwrap(),
+        "#scene_start \"start\"\n"
+        "? 请选择去向\n"
+        "- [进入支线]\n"
+        "    @call scene_side_route\n"
+    );
+    EXPECT_TRUE(result.report().entries().empty());
+}
+
+TEST(Renpy2NovaEmitterTest, DegradesUnsafeCallPlusTailMenuChoiceBodyToManualFix) {
+    RenpyProject project;
+
+    RenpyNode label;
+    label.kind = RenpyNodeKind::Label;
+    label.name = "start";
+    label.line = 1;
+
+    RenpyNode menu;
+    menu.kind = RenpyNodeKind::Menu;
+    menu.value = "请选择路线";
+    menu.line = 2;
+
+    RenpyNode choice;
+    choice.kind = RenpyNodeKind::MenuChoice;
+    choice.value = "先调用再说话";
+    choice.line = 3;
+
+    RenpyNode call;
+    call.kind = RenpyNodeKind::Call;
+    call.name = "side_route";
+    call.line = 4;
+
+    RenpyNode narration;
+    narration.kind = RenpyNodeKind::Narration;
+    narration.value = "这一句让菜单体不再安全。";
+    narration.line = 5;
+
+    choice.children = {call, narration};
+    menu.children.push_back(choice);
+    label.children.push_back(menu);
+    project.statements = {label};
+
+    NovamarkEmitter emitter;
+    auto result = emitter.emit(project);
+
+    ASSERT_TRUE(result.is_ok());
+    EXPECT_EQ(
+        result.unwrap(),
+        "#scene_start \"start\"\n"
+        "? 请选择路线\n"
+        "- [先调用再说话]\n"
+        "    // TODO source: line 3; reason: Menu choice body contains a call shape that cannot be converted safely to NovaMark block choices.; action: Rewrite this choice body manually so control flow after the call is preserved explicitly, or simplify it to an allowed @set prelude plus terminal @call.; original: \"先调用再说话\":\n"
+    );
+
+    ASSERT_EQ(result.report().entries().size(), 1);
+    EXPECT_EQ(result.report().entries()[0].kind, ConversionEntryKind::ManualFixRequired);
+    EXPECT_EQ(result.report().entries()[0].severity, ConversionSeverity::Warning);
+    EXPECT_EQ(result.report().entries()[0].feature_tag, "menu_call_body");
+    EXPECT_EQ(result.report().entries()[0].source_range.start_line, 3U);
+    EXPECT_TRUE(result.report().needs_manual_intervention());
+}
+
+TEST(Renpy2NovaEmitterTest, DegradesUnsafeNonWhitelistedPreludeBeforeTerminalCallToManualFix) {
+    RenpyProject project;
+
+    RenpyNode label;
+    label.kind = RenpyNodeKind::Label;
+    label.name = "start";
+    label.line = 1;
+
+    RenpyNode menu;
+    menu.kind = RenpyNodeKind::Menu;
+    menu.value = "请选择行动";
+    menu.line = 2;
+
+    RenpyNode choice;
+    choice.kind = RenpyNodeKind::MenuChoice;
+    choice.value = "先说再调用";
+    choice.line = 3;
+
+    RenpyNode narration;
+    narration.kind = RenpyNodeKind::Narration;
+    narration.value = "这句前置旁白不在安全白名单中。";
+    narration.line = 4;
+
+    RenpyNode call;
+    call.kind = RenpyNodeKind::Call;
+    call.name = "side_route";
+    call.line = 5;
+
+    choice.children = {narration, call};
+    menu.children.push_back(choice);
+    label.children.push_back(menu);
+    project.statements = {label};
+
+    NovamarkEmitter emitter;
+    auto result = emitter.emit(project);
+
+    ASSERT_TRUE(result.is_ok());
+    EXPECT_EQ(
+        result.unwrap(),
+        "#scene_start \"start\"\n"
+        "? 请选择行动\n"
+        "- [先说再调用]\n"
+        "    // TODO source: line 3; reason: Menu choice body contains a call shape that cannot be converted safely to NovaMark block choices.; action: Rewrite this choice body manually so control flow after the call is preserved explicitly, or simplify it to an allowed @set prelude plus terminal @call.; original: \"先说再调用\":\n"
+    );
+
+    ASSERT_EQ(result.report().entries().size(), 1);
+    EXPECT_EQ(result.report().entries()[0].kind, ConversionEntryKind::ManualFixRequired);
+    EXPECT_EQ(result.report().entries()[0].severity, ConversionSeverity::Warning);
+    EXPECT_EQ(result.report().entries()[0].feature_tag, "menu_call_body");
+    EXPECT_EQ(result.report().entries()[0].source_range.start_line, 3U);
+    EXPECT_TRUE(result.report().needs_manual_intervention());
+}
+
 TEST(Renpy2NovaEmitterTest, EmitsCharacterMetadataConditionalsAndAudioMappings) {
     RenpyProject project;
 
@@ -1233,6 +1431,32 @@ TEST(Renpy2NovaEmitterTest, AlignsSpriteDialogueAssignmentsAndReturnSyntax) {
     EXPECT_EQ(result.report().entries()[0].kind, ConversionEntryKind::Unsupported);
 }
 
+TEST(Renpy2NovaEmitterTest, MarksUnsafeMenuCallBodyAsManualFixWithMenuCallBodyTag) {
+    const std::string source =
+        "label start:\n"
+        "    menu \"请选择\":\n"
+        "        \"危险分支\":\n"
+        "            call side_story\n"
+        "            $ tail_seen = True\n"
+        "    return\n"
+        "\n"
+        "label side_story:\n"
+        "    return\n";
+
+    Converter converter;
+    auto convert_result = converter.convert(ConversionInput{source, "inline_menu_call_tail.rpy"});
+
+    ASSERT_TRUE(convert_result.is_ok());
+    const ConversionOutput& output = convert_result.unwrap();
+    const auto manual_fix_entries = output.report.entries_by_kind(ConversionEntryKind::ManualFixRequired);
+
+    ASSERT_EQ(manual_fix_entries.size(), 1U);
+    EXPECT_EQ(manual_fix_entries[0].feature_tag, "menu_call_body");
+    EXPECT_EQ(manual_fix_entries[0].source_range.start_line, 3U);
+    EXPECT_NE(output.novamark_source.find("// TODO source: line 3; reason: Menu choice body contains a call shape that cannot be converted safely to NovaMark block choices."), std::string::npos);
+    EXPECT_EQ(output.novamark_source.find("@call scene_side_story"), std::string::npos);
+}
+
 TEST(Renpy2NovaFixtureTest, ConvertsSimpleDialogueSceneFixtureExactly) {
     expect_fixture_conversion({
         "simple_dialogue_scene",
@@ -1244,7 +1468,7 @@ TEST(Renpy2NovaFixtureTest, ConvertsSimpleDialogueSceneFixtureExactly) {
     });
 }
 
-TEST(Renpy2NovaFixtureTest, ConvertsMenuBranchCallJumpFixtureExactly) {
+TEST(Renpy2NovaFixtureTest, ConvertsMenuBranchCallJumpFixtureWithTerminalCallChoiceBodyExactly) {
     expect_fixture_conversion({
         "menu_branch_call_jump",
         0,
@@ -1252,6 +1476,50 @@ TEST(Renpy2NovaFixtureTest, ConvertsMenuBranchCallJumpFixtureExactly) {
         0,
         0,
         false,
+    });
+}
+
+TEST(Renpy2NovaFixtureTest, ConvertsMenuBranchTerminalCallSafeFixtureExactly) {
+    expect_fixture_conversion({
+        "menu_branch_terminal_call_safe",
+        0,
+        0,
+        0,
+        0,
+        false,
+    });
+}
+
+TEST(Renpy2NovaFixtureTest, ConvertsMenuBranchPreludeCallFixtureExactly) {
+    expect_fixture_conversion({
+        "menu_branch_prelude_call",
+        0,
+        0,
+        0,
+        0,
+        false,
+    });
+}
+
+TEST(Renpy2NovaFixtureTest, ConvertsMenuBranchCallTailUnsafeFixtureWithManualFixReport) {
+    expect_fixture_conversion({
+        "menu_branch_call_tail_unsafe",
+        1,
+        1,
+        0,
+        0,
+        true,
+    });
+}
+
+TEST(Renpy2NovaFixtureTest, ConvertsMenuBranchNonWhitelistedPreludeUnsafeFixtureWithManualFixReport) {
+    expect_fixture_conversion({
+        "menu_branch_nonwhitelisted_prelude_unsafe",
+        1,
+        1,
+        0,
+        0,
+        true,
     });
 }
 

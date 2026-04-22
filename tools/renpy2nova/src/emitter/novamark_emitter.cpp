@@ -660,12 +660,61 @@ struct UnsupportedInfo {
     std::string original_text;
 };
 
+struct MenuChoiceCallSafety {
+    bool safe_terminal_call = false;
+    size_t prelude_count = 0;
+    size_t call_index = 0;
+};
+
+std::string menu_choice_original_text(const RenpyNode& node) {
+    return "\"" + node.value + "\"" + (node.name.empty() ? std::string{} : " if " + node.name) + ":";
+}
+
+std::optional<MenuChoiceCallSafety> analyze_menu_choice_call_safety(const RenpyNode& node) {
+    if (node.children.empty()) {
+        return std::nullopt;
+    }
+
+    size_t call_count = 0;
+    size_t call_index = 0;
+    for (size_t index = 0; index < node.children.size(); ++index) {
+        if (node.children[index].kind == RenpyNodeKind::Call) {
+            ++call_count;
+            call_index = index;
+        }
+    }
+
+    if (call_count != 1) {
+        return std::nullopt;
+    }
+
+    for (size_t index = 0; index < call_index; ++index) {
+        if (node.children[index].kind != RenpyNodeKind::DollarStatement) {
+            return std::nullopt;
+        }
+    }
+
+    return MenuChoiceCallSafety{
+        call_index + 1 == node.children.size(),
+        call_index,
+        call_index,
+    };
+}
+
 UnsupportedInfo make_unsupported_info(const RenpyNode& node) {
     UnsupportedInfo info;
     info.feature_tag = unsupported_feature_tag(node);
     info.original_text = node.value.empty() ? node.name : node.value;
 
     switch (node.kind) {
+    case RenpyNodeKind::MenuChoice:
+        info.kind = ConversionEntryKind::ManualFixRequired;
+        info.severity = ConversionSeverity::Warning;
+        info.feature_tag = "menu_call_body";
+        info.reason = "Menu choice body contains a call shape that cannot be converted safely to NovaMark block choices.";
+        info.action = "Rewrite this choice body manually so control flow after the call is preserved explicitly, or simplify it to an allowed @set prelude plus terminal @call.";
+        info.original_text = menu_choice_original_text(node);
+        return info;
     case RenpyNodeKind::PythonBlock:
         info.kind = ConversionEntryKind::ManualFixRequired;
         info.severity = ConversionSeverity::Warning;
@@ -814,18 +863,33 @@ private:
             return;
         }
 
+        if (const auto call_safety = analyze_menu_choice_call_safety(node); call_safety.has_value()) {
+            if (!call_safety->safe_terminal_call) {
+                emit_line(depth, "- [" + escape_string(node.value) + "]" + condition_suffix);
+                emit_todo(node, depth + 1);
+                return;
+            }
+
+            emit_line(depth, "- [" + escape_string(node.value) + "]" + condition_suffix);
+            for (size_t index = 0; index < call_safety->prelude_count; ++index) {
+                emit_node(node.children[index], depth + 1);
+            }
+            emit_node(node.children[call_safety->call_index], depth + 1);
+            return;
+        }
+
         emit_line(depth, "- [" + escape_string(node.value) + "]" + condition_suffix);
         if (node.children.empty()) {
             RenpyNode synthetic = node;
             synthetic.kind = RenpyNodeKind::Unsupported;
             synthetic.unsupported_kind = RenpyUnsupportedKind::Unknown;
             synthetic.name = "menu_choice";
-            synthetic.value = "\"" + node.value + "\"" + (node.name.empty() ? std::string{} : " if " + node.name) + ":";
+            synthetic.value = menu_choice_original_text(node);
             emit_todo(synthetic, depth + 1);
             return;
         }
 
-        emit_sequence(node.children, depth + 1);
+        emit_todo(node, depth + 1);
     }
 
     void emit_sequence(const std::vector<RenpyNode>& nodes, size_t depth) {

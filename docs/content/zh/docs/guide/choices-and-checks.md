@@ -144,15 +144,23 @@ endif
 
 ### 当前限制
 
-块级选项第一版只允许：
+块级选项的语法分为两部分：
+
+**前置语句（Prelude）**：只允许以下四个白名单命令：
 
 - `@set`
 - `@flag`
 - `@give`
 - `@take`
-- 最后一条 `-> 目标`
 
-也就是说，这种写法是合法的：
+**结尾语句（Terminal）**：必须是以下两者之一：
+
+- `-> target`（跳转到标签或场景）
+- `@call scene`（调用子场景，调用后自动返回原场景继续执行）
+
+`@return` 在块级选项体内不被允许。`@call` 之后也不允许再写其他语句。
+
+也就是说，下面这些写法都是合法的：
 
 ```nvm
 - [显示结果]
@@ -160,21 +168,33 @@ endif
   -> .evaluation
 ```
 
-这种写法现在也是合法的：
-
 ```nvm
 - [使用药水]
   @give potion 1
   -> .next
 ```
 
-下面这种仍然不支持：
+```nvm
+- [逛逛商店]
+  @set visited_shop = true
+  @call shop_scene
+```
+
+下面这些写法仍然不支持：
 
 ```nvm
 - [切换背景]
   @bg room_day.png
   -> .next
 ```
+
+```nvm
+- [先调用再继续]
+  @call shop_scene
+  @set shop_visited = true
+```
+
+`@call` 之后不能再跟其他语句。
 
 ---
 
