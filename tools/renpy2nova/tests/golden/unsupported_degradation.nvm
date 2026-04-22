@@ -1,0 +1,12 @@
+@char Narrator
+@end
+
+#scene_start "start"
+// TODO source: line 4; reason: The with transition was recorded only as a comment; no executable transition command was generated.; action: Add the corresponding NovaMark transition manually based on the intended effect.; original: with dissolve
+// TODO source: line 5; reason: Python blocks cannot be mapped safely to NovaMark.; action: Rewrite this block as explicit script commands or port the logic manually.; original: python:
+    @set score = 1
+// TODO source: line 7; reason: init python setup logic requires manual migration.; action: Rewrite initialization side effects as startup configuration that NovaMark can express.; original: init python:
+    @set ready = true
+// TODO source: line 9; reason: Image definitions must be migrated separately at the resource layer.; action: Create the resource mapping manually and add the required character or sprite configuration.; original: image eileen happy = "eileen_happy.png"
+// TODO source: line 10; reason: This audio statement was only partially recognized, so no NovaMark audio command was generated safely.; action: Add @bgm / @sfx manually, or confirm that the statement can be ignored.; original: play voice "narration.ogg"
+Narrator: 需要人工处理的内容如下。

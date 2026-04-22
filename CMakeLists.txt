@@ -47,6 +47,11 @@ option(BUILD_TESTS "Build test suite" ${NOVA_DEFAULT_BUILD_TESTS})
 if(BUILD_TESTS)
     enable_testing()
     find_package(GTest CONFIG REQUIRED)
+endif()
+
+add_subdirectory(tools/renpy2nova)
+
+if(BUILD_TESTS)
     add_subdirectory(tests)
 endif()
 

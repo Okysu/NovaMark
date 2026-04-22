@@ -371,6 +371,18 @@ char* nova_export_ast_snapshot_from_scripts(const NovaMemoryScript* scripts, siz
     }
 }
 
+char* nova_ast_snapshot_to_source_files(const char* snapshotJson) {
+    if (!snapshotJson) {
+        return nullptr;
+    }
+
+    try {
+        return copy_string(nova::ast_snapshot_to_source_files_json(snapshotJson));
+    } catch (...) {
+        return nullptr;
+    }
+}
+
 void nova_string_free(char* str) {
     if (str) {
         std::free(str);

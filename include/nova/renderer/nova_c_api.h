@@ -125,6 +125,7 @@ NOVA_API int nova_has_item(NovaVM* vm, const char* itemId);
 
 NOVA_API char* nova_export_ast_snapshot_from_path(const char* path);
 NOVA_API char* nova_export_ast_snapshot_from_scripts(const NovaMemoryScript* scripts, size_t count);
+NOVA_API char* nova_ast_snapshot_to_source_files(const char* snapshotJson);
 NOVA_API void nova_string_free(char* str);
 
 } // extern "C"

@@ -1,0 +1,11 @@
+@char Eileen
+    color: #E8A0BF
+@end
+
+#scene_start "start"
+@bg classroom
+@sprite eileen show position:left
+Eileen: 欢迎来到 NovaMark。
+> 今天我们来测试转换器。
+@sprite eileen hide
+@return

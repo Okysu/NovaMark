@@ -2,6 +2,7 @@
 
 add_executable(nova-test
     test_main.cpp
+    ast_source_emitter_test.cpp
     lexer_test.cpp
     parser_test.cpp
     semantic_test.cpp

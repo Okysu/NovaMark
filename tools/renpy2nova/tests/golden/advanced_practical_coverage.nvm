@@ -1,0 +1,37 @@
+@char Eileen
+    color: #C0FFEE
+    sprite_default: eileen_default.png
+@end
+
+@var affection = true
+
+@var relic = null
+
+#scene_start "start"
+@bg room transition:fade
+@sprite eileen show happy position:left transition:dissolve
+if affection == true
+    @bgm theme.ogg loop:true volume:0.75
+    Eileen: 欢迎回来。
+else
+    if relic == null
+        @sfx door.wav volume:0.5
+        > 你还没拿到遗物。
+    else
+        // TODO source: line 16; reason: This audio statement was only partially recognized, so no NovaMark audio command was generated safely.; action: Add @bgm / @sfx manually, or confirm that the statement can be ignored.; original: play voice "line.ogg"
+        > 这里需要人工确认音频。
+    endif
+endif
+? 接下来要做什么？
+- [继续前进] -> scene_next_scene if affection == true
+- [查看遗物] -> scene_relic_scene if relic != null
+@return
+
+#scene_next_scene "next_scene"
+@sprite eileen show concerned position:right transition:fade
+@set relic = false
+@return
+
+#scene_relic_scene "relic_scene"
+@sprite eileen hide
+@return

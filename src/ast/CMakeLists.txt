@@ -2,6 +2,7 @@
 
 add_library(nova-ast STATIC
     ast_node.cpp
+    ast_source_emitter.cpp
     ast_snapshot.cpp
 )
 
