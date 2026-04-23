@@ -15,6 +15,7 @@
 #include <nlohmann/json.hpp>
 
 #include <cstdint>
+#include <cstring>
 #include <filesystem>
 #include <fstream>
 
@@ -41,6 +42,51 @@ protected:
         std::filesystem::remove_all(dir);
         std::filesystem::create_directories(dir);
         return dir;
+    }
+
+    std::vector<uint8_t> build_v1_choice_option_bytecode() {
+        BytecodeWriter writer;
+        writer.writeByte(static_cast<uint8_t>(OpCode::NodeProgram));
+        writer.writeU32(1);
+        writer.writeByte(static_cast<uint8_t>(OpCode::NodeChoice));
+        writer.writeString("Question");
+        writer.writeU32(1);
+        writer.writeByte(static_cast<uint8_t>(OpCode::NodeChoiceOption));
+        writer.writeString("Pay {{cost}} gold");
+        writer.writeString(".buy");
+        writer.writeByte(0);
+        writer.writeU32(3);
+        writer.writeByte(static_cast<uint8_t>(InterpolatedTextNode::Segment::Type::PlainText));
+        writer.writeString("Pay ");
+        writer.writeByte(0);
+        writer.writeByte(static_cast<uint8_t>(InterpolatedTextNode::Segment::Type::Interpolation));
+        writer.writeString("cost");
+        writer.writeByte(1);
+        writer.writeByte(static_cast<uint8_t>(OpCode::NodeIdentifier));
+        writer.writeString("cost");
+        writer.writeByte(static_cast<uint8_t>(InterpolatedTextNode::Segment::Type::PlainText));
+        writer.writeString(" gold");
+        writer.writeByte(0);
+        writer.writeByte(static_cast<uint8_t>(OpCode::EndNode));
+        return writer.data();
+    }
+
+    std::vector<uint8_t> make_nvmp_buffer_with_version(uint32_t version, std::vector<uint8_t> bytecode) {
+        NvmpHeader header{};
+        std::memcpy(header.magic, NVMP_MAGIC, 4);
+        header.version = version;
+        header.flags = 0;
+        header.indexCount = 0;
+        header.indexOffset = sizeof(NvmpHeader);
+        header.astOffset = sizeof(NvmpHeader);
+        header.dataOffset = sizeof(NvmpHeader) + bytecode.size();
+
+        std::vector<uint8_t> buffer;
+        buffer.insert(buffer.end(),
+            reinterpret_cast<const uint8_t*>(&header),
+            reinterpret_cast<const uint8_t*>(&header) + sizeof(NvmpHeader));
+        buffer.insert(buffer.end(), bytecode.begin(), bytecode.end());
+        return buffer;
     }
 };
 
@@ -236,6 +282,80 @@ TEST_F(VMTest, BlockStyleChoiceOptionExecutesTerminalCallAndReturns) {
     ASSERT_TRUE(vm.state().dialogue.has_value());
     EXPECT_EQ(vm.currentScene(), "scene_main");
     EXPECT_EQ(vm.state().dialogue->text, "回到主线 1");
+}
+
+TEST_F(VMTest, AstDeserializerSupportsV1ChoiceOptionWithoutBodyLayout) {
+    auto bytecode = build_v1_choice_option_bytecode();
+
+    AstDeserializer deserializer(1);
+    auto program = deserializer.deserialize(bytecode);
+
+    ASSERT_NE(program, nullptr) << deserializer.errorMessage();
+    ASSERT_EQ(program->statements().size(), 1u);
+    auto* choice = dynamic_cast<ChoiceNode*>(program->statements()[0].get());
+    ASSERT_NE(choice, nullptr);
+    ASSERT_EQ(choice->options().size(), 1u);
+    auto* option = dynamic_cast<ChoiceOptionNode*>(choice->options()[0].get());
+    ASSERT_NE(option, nullptr);
+    EXPECT_TRUE(option->body().empty());
+    ASSERT_NE(option->interpolated_text(), nullptr);
+    ASSERT_EQ(option->interpolated_text()->segments().size(), 3u);
+    EXPECT_EQ(option->text(), "Pay {{cost}} gold");
+    EXPECT_EQ(option->target(), ".buy");
+}
+
+TEST_F(VMTest, AstDeserializerKeepsV2ChoiceOptionBodyLayout) {
+    auto result = parse(
+        "@var score = 0\n"
+        "#scene_start \"Start\"\n"
+        "? 请选择\n"
+        "- [有时]\n"
+        "  @set score = score + 1\n"
+        "  -> .next\n"
+        ".next\n"
+        "> Done\n"
+    );
+    ASSERT_TRUE(result.is_ok()) << result.error().message;
+
+    auto* original = as_program(result.unwrap());
+    ASSERT_NE(original, nullptr);
+
+    AstSerializer serializer;
+    auto bytecode = serializer.serialize(original);
+
+    AstDeserializer deserializer(2);
+    auto program = deserializer.deserialize(bytecode);
+
+    ASSERT_NE(program, nullptr) << deserializer.errorMessage();
+    ASSERT_EQ(program->statements().size(), original->statements().size());
+    auto* choice = dynamic_cast<ChoiceNode*>(program->statements()[2].get());
+    ASSERT_NE(choice, nullptr);
+    ASSERT_EQ(choice->options().size(), 1u);
+    auto* option = dynamic_cast<ChoiceOptionNode*>(choice->options()[0].get());
+    ASSERT_NE(option, nullptr);
+    ASSERT_EQ(option->body().size(), 2u);
+    EXPECT_EQ(option->body()[0]->type(), NodeType::SetCommand);
+    EXPECT_EQ(option->body()[1]->type(), NodeType::Jump);
+}
+
+TEST_F(VMTest, NvmpReaderExposesVersionAndV1LoadPathDeserializesChoiceOption) {
+    auto nvmpBuffer = make_nvmp_buffer_with_version(1, build_v1_choice_option_bytecode());
+
+    NvmpReader reader;
+    ASSERT_TRUE(reader.loadFromBuffer(nvmpBuffer)) << reader.error();
+    EXPECT_EQ(reader.version(), 1u);
+
+    AstDeserializer deserializer(reader.version());
+    auto program = deserializer.deserialize(reader.bytecode());
+
+    ASSERT_NE(program, nullptr) << deserializer.errorMessage();
+    auto* choice = dynamic_cast<ChoiceNode*>(program->statements()[0].get());
+    ASSERT_NE(choice, nullptr);
+    auto* option = dynamic_cast<ChoiceOptionNode*>(choice->options()[0].get());
+    ASSERT_NE(option, nullptr);
+    EXPECT_TRUE(option->body().empty());
+    ASSERT_NE(option->interpolated_text(), nullptr);
+    EXPECT_EQ(option->interpolated_text()->segments().size(), 3u);
 }
 
 TEST_F(VMTest, InterpolationUnclosedBracesStaysPlainText) {

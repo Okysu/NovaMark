@@ -182,7 +182,9 @@ bool NvmpReader::parseHeader(const uint8_t* data, size_t size) {
     }
     
     if (m_header.version > NVMP_VERSION) {
-        m_error = "Unsupported NVMP version";
+        m_error = "Unsupported NVMP version: package=" + std::to_string(m_header.version)
+            + ", runtime=" + std::to_string(NVMP_VERSION)
+            + ". Rebuild the package with the current nova-cli.";
         return false;
     }
     

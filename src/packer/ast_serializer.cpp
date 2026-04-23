@@ -1,5 +1,4 @@
 #include "nova/packer/ast_serializer.h"
-#include <cstring>
 
 namespace nova {
 
@@ -496,7 +495,8 @@ void AstSerializer::recordAssetRef(const std::string& path) {
 // AstDeserializer
 // ============================================
 
-AstDeserializer::AstDeserializer() {}
+AstDeserializer::AstDeserializer(uint32_t package_version)
+    : m_packageVersion(package_version) {}
 
 AstDeserializer::~AstDeserializer() {
     delete m_reader;
@@ -682,11 +682,13 @@ std::unique_ptr<ChoiceNode> AstDeserializer::deserializeChoice() {
         auto optNode = std::make_unique<ChoiceOptionNode>(SourceLocation{}, 
             text, std::move(target), std::move(condition));
 
-        uint32_t bodyCount = m_reader->readU32();
-        for (uint32_t j = 0; j < bodyCount && !m_hasError; ++j) {
-            auto stmt = deserializeNode();
-            if (stmt) {
-                optNode->add_body_statement(std::move(stmt));
+        if (m_packageVersion >= 2) {
+            uint32_t bodyCount = m_reader->readU32();
+            for (uint32_t j = 0; j < bodyCount && !m_hasError; ++j) {
+                auto stmt = deserializeNode();
+                if (stmt) {
+                    optNode->add_body_statement(std::move(stmt));
+                }
             }
         }
 

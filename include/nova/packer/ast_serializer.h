@@ -63,7 +63,7 @@ private:
 /// @brief AST 反序列化器，从字节码重建 AST
 class AstDeserializer {
 public:
-    AstDeserializer();
+    explicit AstDeserializer(uint32_t package_version = NVMP_VERSION);
     ~AstDeserializer();
     
     /// @brief 反序列化字节码为 AST
@@ -75,6 +75,7 @@ public:
 
 private:
     BytecodeReader* m_reader = nullptr;
+    uint32_t m_packageVersion = NVMP_VERSION;
     bool m_hasError = false;
     std::string m_errorMsg;
     

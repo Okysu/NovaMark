@@ -57,6 +57,9 @@ public:
     
     /// @brief 获取 AST 字节码
     const std::vector<uint8_t>& bytecode() const { return m_bytecode; }
+
+    /// @brief 获取 NVMP 头部版本
+    uint32_t version() const { return m_header.version; }
     
     /// @brief 获取资源数据
     bool getAsset(const std::string& name, std::vector<uint8_t>& out) const;

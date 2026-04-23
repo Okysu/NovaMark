@@ -487,7 +487,7 @@ int do_run(const CliConfig& config) {
         std::cout << "Assets: " << reader.listAssets().size() << "\n\n";
     }
     
-    AstDeserializer deserializer;
+    AstDeserializer deserializer(reader.version());
     auto program = deserializer.deserialize(reader.bytecode());
     if (!program) {
         std::cerr << "Error: Failed to deserialize bytecode: " << deserializer.errorMessage() << "\n";
