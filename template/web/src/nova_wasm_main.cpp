@@ -89,12 +89,12 @@ int nova_wasm_load_package(const unsigned char* data, size_t size) {
     printf("[WASM] Bytecode size: %zu bytes\n", bytecode.size());
     fflush(stdout);
     
-    nova::AstDeserializer deserializer;
+    nova::AstDeserializer deserializer(g_reader->version());
     g_program = deserializer.deserialize(bytecode);
     
     if (!g_program) {
-        g_last_error = "AstDeserializer.deserialize returned null";
-        printf("[WASM] ERROR: deserialize returned null\n");
+        g_last_error = std::string("AstDeserializer.deserialize failed: ") + deserializer.errorMessage();
+        printf("[WASM] ERROR: %s\n", g_last_error.c_str());
         fflush(stdout);
         return -1;
     }
