@@ -1,15 +1,3 @@
----
-title: 潮汐图书馆
-name: tide_library_demo
-author: OpenAI x NovaMark Demo
-version: 1.3.0
-description: 一个关于雨夜、记忆与归航的长篇 NovaMark 示例
-entry_scene: scene_prologue
-base_bg_path: assets/bg/
-base_sprite_path: assets/sprites/
-base_audio_path: assets/audio/
----
-
 @char 沈砚
   color: #8EC5FF
   description: 在港城旧书店兼职的青年，习惯把事情记在心里。

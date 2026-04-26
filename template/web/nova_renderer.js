@@ -395,8 +395,8 @@ class NovaRenderer {
         }
     }
 
-    async playSfx(assetName) {
-        const bytes = await this.getAssetBytes(assetName);
+    async playSfx(assetName, volume = 1.0, loop = false) {
+        const bytes = await this.getAssetBytes(assetName, 'audio');
         if (!bytes) return;
 
         if (!this.audioContext) {
@@ -407,12 +407,16 @@ class NovaRenderer {
         const url = URL.createObjectURL(blob);
 
         const sfx = new Audio(url);
-        sfx.volume = 1.0;
+        sfx.volume = volume;
+        sfx.loop = loop;
+        sfx.addEventListener('ended', () => URL.revokeObjectURL(url), { once: true });
+        sfx.addEventListener('error', () => URL.revokeObjectURL(url), { once: true });
 
         try {
             await sfx.play();
         } catch (e) {
             console.warn('SFX play failed:', e);
+            URL.revokeObjectURL(url);
         }
     }
 

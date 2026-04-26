@@ -508,6 +508,22 @@ async function renderGame() {
     } else {
         renderer.stopBgm();
     }
+
+    const nextPlayedSfxIds = new Set();
+    const sfxCount = renderer.getSfxCount();
+    for (let i = 0; i < sfxCount; i++) {
+        const sfxId = renderer.getSfxId(i) || `${renderer.getSfxPath(i)}:${i}`;
+        nextPlayedSfxIds.add(sfxId);
+
+        if (!playedSfxIds.has(sfxId)) {
+            await renderer.playSfx(
+                renderer.getSfxPath(i),
+                renderer.getSfxVolume(i),
+                renderer.getSfxLoop(i)
+            );
+        }
+    }
+    playedSfxIds = nextPlayedSfxIds;
     
     if (renderer.isEnded() && !isEndingShown) {
         isEndingShown = true;
@@ -518,6 +534,7 @@ async function renderGame() {
 // 当前对话签名，用于检测对话是否变化
 let currentDialogueSignature = null;
 let previousSpriteKeys = new Set();
+let playedSfxIds = new Set();
 
 function getSpriteOwner(url, runtimeState) {
     if (!url || !runtimeState?.characterDefinitions) return null;
