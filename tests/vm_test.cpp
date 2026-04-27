@@ -2016,6 +2016,51 @@ TEST_F(VMTest, VMCallAndReturn) {
     EXPECT_EQ(vm.state().dialogue->text, "Back to main");
 }
 
+TEST_F(VMTest, VMLoadPlaythroughOnlyRestoresEndingsAndFlagsWithoutTouchingVariables) {
+    auto result = parse(
+        "@var score = 0\n"
+        "#scene_start \"Start\"\n"
+        "> Begin\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+
+    NovaVM vm;
+    vm.load(result.unwrap());
+    vm.variables().set("score", 99.0);
+
+    GameState imported;
+    imported.triggeredEndings.insert("good_end");
+    imported.flags.insert("met_qixing");
+
+    ASSERT_TRUE(vm.loadPlaythroughOnly(imported));
+    EXPECT_TRUE(vm.playthrough().hasEnding("good_end"));
+    EXPECT_TRUE(vm.playthrough().hasFlag("met_qixing"));
+    EXPECT_DOUBLE_EQ(vm.variables().asNumber("score"), 99.0);
+}
+
+TEST_F(VMTest, VMLoadPlaythroughOnlyReplacesExistingPlaythroughState) {
+    auto result = parse(
+        "#scene_start \"Start\"\n"
+        "> Begin\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+
+    NovaVM vm;
+    vm.load(result.unwrap());
+    vm.playthrough().triggerEnding("old_end");
+    vm.playthrough().setFlag("old_flag");
+
+    GameState imported;
+    imported.triggeredEndings.insert("new_end");
+    imported.flags.insert("new_flag");
+
+    ASSERT_TRUE(vm.loadPlaythroughOnly(imported));
+    EXPECT_FALSE(vm.playthrough().hasEnding("old_end"));
+    EXPECT_FALSE(vm.playthrough().hasFlag("old_flag"));
+    EXPECT_TRUE(vm.playthrough().hasEnding("new_end"));
+    EXPECT_TRUE(vm.playthrough().hasFlag("new_flag"));
+}
+
 // ============================================
 // Expression Evaluation Tests
 // ============================================

@@ -159,6 +159,18 @@ NovaMark 当前将存档分为两层：
 - **正式文件存档**：使用二进制格式，供玩家和产品环境使用
 - **JSON 导入导出**：保留给 Web/WASM 调试、测试和开发工具使用
 
+此外，运行时现在支持一种**仅导入多周目继承数据**的能力：
+
+- 只恢复已经触发过的结局（`ending` 历史）
+- 只恢复已经设置过的标记（`flag` 历史）
+- **不会**恢复变量、背包、当前场景、对话、背景音乐等运行时现场
+
+这适合：
+
+- 新周目继承历史结局解锁状态
+- 跨设备同步已解锁结局/关键标记
+- 成就或图鉴系统恢复历史进度，但不打断当前游玩现场
+
 ### nova_save_snapshot_file
 
 ```c
@@ -174,6 +186,25 @@ int nova_load_snapshot_file(NovaVM* vm, const char* path);
 ```
 
 从**二进制快照文件**恢复运行时状态。
+
+### 仅导入多周目进度（桥接/宿主层）
+
+在 NAPI/宿主桥接层，现已提供两种“只导入结局和标记”的接口：
+
+```text
+runtimeImportPlaythroughJson(vmHandle, saveJson)
+runtimeImportPlaythroughBinary(vmHandle, saveBuffer)
+```
+
+语义说明：
+
+- 输入仍然是完整存档（JSON 或二进制）
+- 运行时只会提取其中的：
+  - `triggeredEndings`
+  - `flags`
+- 当前 VM 的变量、场景、背包和渲染状态保持不变
+
+这两个接口不会替代普通 `runtimeImportSaveJson` / `runtimeImportSaveBinary`，而是提供一个“只同步周目继承数据”的安全选项。
 
 ## 变量和背包
 

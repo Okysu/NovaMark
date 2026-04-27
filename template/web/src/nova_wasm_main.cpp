@@ -1,6 +1,7 @@
 #include "nova/renderer/nova_wasm_api.h"
 #include "nova/core/game_metadata.h"
 #include "nova/vm/vm.h"
+#include "nova/vm/serializer.h"
 #include "nova/packer/nvmp_writer.h"
 #include "nova/packer/ast_serializer.h"
 
@@ -217,6 +218,45 @@ int nova_wasm_import_save_json(const char* json, size_t size) {
 EMSCRIPTEN_KEEPALIVE
 int nova_wasm_import_save_binary(const unsigned char* data, size_t size) {
     return ::nova_import_save_binary(g_vm.get(), data, size);
+}
+
+EMSCRIPTEN_KEEPALIVE
+int nova_wasm_import_playthrough_json(const char* json, size_t size) {
+    if (!g_vm || !json || size == 0) {
+        return -1;
+    }
+
+    try {
+        nova::SaveData save;
+        if (!nova::GameStateSerializer::deserializeSave(std::string(json, size), save)) {
+            g_last_error = "Failed to parse playthrough save JSON";
+            return -1;
+        }
+        return g_vm->loadPlaythroughOnly(save.state) ? 0 : -1;
+    } catch (const std::exception& ex) {
+        g_last_error = ex.what();
+        return -1;
+    }
+}
+
+EMSCRIPTEN_KEEPALIVE
+int nova_wasm_import_playthrough_binary(const unsigned char* data, size_t size) {
+    if (!g_vm || !data || size == 0) {
+        return -1;
+    }
+
+    try {
+        nova::SaveData save;
+        std::vector<uint8_t> bytes(data, data + size);
+        if (!nova::GameStateSerializer::deserializeSaveBinary(bytes, save)) {
+            g_last_error = "Failed to parse playthrough save binary";
+            return -1;
+        }
+        return g_vm->loadPlaythroughOnly(save.state) ? 0 : -1;
+    } catch (const std::exception& ex) {
+        g_last_error = ex.what();
+        return -1;
+    }
 }
 
 EMSCRIPTEN_KEEPALIVE

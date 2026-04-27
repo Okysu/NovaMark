@@ -159,6 +159,18 @@ NovaMark now separates save functionality into two layers:
 - **official save files**: binary format for players and shipped products
 - **JSON import/export**: retained for Web/WASM debugging, tests, and developer tools
 
+The runtime also supports a **playthrough-only import** mode:
+
+- restore previously triggered endings only
+- restore persistent flags only
+- **do not** restore variables, inventory, current scene, dialogue, BGM, or other live runtime state
+
+This is useful for:
+
+- carrying unlocked ending history into a new run
+- syncing meta progression across devices
+- restoring achievement / glossary progress without overwriting the player's current session
+
 ### nova_save_snapshot_file
 
 ```c
@@ -174,6 +186,25 @@ int nova_load_snapshot_file(NovaVM* vm, const char* path);
 ```
 
 Restore runtime state from a **binary snapshot file**.
+
+### Playthrough-only import (host / bridge layer)
+
+At the NAPI / host bridge layer, two playthrough-only import APIs are now available:
+
+```text
+runtimeImportPlaythroughJson(vmHandle, saveJson)
+runtimeImportPlaythroughBinary(vmHandle, saveBuffer)
+```
+
+Semantics:
+
+- the input is still a full save payload (JSON or binary)
+- the runtime only extracts:
+  - `triggeredEndings`
+  - `flags`
+- the current VM keeps its variables, scene position, inventory, and rendering state unchanged
+
+These APIs do not replace `runtimeImportSaveJson` / `runtimeImportSaveBinary`; they provide a safer option for syncing only meta-playthrough progress.
 
 ## Variables and Inventory
 

@@ -74,6 +74,9 @@ public:
     
     /// @brief 从存档恢复游戏状态
     bool loadSave(const GameState& state);
+
+    /// @brief 仅恢复多周目继承数据（结局与标记）
+    bool loadPlaythroughOnly(const GameState& state);
     
     /// @brief 推进到下一个离散阻塞点（对话 / 选择 / 结局 / 场景切换）
     void advance();

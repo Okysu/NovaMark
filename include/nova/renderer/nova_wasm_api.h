@@ -53,9 +53,13 @@ NOVA_WASM_API const char* nova_export_save_json(void* vm, size_t* outSize);
 /// @return 0 表示成功，-1 表示失败
 NOVA_WASM_API int nova_import_save_json(void* vm, const char* json, size_t size);
 
+NOVA_WASM_API int nova_import_playthrough_json(void* vm, const char* json, size_t size);
+
 NOVA_WASM_API void* nova_export_save_binary(void* vm, size_t* outSize);
 
 NOVA_WASM_API int nova_import_save_binary(void* vm, const unsigned char* data, size_t size);
+
+NOVA_WASM_API int nova_import_playthrough_binary(void* vm, const unsigned char* data, size_t size);
 
 // ========== 内存管理 API ==========
 

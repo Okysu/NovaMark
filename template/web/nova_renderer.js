@@ -474,6 +474,24 @@ class NovaRenderer {
         return result === 0;
     }
 
+    importPlaythroughBinary(bytes) {
+        const data = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+        const ptr = this.vm._malloc(data.length);
+        this.writeBytes(ptr, data);
+        const result = this.vm._nova_wasm_import_playthrough_binary(ptr, data.length);
+        this.vm._free(ptr);
+
+        return result === 0;
+    }
+
+    importPlaythroughJson(json) {
+        const jsonPtr = this.allocateString(json);
+        const result = this.vm._nova_wasm_import_playthrough_json(jsonPtr, json.length);
+        this.vm._free(jsonPtr);
+
+        return result === 0;
+    }
+
     setMode(mode) {
         this.mode = mode;
     }

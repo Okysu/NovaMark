@@ -145,6 +145,29 @@ Simply put:
 
 ---
 
+## 3.5 Importing Only Endings and Flags
+
+In multi-playthrough or cross-device sync scenarios, you may not want to fully load an old save state. Sometimes you only want to inherit:
+
+- which endings have already been reached
+- which persistent flags have already been triggered
+
+NovaMark now supports that mode:
+
+- import a full save payload
+- extract only `triggeredEndings` and `flags`
+- do not restore variables, inventory, current scene, dialogue, BGM, sprites, or other live runtime state
+
+This is useful for:
+
+- carrying ending history into a new run
+- inheriting unlock progress
+- syncing glossary / achievement / true-ending conditions
+
+without forcibly moving the player back into the old save's scene.
+
+---
+
 ## 4. Multi-Ending Design Patterns
 
 ### Pattern 1: Branching

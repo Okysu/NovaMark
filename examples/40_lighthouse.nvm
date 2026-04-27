@@ -14,6 +14,7 @@
 - [带上蓝色明信片] -> .take_postcard if has_item("blue_postcard")
 - [什么都不拿，立刻上路] -> .take_nothing
 
+
 .take_map
 @set memory = memory + 1
 > 地图上的线条在你手中稳定下来，最终指向灯塔最上层。

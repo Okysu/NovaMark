@@ -264,6 +264,17 @@ bool NovaVM::loadSave(const SaveData& save) {
     return loadSave(save.state);
 }
 
+bool NovaVM::loadPlaythroughOnly(const GameState& state) {
+    m_playthrough.clear();
+    for (const auto& endingId : state.triggeredEndings) {
+        m_playthrough.triggerEnding(endingId);
+    }
+    for (const auto& flagId : state.flags) {
+        m_playthrough.setFlag(flagId);
+    }
+    return true;
+}
+
 bool NovaVM::loadSave(const GameState& state) {
     if (!m_program) return false;
     
