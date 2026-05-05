@@ -38,17 +38,28 @@ struct SfxState {
     double volume = 1.0;
 };
 
+/// @brief 运行时文本片段
+struct TextSegment {
+    std::string text;
+    std::string style;
+
+    bool operator==(const TextSegment& other) const {
+        return text == other.text && style == other.style;
+    }
+};
+
 /// @brief 对话状态
 struct DialogueState {
     bool isShow = false;
     std::string speaker;
     std::string text;
+    std::vector<TextSegment> segments;
     std::string emotion;
     std::string color;
 
     bool operator==(const DialogueState& other) const {
         return isShow == other.isShow && speaker == other.speaker && text == other.text &&
-               emotion == other.emotion && color == other.color;
+               segments == other.segments && emotion == other.emotion && color == other.color;
     }
 };
 
@@ -56,11 +67,13 @@ struct DialogueState {
 struct ChoiceOption {
     std::string id;
     std::string text;
+    std::vector<TextSegment> segments;
     std::string target;
     bool disabled = false;
 
     bool operator==(const ChoiceOption& other) const {
-        return id == other.id && text == other.text && target == other.target && disabled == other.disabled;
+        return id == other.id && text == other.text && segments == other.segments &&
+               target == other.target && disabled == other.disabled;
     }
 };
 
@@ -68,10 +81,12 @@ struct ChoiceOption {
 struct ChoiceState {
     bool isShow = false;
     std::string question;
+    std::vector<TextSegment> questionSegments;
     std::vector<ChoiceOption> options;
 
     bool operator==(const ChoiceState& other) const {
-        return isShow == other.isShow && question == other.question && options == other.options;
+        return isShow == other.isShow && question == other.question &&
+               questionSegments == other.questionSegments && options == other.options;
     }
 
     bool operator!=(const ChoiceState& other) const {

@@ -170,6 +170,7 @@ json node_json(const AstNode* node) {
         case NodeType::Choice: {
             auto* choice = dynamic_cast<const ChoiceNode*>(node);
             result["question"] = choice->question();
+            result["interpolatedQuestion"] = node_json(choice->interpolated_text());
             result["options"] = children_json(choice->options());
             break;
         }

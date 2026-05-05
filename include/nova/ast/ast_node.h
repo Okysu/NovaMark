@@ -280,6 +280,8 @@ public:
     NodeType type() const override { return NodeType::Choice; }
     
     const std::string& question() const { return m_question; }
+    const InterpolatedTextNode* interpolated_text() const { return m_interpolated_text.get(); }
+    void set_interpolated_text(std::unique_ptr<InterpolatedTextNode> t) { m_interpolated_text = std::move(t); }
     std::vector<AstPtr>& options() { return m_options; }
     const std::vector<AstPtr>& options() const { return m_options; }
     
@@ -287,6 +289,7 @@ public:
 
 private:
     std::string m_question;
+    std::unique_ptr<InterpolatedTextNode> m_interpolated_text;
     std::vector<AstPtr> m_options;
 };
 

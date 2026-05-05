@@ -23,6 +23,7 @@ private:
     int m_column = 1;
     bool m_scan_text_next = false;
     bool m_line_is_directive = false;
+    int m_brace_depth = 0;
 
     bool is_first_non_whitespace_on_line() const;
     

@@ -3,6 +3,14 @@
 
 namespace nova {
 
+namespace {
+
+bool should_parse_interpolated_text(const std::string& text) {
+    return text.find("{{") != std::string::npos || text.find('{') != std::string::npos;
+}
+
+} // namespace
+
 Parser::Parser(std::vector<Token> tokens)
     : m_tokens(std::move(tokens))
 {
@@ -183,7 +191,7 @@ Result<AstPtr> Parser::parse_narrator() {
     if (!text.empty()) {
         if (check(TokenType::Newline)) advance();
         auto node = std::make_unique<NarratorNode>(loc, text);
-        if (text.find("{{") != std::string::npos) {
+        if (should_parse_interpolated_text(text)) {
             node->set_interpolated_text(parse_interpolated_text(text));
         }
         return Ok(AstPtr(node.release()));
@@ -223,7 +231,7 @@ Result<AstPtr> Parser::parse_dialogue() {
     if (check(TokenType::Newline)) advance();
 
     auto node = std::make_unique<DialogueNode>(loc, std::move(speaker), std::move(emotion), text);
-    if (text.find("{{") != std::string::npos) {
+    if (should_parse_interpolated_text(text)) {
         node->set_interpolated_text(parse_interpolated_text(text));
     }
     return Ok(AstPtr(node.release()));
@@ -288,6 +296,9 @@ Result<AstPtr> Parser::parse_choice() {
     if (check(TokenType::Newline)) advance();
     
     auto choice = std::make_unique<ChoiceNode>(loc, std::move(question));
+    if (should_parse_interpolated_text(choice->question())) {
+        choice->set_interpolated_text(parse_interpolated_text(choice->question()));
+    }
     
     while (check(TokenType::Minus)) {
         auto option_result = parse_choice_option();
@@ -325,16 +336,17 @@ Result<AstPtr> Parser::parse_choice_option() {
             case TokenType::Identifier:
             case TokenType::StringLiteral:
             case TokenType::NumberLiteral:
-                if (!text.empty()) text += " ";
+                if (!text.empty() && text.back() != '{' && text.back() != '(') text += " ";
                 text += tok.value;
                 advance();
                 break;
             case TokenType::LeftParen:
-                text += " (";
+                if (!text.empty()) text += " ";
+                text += tok.value;
                 advance();
                 break;
             case TokenType::RightParen:
-                text += ")";
+                text += tok.value;
                 advance();
                 break;
             case TokenType::LeftBrace:
@@ -347,7 +359,9 @@ Result<AstPtr> Parser::parse_choice_option() {
                 advance();
                 break;
             default:
-                if (!text.empty()) text += " ";
+                if (!text.empty() && text.back() != '{' && tok.type != TokenType::RightBrace && tok.type != TokenType::RightParen) {
+                    text += " ";
+                }
                 text += tok.value;
                 advance();
                 break;
@@ -380,7 +394,7 @@ Result<AstPtr> Parser::parse_choice_option() {
         if (check(TokenType::Newline)) advance();
 
         auto node = std::make_unique<ChoiceOptionNode>(loc, text, std::move(target_result.unwrap()), std::move(condition));
-        if (text.find("{{") != std::string::npos) {
+        if (should_parse_interpolated_text(text)) {
             node->set_interpolated_text(parse_interpolated_text(text));
         }
         return Ok(AstPtr(node.release()));
@@ -406,7 +420,7 @@ Result<AstPtr> Parser::parse_choice_option() {
     }
 
     auto node = std::make_unique<ChoiceOptionNode>(loc, text, "", std::move(condition));
-    if (text.find("{{") != std::string::npos) {
+    if (should_parse_interpolated_text(text)) {
         node->set_interpolated_text(parse_interpolated_text(text));
     }
 

@@ -13,6 +13,7 @@
 
 struct NovaVM {
     nova::NovaVM vm;
+    std::unique_ptr<nova::ProgramNode> loadedProgram;
     std::string lastError;
     std::string textConfigFont;
     NovaStateCallback stateCallback = nullptr;
@@ -21,6 +22,13 @@ struct NovaVM {
     std::vector<std::string> spriteFieldCache;
     std::vector<NovaSfx> sfxBuffer;
     std::vector<NovaChoice> choiceBuffer;
+    std::vector<NovaTextSegment> dialogueSegmentBuffer;
+    std::vector<NovaTextSegment> choiceSegmentBuffer;
+    std::vector<NovaTextSegment> choiceQuestionSegmentBuffer;
+    std::vector<size_t> choiceSegmentOffsets;
+    std::vector<std::string> dialogueSegmentFieldCache;
+    std::vector<std::string> choiceSegmentFieldCache;
+    std::vector<std::string> choiceQuestionSegmentFieldCache;
     std::vector<std::string> variableNameCache;
     std::vector<std::string> themeNameCache;
     std::unordered_map<std::string, std::vector<std::string>> themePropertyKeyCache;
@@ -36,6 +44,18 @@ char* copy_string(const std::string& value) {
 
     std::memcpy(buffer, value.c_str(), value.size() + 1);
     return buffer;
+}
+
+void append_text_segments(const std::vector<nova::TextSegment>& source,
+                          std::vector<NovaTextSegment>& buffer,
+                          std::vector<std::string>& fieldCache) {
+    for (const auto& seg : source) {
+        fieldCache.push_back(seg.text);
+        const char* text = fieldCache.back().c_str();
+        fieldCache.push_back(seg.style);
+        const char* style = fieldCache.back().c_str();
+        buffer.push_back({text, style});
+    }
 }
 
 }
@@ -77,7 +97,8 @@ int nova_load_from_buffer(NovaVM* vm, const unsigned char* data, size_t size) {
         return 0;
     }
     
-    vm->vm.load(program.get());
+    vm->loadedProgram = std::move(program);
+    vm->vm.load(vm->loadedProgram.get());
     return 1;
 }
 
@@ -166,28 +187,69 @@ NovaState nova_get_state(NovaVM* vm) {
     
     state.hasDialogue = novaState.dialogue.has_value() ? 1 : 0;
     if (novaState.dialogue) {
+        vm->dialogueSegmentBuffer.clear();
+        vm->dialogueSegmentFieldCache.clear();
+        vm->dialogueSegmentBuffer.reserve(novaState.dialogue->segments.size());
+        vm->dialogueSegmentFieldCache.reserve(novaState.dialogue->segments.size() * 2);
         state.dialogue.isShow = novaState.dialogue->isShow ? 1 : 0;
         state.dialogue.name = novaState.dialogue->speaker.c_str();
         state.dialogue.text = novaState.dialogue->text.c_str();
+        append_text_segments(novaState.dialogue->segments, vm->dialogueSegmentBuffer, vm->dialogueSegmentFieldCache);
+        state.dialogue.segments = vm->dialogueSegmentBuffer.data();
+        state.dialogue.segmentCount = vm->dialogueSegmentBuffer.size();
         state.dialogue.emotion = novaState.dialogue->emotion.c_str();
         state.dialogue.color = novaState.dialogue->color.c_str();
+    } else {
+        vm->dialogueSegmentBuffer.clear();
+        state.dialogue.segments = nullptr;
+        state.dialogue.segmentCount = 0;
     }
     
     vm->choiceBuffer.clear();
+    vm->choiceSegmentBuffer.clear();
+    vm->choiceQuestionSegmentBuffer.clear();
+    vm->choiceSegmentOffsets.clear();
+    vm->choiceSegmentFieldCache.clear();
+    vm->choiceQuestionSegmentFieldCache.clear();
 
     state.hasChoices = (novaState.choice && novaState.choice->isShow) ? 1 : 0;
+    state.choiceIsShow = state.hasChoices;
     state.choiceQuestion = nullptr;
+    state.choiceQuestionSegments = nullptr;
+    state.choiceQuestionSegmentCount = 0;
     if (novaState.choice && novaState.choice->isShow) {
+        size_t totalChoiceSegments = 0;
+        for (const auto& opt : novaState.choice->options) {
+            totalChoiceSegments += opt.segments.size();
+        }
+
         vm->choiceBuffer.reserve(novaState.choice->options.size());
+        vm->choiceSegmentOffsets.reserve(novaState.choice->options.size());
+        vm->choiceSegmentBuffer.reserve(totalChoiceSegments);
+        vm->choiceSegmentFieldCache.reserve(totalChoiceSegments * 2);
+        vm->choiceQuestionSegmentBuffer.reserve(novaState.choice->questionSegments.size());
+        vm->choiceQuestionSegmentFieldCache.reserve(novaState.choice->questionSegments.size() * 2);
         state.choiceQuestion = novaState.choice->question.c_str();
+        append_text_segments(novaState.choice->questionSegments, vm->choiceQuestionSegmentBuffer, vm->choiceQuestionSegmentFieldCache);
+        state.choiceQuestionSegments = vm->choiceQuestionSegmentBuffer.empty() ? nullptr : vm->choiceQuestionSegmentBuffer.data();
+        state.choiceQuestionSegmentCount = vm->choiceQuestionSegmentBuffer.size();
          
         for (const auto& opt : novaState.choice->options) {
             NovaChoice choice = {};
+            vm->choiceSegmentOffsets.push_back(vm->choiceSegmentBuffer.size());
             choice.id = opt.id.c_str();
             choice.text = opt.text.c_str();
+            append_text_segments(opt.segments, vm->choiceSegmentBuffer, vm->choiceSegmentFieldCache);
+            choice.segmentCount = opt.segments.size();
             choice.target = opt.target.c_str();
             choice.disabled = opt.disabled ? 1 : 0;
             vm->choiceBuffer.push_back(choice);
+        }
+
+        for (size_t i = 0; i < vm->choiceBuffer.size(); ++i) {
+            vm->choiceBuffer[i].segments = vm->choiceBuffer[i].segmentCount == 0
+                ? nullptr
+                : vm->choiceSegmentBuffer.data() + vm->choiceSegmentOffsets[i];
         }
     }
     

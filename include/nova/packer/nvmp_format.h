@@ -14,7 +14,7 @@ namespace nova {
 // interpolated-text payloads). Until AST bytecode gets its own explicit
 // embedded version, the container header version acts as the compatibility
 // boundary for packaged .nvmp artifacts.
-constexpr uint32_t NVMP_VERSION = 2;
+constexpr uint32_t NVMP_VERSION = 3;
 constexpr const char* NVMP_METADATA_PATH = "__nova/metadata.yaml";
 
 // 魔法数字 "NOVA"

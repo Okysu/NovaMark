@@ -291,7 +291,7 @@ Result<Token> Lexer::scan_operator() {
         case '#':
             return Ok(Token{TokenType::Hash, "#", loc});
         case ':':
-            if (!m_line_is_directive && !at_end() && current() != '\n') {
+            if (!m_line_is_directive && !at_end() && current() != '\n' && m_brace_depth == 0) {
                 m_scan_text_next = true;
             }
             return Ok(Token{TokenType::Colon, ":", loc});
@@ -300,8 +300,14 @@ Result<Token> Lexer::scan_operator() {
         case ')': return Ok(Token{TokenType::RightParen, ")", loc});
         case '[': return Ok(Token{TokenType::LeftBracket, "[", loc});
         case ']': return Ok(Token{TokenType::RightBracket, "]", loc});
-        case '{': return Ok(Token{TokenType::LeftBrace, "{", loc});
-        case '}': return Ok(Token{TokenType::RightBrace, "}", loc});
+        case '{':
+            ++m_brace_depth;
+            return Ok(Token{TokenType::LeftBrace, "{", loc});
+        case '}':
+            if (m_brace_depth > 0) {
+                --m_brace_depth;
+            }
+            return Ok(Token{TokenType::RightBrace, "}", loc});
         case ',': return Ok(Token{TokenType::Comma, ",", loc});
         case '.': return Ok(Token{TokenType::Dot, ".", loc});
         case '+': return Ok(Token{TokenType::Plus, "+", loc});

@@ -121,11 +121,65 @@ NOVA_WASM_API const char* nova_get_base_audio_path(void* vm);
 
 NOVA_WASM_API const char* nova_get_dialogue_emotion(void* vm);
 
+/// @brief 获取当前对话文本片段数量
+/// @param vm VM 实例
+/// @return 文本片段数量，无对话时返回 0
+NOVA_WASM_API int nova_get_dialogue_segment_count(void* vm);
+
+/// @brief 获取当前对话指定片段文本
+/// @param vm VM 实例
+/// @param index 片段索引
+/// @return 片段文本，索引无效时返回空字符串
+NOVA_WASM_API const char* nova_get_dialogue_segment_text(void* vm, int index);
+
+/// @brief 获取当前对话指定片段样式 ID
+/// @param vm VM 实例
+/// @param index 片段索引
+/// @return 片段样式，纯文本或索引无效时返回空字符串
+NOVA_WASM_API const char* nova_get_dialogue_segment_style(void* vm, int index);
+
 NOVA_WASM_API const char* nova_get_choice_question(void* vm);
+
+/// @brief 获取当前选择问题文本片段数量
+/// @param vm VM 实例
+/// @return 片段数量，无选择时返回 0
+NOVA_WASM_API int nova_get_choice_question_segment_count(void* vm);
+
+/// @brief 获取当前选择问题指定片段文本
+/// @param vm VM 实例
+/// @param index 片段索引
+/// @return 片段文本，索引无效时返回空字符串
+NOVA_WASM_API const char* nova_get_choice_question_segment_text(void* vm, int index);
+
+/// @brief 获取当前选择问题指定片段样式 ID
+/// @param vm VM 实例
+/// @param index 片段索引
+/// @return 片段样式，纯文本或索引无效时返回空字符串
+NOVA_WASM_API const char* nova_get_choice_question_segment_style(void* vm, int index);
 
 NOVA_WASM_API const char* nova_get_choice_id(void* vm, int index);
 
 NOVA_WASM_API const char* nova_get_choice_target(void* vm, int index);
+
+/// @brief 获取指定选项文本片段数量
+/// @param vm VM 实例
+/// @param index 选项索引
+/// @return 片段数量，索引无效时返回 0
+NOVA_WASM_API int nova_get_choice_segment_count(void* vm, int index);
+
+/// @brief 获取指定选项片段文本
+/// @param vm VM 实例
+/// @param choiceIndex 选项索引
+/// @param segmentIndex 片段索引
+/// @return 片段文本，索引无效时返回空字符串
+NOVA_WASM_API const char* nova_get_choice_segment_text(void* vm, int choiceIndex, int segmentIndex);
+
+/// @brief 获取指定选项片段样式 ID
+/// @param vm VM 实例
+/// @param choiceIndex 选项索引
+/// @param segmentIndex 片段索引
+/// @return 片段样式，纯文本或索引无效时返回空字符串
+NOVA_WASM_API const char* nova_get_choice_segment_style(void* vm, int choiceIndex, int segmentIndex);
 
 NOVA_WASM_API int nova_has_choices(void* vm);
 

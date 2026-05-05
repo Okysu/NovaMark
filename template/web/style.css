@@ -221,6 +221,10 @@ body {
     font-weight: 600;
 }
 
+.nova-inline-style {
+    display: inline;
+}
+
 #game-menu button {
     background: rgba(0, 0, 0, 0.5);
     border: 1px solid rgba(255, 255, 255, 0.2);
@@ -421,6 +425,14 @@ body {
     z-index: 50;
 }
 
+.vn-choice-question {
+    color: rgba(255, 255, 255, 0.92);
+    font-size: 15px;
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 4px;
+}
+
 .vn-choice {
     background: rgba(0, 0, 0, 0.8);
     border: 2px solid #e94560;
@@ -513,6 +525,15 @@ body {
     flex-wrap: wrap;
     gap: 10px;
     justify-content: center;
+}
+
+.chat-choice-question {
+    width: 100%;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 4px;
 }
 
 .chat-choice {

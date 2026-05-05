@@ -13,7 +13,7 @@
 </p>
 
 <p>
-  <img src="https://img.shields.io/badge/version-v0.1_alpha-blue" alt="Version">
+  <img src="https://img.shields.io/badge/version-v1.0.0--rc.1-blue" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
   <img src="https://img.shields.io/badge/C%2B%2B-17-orange" alt="C++17">
 </p>
@@ -182,7 +182,7 @@ For native targets, the VM exposes a standard C API callable from any language w
 
 ## Project Status & Roadmap <a id="roadmap"></a>
 
-**Current version: v0.1 (Alpha)**
+**Current version: v1.0.0-rc.1**
 
 ### Feature Matrix
 
@@ -192,49 +192,84 @@ For native targets, the VM exposes a standard C API callable from any language w
 </thead>
 <tbody>
 <tr>
-  <td rowspan="3"><strong>Language Parser</strong></td>
+  <td rowspan="5"><strong>Language Parser</strong></td>
   <td>Character definitions, scene declarations, label jumps</td>
-  <td>Stable</td>
+  <td>✅ Stable</td>
 </tr>
 <tr>
   <td>Variable arithmetic, dice expressions (<code>2d6+3</code>), conditionals (<code>@if</code> / <code>@else</code>)</td>
-  <td>Stable</td>
+  <td>✅ Stable</td>
 </tr>
 <tr>
   <td>Item system (<code>@give</code> / <code>@take</code>), multiple endings, subroutines (<code>@call</code>)</td>
-  <td>Stable</td>
+  <td>✅ Stable</td>
 </tr>
 <tr>
-  <td rowspan="3"><strong>Runtime</strong></td>
+  <td>Block-choice syntax (indented <code>@set</code>/<code>@flag</code>/<code>@give</code>/<code>@take</code> after option)</td>
+  <td>✅ Stable</td>
+</tr>
+<tr>
+  <td>Text interpolation <code>{{expr}}</code>, inline styles <code>{style:text}</code></td>
+  <td>✅ Stable</td>
+</tr>
+<tr>
+  <td rowspan="5"><strong>Runtime</strong></td>
   <td>Text Mode terminal renderer (development &amp; debugging)</td>
-  <td>Stable</td>
+  <td>✅ Stable</td>
 </tr>
 <tr>
-  <td>WASM compilation support and Web renderer templates</td>
-  <td>Stable</td>
+  <td>WASM compilation support and Web renderer templates (Chat Mode + VN Mode)</td>
+  <td>✅ Stable</td>
 </tr>
 <tr>
   <td>Cross-language C API exposure</td>
-  <td>Stable</td>
+  <td>✅ Stable</td>
+</tr>
+<tr>
+  <td>HarmonyOS (ArkTS) renderer template</td>
+  <td>✅ Stable</td>
+</tr>
+<tr>
+  <td>Playthrough-only save import (endings + flags only)</td>
+  <td>✅ Stable</td>
+</tr>
+<tr>
+  <td rowspan="3"><strong>Toolchain</strong></td>
+  <td><code>nova-cli</code> (build / run / check)</td>
+  <td>✅ Stable</td>
+</tr>
+<tr>
+  <td>AST snapshot export &amp; source round-trip</td>
+  <td>✅ Stable</td>
+</tr>
+<tr>
+  <td>NovaMark Creator (AST→DAG visual editor)</td>
+  <td>🔧 In progress</td>
 </tr>
 </tbody>
 </table>
 
+### Host Responsibility Boundary
+
+The following capabilities are implemented by the host, not the engine core:
+
+- Auto-advance / speed-up / skip logic (built on <code>advance()</code> + <code>choose()</code>)
+- History text rollback and state snapshot thumbnails
+- UI layout, HUD, typewriter effects, animation transitions
+
 ### Iteration Plan
 
-**v0.2 — Renderer Enhancements**
-- [ ] State snapshot thumbnail generation
-- [ ] History text rollback system
-- [ ] Auto-advance and skip logic
-
-**v0.3 — Toolchain**
-- [ ] NovaMark Creator (visual node editor and packaging GUI)
-- [ ] Native platform renderer references (iOS / Android / HarmonyOS)
-
-**v1.0 — Production Ready**
+**v1.0.0 — Production Ready**
+- [ ] Registry override system (extend/override <code>@</code> directives and built-in functions)
+- [ ] NovaState field extension and <code>extensions</code> support
+- [ ] State snapshot serialization format versioning and compatibility
 - [ ] Syntax specification freeze and backward-compatibility guarantee
 - [ ] Performance profiling benchmarks and memory allocation optimization
 - [ ] Complete API Reference coverage
+
+**v1.x — Ecosystem**
+- [ ] NovaMark Creator bidirectional editing and multi-platform packaging GUI
+- [ ] iOS / Android native renderer reference implementations
 
 ---
 

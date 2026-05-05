@@ -108,6 +108,7 @@ function getDebugChoices() {
             index: i,
             id: renderer.getChoiceId(i),
             text: renderer.getChoiceText(i),
+            segments: renderer.getChoiceSegments(i),
             target: renderer.getChoiceTarget(i),
             disabled: renderer.isChoiceDisabled(i)
         });
@@ -122,6 +123,58 @@ function escapeHtml(value) {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
+}
+
+function sanitizeInlineStyleName(style) {
+    return String(style || '')
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9_-]+/g, '-')
+        .replace(/^-+|-+$/g, '') || 'plain';
+}
+
+function normalizeSegments(segments) {
+    if (!Array.isArray(segments)) {
+        return [];
+    }
+
+    return segments
+        .filter(segment => segment && typeof segment.text === 'string')
+        .map(segment => ({
+            text: segment.text,
+            style: typeof segment.style === 'string' ? segment.style : ''
+        }));
+}
+
+function segmentsHaveStyledContent(segments) {
+    return normalizeSegments(segments).some(segment => segment.style.trim() !== '');
+}
+
+function setSegmentedContent(element, segments) {
+    const normalizedSegments = normalizeSegments(segments);
+    element.textContent = '';
+
+    for (const segment of normalizedSegments) {
+        const span = document.createElement('span');
+        span.textContent = segment.text;
+        span.className = 'nova-inline-style';
+        if (segment.style.trim()) {
+            span.dataset.novaStyle = segment.style;
+            span.classList.add(`nova-inline-style--${sanitizeInlineStyleName(segment.style)}`);
+        }
+        element.appendChild(span);
+    }
+}
+
+function getChoiceQuestionSnapshot() {
+    if (!renderer) {
+        return { text: '', segments: [] };
+    }
+
+    return {
+        text: renderer.getChoiceQuestion(),
+        segments: renderer.getChoiceQuestionSegments()
+    };
 }
 
 function buildStatusChips(runtimeState) {
@@ -205,12 +258,13 @@ function getDebugSnapshot() {
         snapshot.dialogue = {
             speaker: renderer.getDialogueSpeaker(),
             text: renderer.getDialogueText(),
+            segments: renderer.getDialogueSegments(),
             emotion: renderer.getDialogueEmotion(),
             color: renderer.getDialogueColor()
         };
     }
 
-    snapshot.choiceQuestion = renderer.getChoiceQuestion();
+    snapshot.choiceQuestion = getChoiceQuestionSnapshot();
     snapshot.hasChoices = renderer.hasChoices();
 
     const sfxCount = renderer.getSfxCount();
@@ -467,7 +521,7 @@ function handleChoice(index) {
     
     if (renderer.mode === 'chat') {
         const choiceText = renderer.getChoiceText(index);
-        addChatMessage(choiceText, 'player');
+        addChatMessage(choiceText, 'player', null, null, renderer.getChoiceSegments(index));
     }
     
     renderer.selectChoice(index);
@@ -619,6 +673,8 @@ async function renderVNMode() {
         
         const speaker = renderer.getDialogueSpeaker();
         const text = renderer.getDialogueText();
+        const segments = renderer.getDialogueSegments();
+        const hasStyledSegments = segmentsHaveStyledContent(segments);
         const color = renderer.getDialogueColor();
         const signature = `${speaker}\0${text}\0${color}`;
 
@@ -634,15 +690,21 @@ async function renderVNMode() {
         // 检测对话是否变化，变化时启动打字机效果
         if (signature !== currentDialogueSignature) {
             currentDialogueSignature = signature;
-            const textConfig = renderer.getTextConfig();
-            typewriter.start(
-                $('vn-text'),
-                text,
-                textConfig.defaultTextSpeed || 50,
-                () => {
-                    $('vn-indicator').classList.toggle('hidden', renderer.hasChoices());
-                }
-            );
+            if (hasStyledSegments) {
+                typewriter.stop();
+                setSegmentedContent($('vn-text'), segments);
+                $('vn-indicator').classList.toggle('hidden', renderer.hasChoices());
+            } else {
+                const textConfig = renderer.getTextConfig();
+                typewriter.start(
+                    $('vn-text'),
+                    text,
+                    textConfig.defaultTextSpeed || 50,
+                    () => {
+                        $('vn-indicator').classList.toggle('hidden', renderer.hasChoices());
+                    }
+                );
+            }
         } else if (!typewriter.isInProgress()) {
             // 打字机已完成，显示指示器
             $('vn-indicator').classList.toggle('hidden', renderer.hasChoices());
@@ -658,12 +720,28 @@ async function renderVNMode() {
     
     if (renderer.hasChoices()) {
         choicesDiv.classList.remove('hidden');
+        const questionState = getChoiceQuestionSnapshot();
+        if (questionState.text) {
+            const questionEl = document.createElement('div');
+            questionEl.className = 'vn-choice-question';
+            if (segmentsHaveStyledContent(questionState.segments)) {
+                setSegmentedContent(questionEl, questionState.segments);
+            } else {
+                questionEl.textContent = questionState.text;
+            }
+            choicesDiv.appendChild(questionEl);
+        }
         
         const count = renderer.getChoiceCount();
         for (let i = 0; i < count; i++) {
             const btn = document.createElement('button');
             btn.className = 'vn-choice';
-            btn.textContent = renderer.getChoiceText(i);
+            const segments = renderer.getChoiceSegments(i);
+            if (segmentsHaveStyledContent(segments)) {
+                setSegmentedContent(btn, segments);
+            } else {
+                btn.textContent = renderer.getChoiceText(i);
+            }
             btn.disabled = renderer.isChoiceDisabled(i);
             btn.onclick = () => handleChoice(i);
             choicesDiv.appendChild(btn);
@@ -679,6 +757,8 @@ async function renderChatMode() {
     if (renderer.hasDialogue()) {
         const speaker = renderer.getDialogueSpeaker();
         const text = renderer.getDialogueText();
+        const segments = renderer.getDialogueSegments();
+        const hasStyledSegments = segmentsHaveStyledContent(segments);
         const color = renderer.getDialogueColor();
         const signature = `${speaker}\u0000${text}\u0000${color}`;
         
@@ -701,14 +781,19 @@ async function renderChatMode() {
             msgDiv.appendChild(textDiv);
             messagesDiv.appendChild(msgDiv);
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
-            
-            const textConfig = renderer.getTextConfig();
-            chatTypewriter.start(
-                textDiv,
-                text,
-                textConfig.defaultTextSpeed || 50,
-                null
-            );
+
+            if (hasStyledSegments) {
+                chatTypewriter.stop();
+                setSegmentedContent(textDiv, segments);
+            } else {
+                const textConfig = renderer.getTextConfig();
+                chatTypewriter.start(
+                    textDiv,
+                    text,
+                    textConfig.defaultTextSpeed || 50,
+                    null
+                );
+            }
         }
     }
     
@@ -716,11 +801,28 @@ async function renderChatMode() {
     choicesDiv.innerHTML = '';
     
     if (renderer.hasChoices()) {
+        const questionState = getChoiceQuestionSnapshot();
+        if (questionState.text) {
+            const questionEl = document.createElement('div');
+            questionEl.className = 'chat-choice-question';
+            if (segmentsHaveStyledContent(questionState.segments)) {
+                setSegmentedContent(questionEl, questionState.segments);
+            } else {
+                questionEl.textContent = questionState.text;
+            }
+            choicesDiv.appendChild(questionEl);
+        }
+
         const count = renderer.getChoiceCount();
         for (let i = 0; i < count; i++) {
             const btn = document.createElement('button');
             btn.className = 'chat-choice';
-            btn.textContent = renderer.getChoiceText(i);
+            const segments = renderer.getChoiceSegments(i);
+            if (segmentsHaveStyledContent(segments)) {
+                setSegmentedContent(btn, segments);
+            } else {
+                btn.textContent = renderer.getChoiceText(i);
+            }
             btn.disabled = renderer.isChoiceDisabled(i);
             btn.onclick = () => handleChoice(i);
             choicesDiv.appendChild(btn);
@@ -728,7 +830,7 @@ async function renderChatMode() {
     }
 }
 
-function addChatMessage(text, type, speaker = null, color = null) {
+function addChatMessage(text, type, speaker = null, color = null, segments = null) {
     const messagesDiv = $('chat-messages');
     
     const msgDiv = document.createElement('div');
@@ -743,7 +845,11 @@ function addChatMessage(text, type, speaker = null, color = null) {
     }
     
     const textDiv = document.createElement('div');
-    textDiv.textContent = text;
+    if (segmentsHaveStyledContent(segments)) {
+        setSegmentedContent(textDiv, segments);
+    } else {
+        textDiv.textContent = text;
+    }
     msgDiv.appendChild(textDiv);
     
     messagesDiv.appendChild(msgDiv);

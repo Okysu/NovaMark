@@ -13,6 +13,10 @@ target_include_directories(nova-test PRIVATE
     ${CMAKE_SOURCE_DIR}/include
 )
 
+if(MSVC)
+    target_compile_definitions(nova-test PRIVATE NOVA_EXPORTS)
+endif()
+
 target_link_libraries(nova-test PRIVATE
     nova-core
     nova-lexer
@@ -21,6 +25,7 @@ target_link_libraries(nova-test PRIVATE
     nova-semantic
     nova-vm
     nova-packer
+    nova-renderer
     GTest::gtest
     GTest::gtest_main
 )

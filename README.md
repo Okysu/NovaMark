@@ -13,7 +13,7 @@
 </p>
 
 <p>
-  <img src="https://img.shields.io/badge/版本-v0.1_alpha-blue" alt="版本">
+  <img src="https://img.shields.io/badge/版本-v1.0.0--rc.1-blue" alt="版本">
   <img src="https://img.shields.io/badge/许可证-MIT-green" alt="许可证">
   <img src="https://img.shields.io/badge/C%2B%2B-17-orange" alt="C++17">
 </p>
@@ -183,7 +183,7 @@ VM 通过 Emscripten 编译并暴露 JavaScript API。项目 `template/web/` 目
 
 ## 项目状态与路线图 <a id="roadmap"></a>
 
-**当前版本：v0.1 (Alpha)**
+**当前版本：v1.0.0-rc.1**
 
 ### 核心特性矩阵
 
@@ -193,49 +193,84 @@ VM 通过 Emscripten 编译并暴露 JavaScript API。项目 `template/web/` 目
 </thead>
 <tbody>
 <tr>
-  <td rowspan="3"><strong>语言解析</strong></td>
+  <td rowspan="5"><strong>语言解析</strong></td>
   <td>角色定义、场景声明、标签跳转</td>
-  <td>稳定</td>
+  <td>✅ 稳定</td>
 </tr>
 <tr>
   <td>变量运算、骰子表达式（<code>2d6+3</code>）、条件判断（<code>@if</code> / <code>@else</code>）</td>
-  <td>稳定</td>
+  <td>✅ 稳定</td>
 </tr>
 <tr>
   <td>物品系统（<code>@give</code> / <code>@take</code>）、多结局支持、子程序（<code>@call</code>）</td>
-  <td>稳定</td>
+  <td>✅ 稳定</td>
 </tr>
 <tr>
-  <td rowspan="3"><strong>运行时</strong></td>
+  <td>块级选项语法（选项后跟随 <code>@set</code>/<code>@flag</code>/<code>@give</code>/<code>@take</code> 块）</td>
+  <td>✅ 稳定</td>
+</tr>
+<tr>
+  <td>文本插值 <code>{{expr}}</code>、内联样式 <code>{style:text}</code></td>
+  <td>✅ 稳定</td>
+</tr>
+<tr>
+  <td rowspan="5"><strong>运行时</strong></td>
   <td>Text Mode 终端渲染器（开发与调试）</td>
-  <td>稳定</td>
+  <td>✅ 稳定</td>
 </tr>
 <tr>
-  <td>WASM 编译支持与 Web 渲染器模板</td>
-  <td>稳定</td>
+  <td>WASM 编译支持与 Web 渲染器模板（Chat Mode + VN Mode）</td>
+  <td>✅ 稳定</td>
 </tr>
 <tr>
   <td>跨语言 C API 暴露</td>
-  <td>稳定</td>
+  <td>✅ 稳定</td>
+</tr>
+<tr>
+  <td>HarmonyOS (ArkTS) 渲染器模板</td>
+  <td>✅ 稳定</td>
+</tr>
+<tr>
+  <td>Playthrough-Only 存档导入（仅结局+标志）</td>
+  <td>✅ 稳定</td>
+</tr>
+<tr>
+  <td rowspan="3"><strong>工具链</strong></td>
+  <td><code>nova-cli</code>（build / run / check）</td>
+  <td>✅ 稳定</td>
+</tr>
+<tr>
+  <td>AST 快照导出 &amp; Source 回导</td>
+  <td>✅ 稳定</td>
+</tr>
+<tr>
+  <td>NovaMark Creator（AST→DAG 可视化编辑器）</td>
+  <td>🔧 进行中</td>
 </tr>
 </tbody>
 </table>
 
+### 宿主职责边界
+
+以下能力由宿主实现，不属于引擎核心：
+
+- 自动步进 / 倍速 / 跳过逻辑（基于 <code>advance()</code> + <code>choose()</code>）
+- 历史文本回溯与状态快照缩略图
+- UI 布局、HUD、打字机效果、动画过渡
+
 ### 迭代规划
 
-**v0.2 — 渲染器增强**
-- [ ] 支持状态快照缩略图生成
-- [ ] 历史文本回溯系统
-- [ ] 自动化步进与跳过逻辑
-
-**v0.3 — 工具链完善**
-- [ ] NovaMark Creator（可视化节点编辑器与打包 GUI 工具）
-- [ ] 原生平台渲染器参考实现（iOS / Android / HarmonyOS）
-
-**v1.0 — 生产就绪**
+**v1.0.0 — 生产就绪**
+- [ ] 注册重载系统（扩展/覆写 <code>@</code>指令与内置函数）
+- [ ] NovaState 状态字段扩展与 <code>extensions</code> 支持
+- [ ] 状态快照序列化格式版本兼容机制
 - [ ] 语法规范冻结与向后兼容承诺
 - [ ] 性能剖析基准测试与内存分配优化
 - [ ] 完整 API Reference 覆盖
+
+**v1.x — 生态完善**
+- [ ] NovaMark Creator 双向编辑与多平台打包 GUI
+- [ ] iOS / Android 原生渲染器参考实现
 
 ---
 

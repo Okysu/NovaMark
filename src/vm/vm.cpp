@@ -788,9 +788,15 @@ void NovaVM::executeDialogue(const DialogueNode* node) {
     diag.isShow = true;
     diag.speaker = node->speaker();
     diag.emotion = node->emotion();
-    diag.text = node->interpolated_text()
-        ? resolveInterpolatedText(node->interpolated_text())
-        : node->text();
+    if (node->interpolated_text()) {
+        diag.segments = resolveInterpolatedTextSegments(node->interpolated_text());
+        diag.text = resolveInterpolatedText(node->interpolated_text());
+    } else {
+        diag.text = node->text();
+        if (!diag.text.empty()) {
+            diag.segments.push_back(TextSegment{diag.text, ""});
+        }
+    }
     auto it = m_characterDefinitions.find(diag.speaker);
     if (it != m_characterDefinitions.end()) {
         diag.color = it->second.color;
@@ -815,10 +821,18 @@ void NovaVM::executeDialogue(const DialogueNode* node) {
 
 void NovaVM::executeNarrator(const NarratorNode* node) {
     if (!node) return;
-    std::string text = node->interpolated_text()
-        ? resolveInterpolatedText(node->interpolated_text())
-        : node->text();
-    m_state.dialogue = DialogueState{true, "", std::move(text), "", ""};
+    DialogueState dialogue;
+    dialogue.isShow = true;
+    if (node->interpolated_text()) {
+        dialogue.segments = resolveInterpolatedTextSegments(node->interpolated_text());
+        dialogue.text = resolveInterpolatedText(node->interpolated_text());
+    } else {
+        dialogue.text = node->text();
+        if (!dialogue.text.empty()) {
+            dialogue.segments.push_back(TextSegment{dialogue.text, ""});
+        }
+    }
+    m_state.dialogue = std::move(dialogue);
 }
 
 void NovaVM::executeJump(const JumpNode* node) {
@@ -835,7 +849,15 @@ void NovaVM::executeChoice(const ChoiceNode* node) {
     
     ChoiceState choice;
     choice.isShow = true;
-    choice.question = node->question();
+    if (node->interpolated_text()) {
+        choice.questionSegments = resolveInterpolatedTextSegments(node->interpolated_text());
+        choice.question = resolveInterpolatedText(node->interpolated_text());
+    } else {
+        choice.question = node->question();
+        if (!choice.question.empty()) {
+            choice.questionSegments.push_back(TextSegment{choice.question, ""});
+        }
+    }
     m_activeChoiceOptions.clear();
     
     int idx = 0;
@@ -844,9 +866,15 @@ void NovaVM::executeChoice(const ChoiceNode* node) {
         if (optNode) {
             ChoiceOption co;
             co.id = std::to_string(idx++);
-            co.text = optNode->interpolated_text()
-                ? resolveInterpolatedText(optNode->interpolated_text())
-                : optNode->text();
+            if (optNode->interpolated_text()) {
+                co.segments = resolveInterpolatedTextSegments(optNode->interpolated_text());
+                co.text = resolveInterpolatedText(optNode->interpolated_text());
+            } else {
+                co.text = optNode->text();
+                if (!co.text.empty()) {
+                    co.segments.push_back(TextSegment{co.text, ""});
+                }
+            }
             co.target = optNode->target();
             co.disabled = optNode->condition() && !evaluateCondition(optNode->condition());
             choice.options.push_back(co);
@@ -1222,25 +1250,38 @@ std::string NovaVM::varValueToString(const VarValue& val) {
     return "";
 }
 
-std::string NovaVM::resolveInterpolatedText(const InterpolatedTextNode* node) {
-    if (!node) return "";
-    std::string result;
+std::vector<TextSegment> NovaVM::resolveInterpolatedTextSegments(const InterpolatedTextNode* node) {
+    std::vector<TextSegment> segments;
+    if (!node) {
+        return segments;
+    }
+
     for (const auto& seg : node->segments()) {
         switch (seg.type) {
             case InterpolatedTextNode::Segment::Type::PlainText:
-                result += seg.content;
+                segments.push_back(TextSegment{seg.content, ""});
                 break;
             case InterpolatedTextNode::Segment::Type::Interpolation:
                 if (seg.expression) {
-                    result += varValueToString(evaluateExpression(seg.expression.get()));
+                    segments.push_back(TextSegment{varValueToString(evaluateExpression(seg.expression.get())), ""});
                 } else {
-                    result += seg.content;
+                    segments.push_back(TextSegment{seg.content, ""});
                 }
                 break;
             case InterpolatedTextNode::Segment::Type::InlineStyle:
-                result += seg.content;
+                segments.push_back(TextSegment{seg.content, seg.style});
                 break;
         }
+    }
+
+    return segments;
+}
+
+std::string NovaVM::resolveInterpolatedText(const InterpolatedTextNode* node) {
+    if (!node) return "";
+    std::string result;
+    for (const auto& segment : resolveInterpolatedTextSegments(node)) {
+        result += segment.text;
     }
     return result;
 }

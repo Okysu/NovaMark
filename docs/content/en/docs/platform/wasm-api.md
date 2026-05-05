@@ -82,6 +82,27 @@ For the returned JSON structure, see:
 
 - [Runtime State](../api/runtime-state/)
 
+### Treat it as the primary presentation snapshot
+
+`_nova_wasm_export_runtime_state_json` now contains not only variables, inventory, and definition metadata, but also renderer-facing presentation fields such as:
+
+- `bg` / `bgTransition`
+- `bgm` / `bgmVolume` / `bgmLoop`
+- `sprites`
+- `sfx`
+- `dialogue` (including `segments`)
+- `choice` (including `questionSegments` and `options[].segments`)
+- `endingId` / `endingTitle`
+- `runtimeStateVersion` / `runtimeStateChangeFlags`
+
+So for most Web hosts, the recommended path is now:
+
+1. read the full runtime/presentation snapshot once
+2. drive UI rendering directly from it
+3. fall back to granular getters only when low-level optimization is required
+
+Legacy getters are still present and unchanged.
+
 ### Text Configuration (textConfig)
 
 The template reads the following configuration fields:
@@ -94,6 +115,22 @@ The template reads the following configuration fields:
 | Background path | `_nova_wasm_get_base_bg_path()` |
 | Sprite path | `_nova_wasm_get_base_sprite_path()` |
 | Audio path | `_nova_wasm_get_base_audio_path()` |
+
+These values are now also included in `runtime_state_json.textConfig`.
+
+### Template-side JS convenience entry points
+
+The template-side `NovaRenderer` currently provides both:
+
+```js
+renderer.getRuntimeState()
+renderer.getPresentationState()
+```
+
+They currently return the same data:
+
+- `getRuntimeState()` is the legacy name kept for compatibility
+- `getPresentationState()` is the newer semantic alias emphasizing the unified presentation snapshot role
 
 ---
 
@@ -157,6 +194,13 @@ Common error handling approaches:
 - `load_package` returns non-zero -> Read `_nova_wasm_get_last_error()`
 - `export_runtime_state_json` returns null pointer -> Treat as no state/abnormal state
 - `import_save_*` returns non-zero -> Treat as import failure
+
+If you consume the unified snapshot, it is also useful to pay attention to:
+
+- `runtimeStateVersion`
+- `runtimeStateChangeFlags`
+
+These can help the host implement caching or partial refresh strategies.
 
 Host-side recommendations:
 

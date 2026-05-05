@@ -292,6 +292,28 @@ TEST_F(ParserTest, SimpleChoice) {
     ASSERT_EQ(choice->options().size(), 2u);
 }
 
+TEST_F(ParserTest, ChoiceQuestionParsesInterpolatedAndStyledText) {
+    auto result = parse(
+        "? 你的{accent:名字}是 {{name}} 吗？\n"
+        "- [是] -> .yes\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+    auto program = as_program(result.unwrap());
+    ASSERT_NE(program, nullptr);
+    ASSERT_EQ(program->statements().size(), 1u);
+
+    auto choice = as_choice(program->statements()[0].get());
+    ASSERT_NE(choice, nullptr);
+    ASSERT_NE(choice->interpolated_text(), nullptr);
+    ASSERT_EQ(choice->interpolated_text()->segments().size(), 5u);
+    EXPECT_EQ(choice->interpolated_text()->segments()[0].content, "你的");
+    EXPECT_EQ(choice->interpolated_text()->segments()[1].style, "accent");
+    EXPECT_EQ(choice->interpolated_text()->segments()[1].content, "名字");
+    EXPECT_EQ(choice->interpolated_text()->segments()[2].type, InterpolatedTextNode::Segment::Type::PlainText);
+    EXPECT_EQ(choice->interpolated_text()->segments()[3].type, InterpolatedTextNode::Segment::Type::Interpolation);
+    EXPECT_EQ(choice->interpolated_text()->segments()[4].content, " 吗？");
+}
+
 TEST_F(ParserTest, ChoiceWithCondition) {
     auto result = parse(
         "? 你想买吗？\n"

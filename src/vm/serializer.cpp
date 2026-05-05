@@ -13,7 +13,7 @@ using json = nlohmann::json;
 namespace {
 
 constexpr char SAVE_MAGIC[] = "NVMSAVE";
-constexpr uint32_t SAVE_VERSION = 4;
+constexpr uint32_t SAVE_VERSION = 5;
 
 template<typename T>
 void write_pod(std::vector<uint8_t>& out, const T& value) {
@@ -178,6 +178,59 @@ bool read_string_set(const std::vector<uint8_t>& data, size_t& offset, std::unor
     return true;
 }
 
+void write_text_segments(std::vector<uint8_t>& out, const std::vector<TextSegment>& segments) {
+    uint32_t count = static_cast<uint32_t>(segments.size());
+    write_pod(out, count);
+    for (const auto& segment : segments) {
+        write_string(out, segment.text);
+        write_string(out, segment.style);
+    }
+}
+
+bool read_text_segments(const std::vector<uint8_t>& data, size_t& offset, std::vector<TextSegment>& segments) {
+    uint32_t count = 0;
+    if (!read_pod(data, offset, count)) {
+        return false;
+    }
+
+    segments.clear();
+    segments.reserve(count);
+    for (uint32_t i = 0; i < count; ++i) {
+        TextSegment segment;
+        if (!read_string(data, offset, segment.text) || !read_string(data, offset, segment.style)) {
+            return false;
+        }
+        segments.push_back(std::move(segment));
+    }
+
+    return true;
+}
+
+json serialize_text_segments(const std::vector<TextSegment>& segments) {
+    json result = json::array();
+    for (const auto& segment : segments) {
+        result.push_back({
+            {"text", segment.text},
+            {"style", segment.style}
+        });
+    }
+    return result;
+}
+
+void deserialize_text_segments(const json& value, std::vector<TextSegment>& segments) {
+    segments.clear();
+    if (!value.is_array()) {
+        return;
+    }
+
+    for (const auto& item : value) {
+        TextSegment segment;
+        segment.text = item.value("text", "");
+        segment.style = item.value("style", "");
+        segments.push_back(std::move(segment));
+    }
+}
+
 void write_call_stack(std::vector<uint8_t>& out, const std::vector<std::pair<std::string, size_t>>& stack) {
     uint32_t count = static_cast<uint32_t>(stack.size());
     write_pod(out, count);
@@ -242,6 +295,7 @@ std::string GameStateSerializer::serialize(const GameState& state) {
             {"isShow", state.dialogue->isShow},
             {"speaker", state.dialogue->speaker},
             {"text", state.dialogue->text},
+            {"segments", serialize_text_segments(state.dialogue->segments)},
             {"emotion", state.dialogue->emotion},
             {"color", state.dialogue->color}
         };
@@ -250,11 +304,16 @@ std::string GameStateSerializer::serialize(const GameState& state) {
         j["choice"] = {
             {"isShow", state.choice->isShow},
             {"question", state.choice->question},
+            {"questionSegments", serialize_text_segments(state.choice->questionSegments)},
             {"options", json::array()}
         };
         for (const auto& opt : state.choice->options) {
             j["choice"]["options"].push_back({
-                {"id", opt.id}, {"text", opt.text}, {"target", opt.target}, {"disabled", opt.disabled}
+                {"id", opt.id},
+                {"text", opt.text},
+                {"segments", serialize_text_segments(opt.segments)},
+                {"target", opt.target},
+                {"disabled", opt.disabled}
             });
         }
     }
@@ -323,6 +382,11 @@ bool GameStateSerializer::deserialize(const std::string& jsonStr, GameState& sta
             dialog.isShow = d.value("isShow", false);
             dialog.speaker = d.value("speaker", "");
             dialog.text = d.value("text", "");
+            if (d.contains("segments")) {
+                deserialize_text_segments(d["segments"], dialog.segments);
+            } else if (!dialog.text.empty()) {
+                dialog.segments.push_back(TextSegment{dialog.text, ""});
+            }
             dialog.emotion = d.value("emotion", "");
             dialog.color = d.value("color", "");
             state.dialogue = std::move(dialog);
@@ -333,11 +397,21 @@ bool GameStateSerializer::deserialize(const std::string& jsonStr, GameState& sta
             const auto& c = j["choice"];
             choice.isShow = c.value("isShow", false);
             choice.question = c.value("question", "");
+            if (c.contains("questionSegments")) {
+                deserialize_text_segments(c["questionSegments"], choice.questionSegments);
+            } else if (!choice.question.empty()) {
+                choice.questionSegments.push_back(TextSegment{choice.question, ""});
+            }
             if (c.contains("options")) {
                 for (const auto& item : c["options"]) {
                     ChoiceOption opt;
                     opt.id = item.value("id", "");
                     opt.text = item.value("text", "");
+                    if (item.contains("segments")) {
+                        deserialize_text_segments(item["segments"], opt.segments);
+                    } else if (!opt.text.empty()) {
+                        opt.segments.push_back(TextSegment{opt.text, ""});
+                    }
                     opt.target = item.value("target", "");
                     opt.disabled = item.value("disabled", false);
                     choice.options.push_back(std::move(opt));
@@ -479,6 +553,7 @@ std::vector<uint8_t> GameStateSerializer::serializeSaveBinary(const SaveData& sa
         write_pod(out, save.state.dialogue->isShow);
         write_string(out, save.state.dialogue->speaker);
         write_string(out, save.state.dialogue->text);
+        write_text_segments(out, save.state.dialogue->segments);
         write_string(out, save.state.dialogue->emotion);
         write_string(out, save.state.dialogue->color);
     }
@@ -486,10 +561,15 @@ std::vector<uint8_t> GameStateSerializer::serializeSaveBinary(const SaveData& sa
     if (save.state.choice) {
         write_pod(out, save.state.choice->isShow);
         write_string(out, save.state.choice->question);
+        write_text_segments(out, save.state.choice->questionSegments);
         uint32_t optionCount = static_cast<uint32_t>(save.state.choice->options.size());
         write_pod(out, optionCount);
         for (const auto& opt : save.state.choice->options) {
-            write_string(out, opt.id); write_string(out, opt.text); write_string(out, opt.target); write_pod(out, opt.disabled);
+            write_string(out, opt.id);
+            write_string(out, opt.text);
+            write_text_segments(out, opt.segments);
+            write_string(out, opt.target);
+            write_pod(out, opt.disabled);
         }
     }
     write_pod(out, save.state.ending.has_value()); if (save.state.ending) write_string(out, *save.state.ending);
@@ -516,7 +596,7 @@ bool GameStateSerializer::deserializeSaveBinary(const std::vector<uint8_t>& data
     offset += sizeof(SAVE_MAGIC) - 1;
 
     uint32_t version = 0;
-    if (!read_pod(data, offset, version) || (version != 1 && version != 2 && version != 3 && version != SAVE_VERSION)) {
+    if (!read_pod(data, offset, version) || (version != 1 && version != 2 && version != 3 && version != 4 && version != SAVE_VERSION)) {
         return false;
     }
 
@@ -633,9 +713,13 @@ bool GameStateSerializer::deserializeSaveBinary(const std::vector<uint8_t>& data
         if (!read_pod(data, offset, dialog.isShow) ||
             !read_string(data, offset, dialog.speaker) ||
             !read_string(data, offset, dialog.text) ||
+            (version >= 5 && !read_text_segments(data, offset, dialog.segments)) ||
             !read_string(data, offset, dialog.emotion) ||
             !read_string(data, offset, dialog.color)) {
             return false;
+        }
+        if (version < 5 && !dialog.text.empty()) {
+            dialog.segments.push_back(TextSegment{dialog.text, ""});
         }
         save.state.dialogue = std::move(dialog);
     }
@@ -648,17 +732,25 @@ bool GameStateSerializer::deserializeSaveBinary(const std::vector<uint8_t>& data
         uint32_t optionCount = 0;
         if (!read_pod(data, offset, choice.isShow) ||
             !read_string(data, offset, choice.question) ||
+            (version >= 5 && !read_text_segments(data, offset, choice.questionSegments)) ||
             !read_pod(data, offset, optionCount)) {
             return false;
+        }
+        if (version < 5 && !choice.question.empty()) {
+            choice.questionSegments.push_back(TextSegment{choice.question, ""});
         }
         choice.options.reserve(optionCount);
         for (uint32_t i = 0; i < optionCount; ++i) {
             ChoiceOption opt;
             if (!read_string(data, offset, opt.id) ||
                 !read_string(data, offset, opt.text) ||
+                (version >= 5 && !read_text_segments(data, offset, opt.segments)) ||
                 !read_string(data, offset, opt.target) ||
                 !read_pod(data, offset, opt.disabled)) {
                 return false;
+            }
+            if (version < 5 && !opt.text.empty()) {
+                opt.segments.push_back(TextSegment{opt.text, ""});
             }
             choice.options.push_back(std::move(opt));
         }

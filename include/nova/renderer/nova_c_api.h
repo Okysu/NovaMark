@@ -32,9 +32,16 @@ typedef struct {
 } NovaSprite;
 
 typedef struct {
+    const char* text;
+    const char* style;
+} NovaTextSegment;
+
+typedef struct {
     int isShow;
     const char* name;
     const char* text;
+    const NovaTextSegment* segments;
+    size_t segmentCount;
     const char* emotion;
     const char* color;
 } NovaDialogue;
@@ -48,6 +55,8 @@ typedef struct {
 typedef struct {
     const char* id;
     const char* text;
+    const NovaTextSegment* segments;
+    size_t segmentCount;
     const char* target;
     int disabled;
 } NovaChoice;
@@ -81,6 +90,8 @@ typedef struct {
     size_t choiceCount;
 
     const char* choiceQuestion;
+    const NovaTextSegment* choiceQuestionSegments;
+    size_t choiceQuestionSegmentCount;
     int hasChoices;
     int choiceIsShow;
 } NovaState;

@@ -324,6 +324,21 @@ const char* nova_wasm_get_dialogue_emotion() {
 }
 
 EMSCRIPTEN_KEEPALIVE
+int nova_wasm_get_dialogue_segment_count() {
+    return nova_get_dialogue_segment_count(g_vm.get());
+}
+
+EMSCRIPTEN_KEEPALIVE
+const char* nova_wasm_get_dialogue_segment_text(int index) {
+    return nova_get_dialogue_segment_text(g_vm.get(), index);
+}
+
+EMSCRIPTEN_KEEPALIVE
+const char* nova_wasm_get_dialogue_segment_style(int index) {
+    return nova_get_dialogue_segment_style(g_vm.get(), index);
+}
+
+EMSCRIPTEN_KEEPALIVE
 int nova_wasm_has_dialogue() {
     return (g_vm && g_vm->state().dialogue.has_value() && 
             g_vm->state().dialogue->isShow) ? 1 : 0;
@@ -376,6 +391,36 @@ const char* nova_wasm_get_choice_question() {
         return g_vm->state().choice->question.c_str();
     }
     return "";
+}
+
+EMSCRIPTEN_KEEPALIVE
+int nova_wasm_get_choice_question_segment_count() {
+    return nova_get_choice_question_segment_count(g_vm.get());
+}
+
+EMSCRIPTEN_KEEPALIVE
+const char* nova_wasm_get_choice_question_segment_text(int index) {
+    return nova_get_choice_question_segment_text(g_vm.get(), index);
+}
+
+EMSCRIPTEN_KEEPALIVE
+const char* nova_wasm_get_choice_question_segment_style(int index) {
+    return nova_get_choice_question_segment_style(g_vm.get(), index);
+}
+
+EMSCRIPTEN_KEEPALIVE
+int nova_wasm_get_choice_segment_count(int index) {
+    return nova_get_choice_segment_count(g_vm.get(), index);
+}
+
+EMSCRIPTEN_KEEPALIVE
+const char* nova_wasm_get_choice_segment_text(int choiceIndex, int segmentIndex) {
+    return nova_get_choice_segment_text(g_vm.get(), choiceIndex, segmentIndex);
+}
+
+EMSCRIPTEN_KEEPALIVE
+const char* nova_wasm_get_choice_segment_style(int choiceIndex, int segmentIndex) {
+    return nova_get_choice_segment_style(g_vm.get(), choiceIndex, segmentIndex);
 }
 
 EMSCRIPTEN_KEEPALIVE

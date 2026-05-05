@@ -82,6 +82,27 @@ WASM 层提供的接口，本质上是 C API 的导出版本：
 
 - [运行时状态](../api/runtime-state/)
 
+### 现在推荐把它当作 presentation snapshot 使用
+
+`_nova_wasm_export_runtime_state_json` 现在不仅包含变量/背包/定义元数据，还包含展示层直接需要的字段，例如：
+
+- `bg` / `bgTransition`
+- `bgm` / `bgmVolume` / `bgmLoop`
+- `sprites`
+- `sfx`
+- `dialogue`（含 `segments`）
+- `choice`（含 `questionSegments` 与 `options[].segments`）
+- `endingId` / `endingTitle`
+- `runtimeStateVersion` / `runtimeStateChangeFlags`
+
+因此对大多数 Web 宿主来说，推荐优先：
+
+1. 一次读取完整 runtime/presentation snapshot
+2. 直接驱动 UI 渲染
+3. 仅在需要低层优化时再回退到粒度 getter
+
+旧 getter 没有删除，仍然保持兼容。
+
 ### 文本配置（textConfig）
 
 模板会读取以下配置字段：
@@ -94,6 +115,22 @@ WASM 层提供的接口，本质上是 C API 的导出版本：
 | 背景路径 | `_nova_wasm_get_base_bg_path()` |
 | 立绘路径 | `_nova_wasm_get_base_sprite_path()` |
 | 音频路径 | `_nova_wasm_get_base_audio_path()` |
+
+这些字段现在也会出现在 `runtime_state_json.textConfig` 中。
+
+### JS 模板侧便捷入口
+
+模板中的 `NovaRenderer` 目前同时提供：
+
+```js
+renderer.getRuntimeState()
+renderer.getPresentationState()
+```
+
+两者当前返回相同数据：
+
+- `getRuntimeState()`：旧名称，保留兼容
+- `getPresentationState()`：新名称，强调其“统一展示态快照”的含义
 
 ---
 
@@ -157,6 +194,13 @@ runtime._nova_wasm_free(jsonPtr);
 - `load_package` 返回非 0 → 读取 `_nova_wasm_get_last_error()`
 - `export_runtime_state_json` 返回空指针 → 视为无状态/异常状态
 - `import_save_*` 返回非 0 → 视为导入失败
+
+如果你消费的是统一 snapshot，建议还额外关注：
+
+- `runtimeStateVersion`
+- `runtimeStateChangeFlags`
+
+它们可用于宿主侧的缓存策略或局部刷新优化。
 
 宿主侧建议：
 

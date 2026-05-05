@@ -121,6 +121,9 @@ void AstSerializer::serializeDialogue(const DialogueNode* node) {
             if (seg.type == InterpolatedTextNode::Segment::Type::Interpolation && seg.expression) {
                 m_writer.writeByte(1);
                 serializeExpression(seg.expression.get());
+            } else if (seg.type == InterpolatedTextNode::Segment::Type::InlineStyle) {
+                m_writer.writeByte(0);
+                m_writer.writeString(seg.style);
             } else {
                 m_writer.writeByte(0);
             }
@@ -142,6 +145,9 @@ void AstSerializer::serializeNarrator(const NarratorNode* node) {
             if (seg.type == InterpolatedTextNode::Segment::Type::Interpolation && seg.expression) {
                 m_writer.writeByte(1);
                 serializeExpression(seg.expression.get());
+            } else if (seg.type == InterpolatedTextNode::Segment::Type::InlineStyle) {
+                m_writer.writeByte(0);
+                m_writer.writeString(seg.style);
             } else {
                 m_writer.writeByte(0);
             }
@@ -165,6 +171,25 @@ void AstSerializer::serializeJump(const JumpNode* node) {
 void AstSerializer::serializeChoice(const ChoiceNode* node) {
     m_writer.writeByte(static_cast<uint8_t>(OpCode::NodeChoice));
     m_writer.writeString(node->question());
+    if (node->interpolated_text() && !node->interpolated_text()->segments().empty()) {
+        uint32_t segCount = static_cast<uint32_t>(node->interpolated_text()->segments().size());
+        m_writer.writeU32(segCount);
+        for (const auto& seg : node->interpolated_text()->segments()) {
+            m_writer.writeByte(static_cast<uint8_t>(seg.type));
+            m_writer.writeString(seg.content);
+            if (seg.type == InterpolatedTextNode::Segment::Type::Interpolation && seg.expression) {
+                m_writer.writeByte(1);
+                serializeExpression(seg.expression.get());
+            } else if (seg.type == InterpolatedTextNode::Segment::Type::InlineStyle) {
+                m_writer.writeByte(0);
+                m_writer.writeString(seg.style);
+            } else {
+                m_writer.writeByte(0);
+            }
+        }
+    } else {
+        m_writer.writeU32(0);
+    }
     
     uint32_t optCount = static_cast<uint32_t>(node->options().size());
     m_writer.writeU32(optCount);
@@ -201,6 +226,9 @@ void AstSerializer::serializeChoiceOption(const ChoiceOptionNode* node) {
             if (seg.type == InterpolatedTextNode::Segment::Type::Interpolation && seg.expression) {
                 m_writer.writeByte(1);
                 serializeExpression(seg.expression.get());
+            } else if (seg.type == InterpolatedTextNode::Segment::Type::InlineStyle) {
+                m_writer.writeByte(0);
+                m_writer.writeString(seg.style);
             } else {
                 m_writer.writeByte(0);
             }
@@ -613,6 +641,12 @@ std::unique_ptr<DialogueNode> AstDeserializer::deserializeDialogue() {
             }
             if (segType == InterpolatedTextNode::Segment::Type::Interpolation) {
                 interp->add_interpolation(std::move(content), std::move(expr));
+            } else if (segType == InterpolatedTextNode::Segment::Type::InlineStyle) {
+                std::string style;
+                if (m_packageVersion >= 3) {
+                    style = m_reader->readString();
+                }
+                interp->add_inline_style(std::move(style), std::move(content));
             } else {
                 interp->add_plain_text(std::move(content));
             }
@@ -638,6 +672,12 @@ std::unique_ptr<NarratorNode> AstDeserializer::deserializeNarrator() {
             }
             if (segType == InterpolatedTextNode::Segment::Type::Interpolation) {
                 interp->add_interpolation(std::move(content), std::move(expr));
+            } else if (segType == InterpolatedTextNode::Segment::Type::InlineStyle) {
+                std::string style;
+                if (m_packageVersion >= 3) {
+                    style = m_reader->readString();
+                }
+                interp->add_inline_style(std::move(style), std::move(content));
             } else {
                 interp->add_plain_text(std::move(content));
             }
@@ -661,6 +701,30 @@ std::unique_ptr<JumpNode> AstDeserializer::deserializeJump() {
 std::unique_ptr<ChoiceNode> AstDeserializer::deserializeChoice() {
     std::string question = m_reader->readString();
     auto node = std::make_unique<ChoiceNode>(SourceLocation{}, std::move(question));
+    if (m_packageVersion >= 3) {
+        uint32_t questionSegCount = m_reader->readU32();
+        if (questionSegCount > 0) {
+            auto interp = std::make_unique<InterpolatedTextNode>(SourceLocation{});
+            for (uint32_t k = 0; k < questionSegCount && !m_hasError; ++k) {
+                auto segType = static_cast<InterpolatedTextNode::Segment::Type>(m_reader->readByte());
+                std::string content = m_reader->readString();
+                uint8_t hasExpr = m_reader->readByte();
+                AstPtr expr;
+                if (hasExpr) {
+                    expr = deserializeExpression();
+                }
+                if (segType == InterpolatedTextNode::Segment::Type::Interpolation) {
+                    interp->add_interpolation(std::move(content), std::move(expr));
+                } else if (segType == InterpolatedTextNode::Segment::Type::InlineStyle) {
+                    std::string style = m_reader->readString();
+                    interp->add_inline_style(std::move(style), std::move(content));
+                } else {
+                    interp->add_plain_text(std::move(content));
+                }
+            }
+            node->set_interpolated_text(std::move(interp));
+        }
+    }
     
     uint32_t optCount = m_reader->readU32();
     for (uint32_t i = 0; i < optCount && !m_hasError; ++i) {
@@ -705,6 +769,12 @@ std::unique_ptr<ChoiceNode> AstDeserializer::deserializeChoice() {
                 }
                 if (segType == InterpolatedTextNode::Segment::Type::Interpolation) {
                     interp->add_interpolation(std::move(content), std::move(expr));
+                } else if (segType == InterpolatedTextNode::Segment::Type::InlineStyle) {
+                    std::string style;
+                    if (m_packageVersion >= 3) {
+                        style = m_reader->readString();
+                    }
+                    interp->add_inline_style(std::move(style), std::move(content));
                 } else {
                     interp->add_plain_text(std::move(content));
                 }

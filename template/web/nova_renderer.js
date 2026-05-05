@@ -65,6 +65,10 @@ class NovaRenderer {
         return JSON.parse(jsonText);
     }
 
+    getPresentationState() {
+        return this.getRuntimeState();
+    }
+
     isEnded() {
         return this.getStatus() === 2;
     }
@@ -231,6 +235,18 @@ class NovaRenderer {
         return this.getString(this.vm._nova_wasm_get_dialogue_text());
     }
 
+    getDialogueSegments() {
+        const count = this.vm._nova_wasm_get_dialogue_segment_count();
+        const segments = [];
+        for (let i = 0; i < count; i++) {
+            segments.push({
+                text: this.getString(this.vm._nova_wasm_get_dialogue_segment_text(i)),
+                style: this.getString(this.vm._nova_wasm_get_dialogue_segment_style(i))
+            });
+        }
+        return segments;
+    }
+
     getDialogueEmotion() {
         return this.getString(this.vm._nova_wasm_get_dialogue_emotion());
     }
@@ -251,6 +267,18 @@ class NovaRenderer {
         return this.getString(this.vm._nova_wasm_get_choice_text(index));
     }
 
+    getChoiceSegments(index) {
+        const count = this.vm._nova_wasm_get_choice_segment_count(index);
+        const segments = [];
+        for (let i = 0; i < count; i++) {
+            segments.push({
+                text: this.getString(this.vm._nova_wasm_get_choice_segment_text(index, i)),
+                style: this.getString(this.vm._nova_wasm_get_choice_segment_style(index, i))
+            });
+        }
+        return segments;
+    }
+
     getChoiceId(index) {
         return this.getString(this.vm._nova_wasm_get_choice_id(index));
     }
@@ -261,6 +289,18 @@ class NovaRenderer {
 
     getChoiceQuestion() {
         return this.getString(this.vm._nova_wasm_get_choice_question());
+    }
+
+    getChoiceQuestionSegments() {
+        const count = this.vm._nova_wasm_get_choice_question_segment_count();
+        const segments = [];
+        for (let i = 0; i < count; i++) {
+            segments.push({
+                text: this.getString(this.vm._nova_wasm_get_choice_question_segment_text(i)),
+                style: this.getString(this.vm._nova_wasm_get_choice_question_segment_style(i))
+            });
+        }
+        return segments;
     }
 
     isChoiceDisabled(index) {

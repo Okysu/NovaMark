@@ -10,6 +10,11 @@
 #include "nova/packer/nvmp_format.h"
 #include "nova/parser/parser.h"
 #include "nova/lexer/lexer.h"
+#define NovaVM NovaCVM
+#define NovaState NovaCState
+#include "nova/renderer/nova_c_api.h"
+#undef NovaVM
+#undef NovaState
 #include "nova/ast/ast_node.h"
 
 #include <nlohmann/json.hpp>
@@ -87,6 +92,27 @@ protected:
             reinterpret_cast<const uint8_t*>(&header) + sizeof(NvmpHeader));
         buffer.insert(buffer.end(), bytecode.begin(), bytecode.end());
         return buffer;
+    }
+
+    std::vector<uint8_t> build_nvmp_buffer_from_source(const std::string& source) {
+        auto result = parse(source);
+        EXPECT_TRUE(result.is_ok()) << result.error().message;
+        if (result.is_err()) {
+            return {};
+        }
+
+        auto* program = as_program(result.unwrap());
+        EXPECT_NE(program, nullptr);
+        if (!program) {
+            return {};
+        }
+
+        AstSerializer serializer;
+        auto bytecode = serializer.serialize(program);
+
+        NvmpWriter writer;
+        writer.setBytecode(bytecode);
+        return writer.writeToBuffer();
     }
 };
 
@@ -223,6 +249,292 @@ TEST_F(VMTest, InterpolationChoiceOptionResolvesVariable) {
     EXPECT_EQ(vm.state().choice->options[0].text, "Pay 50 gold");
 }
 
+TEST_F(VMTest, VMDialogueSegmentsKeepPlainTextCompatible) {
+    auto result = parse(
+        "#scene_start \"Start\"\n"
+        "> Hello World\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+
+    nova::NovaVM vm;
+    vm.load(result.unwrap());
+    vm.advance();
+
+    ASSERT_TRUE(vm.state().dialogue.has_value());
+    EXPECT_EQ(vm.state().dialogue->text, "Hello World");
+    ASSERT_EQ(vm.state().dialogue->segments.size(), 1u);
+    EXPECT_EQ(vm.state().dialogue->segments[0].text, "Hello World");
+    EXPECT_EQ(vm.state().dialogue->segments[0].style, "");
+}
+
+TEST_F(VMTest, VMDialogueSegmentsExposeInlineStyles) {
+    auto result = parse(
+        "#scene_start \"Start\"\n"
+        "> Before {accent:red} after\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+
+    nova::NovaVM vm;
+    vm.load(result.unwrap());
+    vm.advance();
+
+    ASSERT_TRUE(vm.state().dialogue.has_value());
+    EXPECT_EQ(vm.state().dialogue->text, "Before red after");
+    ASSERT_EQ(vm.state().dialogue->segments.size(), 3u);
+    EXPECT_EQ(vm.state().dialogue->segments[0].text, "Before ");
+    EXPECT_EQ(vm.state().dialogue->segments[0].style, "");
+    EXPECT_EQ(vm.state().dialogue->segments[1].text, "red");
+    EXPECT_EQ(vm.state().dialogue->segments[1].style, "accent");
+    EXPECT_EQ(vm.state().dialogue->segments[2].text, " after");
+    EXPECT_EQ(vm.state().dialogue->segments[2].style, "");
+}
+
+TEST_F(VMTest, VMChoiceOptionSegmentsExposeInlineStylesAndInterpolation) {
+    auto result = parse(
+        "@var hp = 42\n"
+        "#scene_start \"Start\"\n"
+        "? Choose\n"
+        "- [Heal {accent:HP} {{hp}}] -> .heal\n"
+        ".heal\n"
+        "> Done\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+
+    nova::NovaVM vm;
+    vm.load(result.unwrap());
+    vm.advance();
+
+    ASSERT_TRUE(vm.state().choice.has_value());
+    ASSERT_EQ(vm.state().choice->options.size(), 1u);
+    EXPECT_EQ(vm.state().choice->options[0].text, "Heal  HP 42");
+    ASSERT_EQ(vm.state().choice->options[0].segments.size(), 4u);
+    EXPECT_EQ(vm.state().choice->options[0].segments[0].text, "Heal ");
+    EXPECT_EQ(vm.state().choice->options[0].segments[0].style, "");
+    EXPECT_EQ(vm.state().choice->options[0].segments[1].text, " HP");
+    EXPECT_EQ(vm.state().choice->options[0].segments[1].style, "accent ");
+    EXPECT_EQ(vm.state().choice->options[0].segments[2].text, " ");
+    EXPECT_EQ(vm.state().choice->options[0].segments[2].style, "");
+    EXPECT_EQ(vm.state().choice->options[0].segments[3].text, "42");
+    EXPECT_EQ(vm.state().choice->options[0].segments[3].style, "");
+}
+
+TEST_F(VMTest, VMChoiceQuestionSegmentsExposeInlineStylesAndInterpolation) {
+    auto result = parse(
+        "@var name = \"林晓\"\n"
+        "#scene_start \"Start\"\n"
+        "? 你的{accent:名字}是 {{name}} 吗？\n"
+        "- [是] -> .yes\n"
+        ".yes\n"
+        "> 好\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+
+    nova::NovaVM vm;
+    vm.load(result.unwrap());
+    vm.advance();
+
+    ASSERT_TRUE(vm.state().choice.has_value());
+    EXPECT_EQ(vm.state().choice->question, "你的名字是 林晓 吗？");
+    ASSERT_EQ(vm.state().choice->questionSegments.size(), 5u);
+    EXPECT_EQ(vm.state().choice->questionSegments[0].text, "你的");
+    EXPECT_EQ(vm.state().choice->questionSegments[0].style, "");
+    EXPECT_EQ(vm.state().choice->questionSegments[1].text, "名字");
+    EXPECT_EQ(vm.state().choice->questionSegments[1].style, "accent");
+    EXPECT_EQ(vm.state().choice->questionSegments[2].text, "是 ");
+    EXPECT_EQ(vm.state().choice->questionSegments[2].style, "");
+    EXPECT_EQ(vm.state().choice->questionSegments[3].text, "林晓");
+    EXPECT_EQ(vm.state().choice->questionSegments[3].style, "");
+    EXPECT_EQ(vm.state().choice->questionSegments[4].text, " 吗？");
+    EXPECT_EQ(vm.state().choice->questionSegments[4].style, "");
+}
+
+TEST_F(VMTest, NativeCApiKeepsPlainTextCompatibilityWithoutStyledSegments) {
+    auto result = parse(
+        "#scene_start \"Start\"\n"
+        "> Hello World\n"
+    );
+    ASSERT_TRUE(result.is_ok()) << result.error().message;
+    AstSerializer serializer;
+    auto buffer = serializer.serialize(as_program(result.unwrap()));
+    ASSERT_FALSE(buffer.empty());
+
+    ::NovaCVM* vm = nova_create();
+    ASSERT_NE(vm, nullptr);
+    ASSERT_TRUE(nova_load_from_buffer(vm, buffer.data(), buffer.size()));
+
+    nova_advance(vm);
+    ::NovaCState state = nova_get_state(vm);
+
+    ASSERT_TRUE(state.hasDialogue);
+    EXPECT_STREQ(state.dialogue.text, "Hello World");
+    ASSERT_EQ(state.dialogue.segmentCount, 1u);
+    ASSERT_NE(state.dialogue.segments, nullptr);
+    EXPECT_STREQ(state.dialogue.segments[0].text, "Hello World");
+    EXPECT_STREQ(state.dialogue.segments[0].style, "");
+
+    nova_destroy(vm);
+}
+
+TEST_F(VMTest, NativeCApiExposesInlineStyleDialogueSegments) {
+    auto result = parse(
+        "#scene_start \"Start\"\n"
+        "Alice: Before {em:red} after\n"
+    );
+    ASSERT_TRUE(result.is_ok()) << result.error().message;
+    AstSerializer serializer;
+    auto buffer = serializer.serialize(as_program(result.unwrap()));
+    ASSERT_FALSE(buffer.empty());
+
+    ::NovaCVM* vm = nova_create();
+    ASSERT_NE(vm, nullptr);
+    ASSERT_TRUE(nova_load_from_buffer(vm, buffer.data(), buffer.size()));
+
+    nova_advance(vm);
+    ::NovaCState state = nova_get_state(vm);
+
+    ASSERT_TRUE(state.hasDialogue);
+    EXPECT_STREQ(state.dialogue.name, "Alice");
+    EXPECT_STREQ(state.dialogue.text, "Before red after");
+    ASSERT_EQ(state.dialogue.segmentCount, 3u);
+    ASSERT_NE(state.dialogue.segments, nullptr);
+    EXPECT_STREQ(state.dialogue.segments[0].text, "Before ");
+    EXPECT_STREQ(state.dialogue.segments[0].style, "");
+    EXPECT_STREQ(state.dialogue.segments[1].text, "red");
+    EXPECT_STREQ(state.dialogue.segments[1].style, "em");
+    EXPECT_STREQ(state.dialogue.segments[2].text, " after");
+    EXPECT_STREQ(state.dialogue.segments[2].style, "");
+
+    nova_destroy(vm);
+}
+
+TEST_F(VMTest, NativeCApiExposesInlineStyleChoiceOptionSegmentsWithInterpolation) {
+    auto result = parse(
+        "@var hp = 42\n"
+        "#scene_start \"Start\"\n"
+        "? Choose\n"
+        "- [Heal {accent:HP} {{hp}}] -> .heal\n"
+        ".heal\n"
+        "> Done\n"
+    );
+    ASSERT_TRUE(result.is_ok()) << result.error().message;
+    AstSerializer serializer;
+    auto buffer = serializer.serialize(as_program(result.unwrap()));
+    ASSERT_FALSE(buffer.empty());
+
+    ::NovaCVM* vm = nova_create();
+    ASSERT_NE(vm, nullptr);
+    ASSERT_TRUE(nova_load_from_buffer(vm, buffer.data(), buffer.size()));
+
+    nova_advance(vm);
+    ::NovaCState state = nova_get_state(vm);
+
+    ASSERT_TRUE(state.hasChoices);
+    ASSERT_EQ(state.choiceCount, 1u);
+    ASSERT_NE(state.choices, nullptr);
+    EXPECT_STREQ(state.choices[0].text, "Heal  HP 42");
+    ASSERT_EQ(state.choices[0].segmentCount, 4u);
+    ASSERT_NE(state.choices[0].segments, nullptr);
+    EXPECT_STREQ(state.choices[0].segments[0].text, "Heal ");
+    EXPECT_STREQ(state.choices[0].segments[0].style, "");
+    EXPECT_STREQ(state.choices[0].segments[1].text, " HP");
+    EXPECT_STREQ(state.choices[0].segments[1].style, "accent ");
+    EXPECT_STREQ(state.choices[0].segments[2].text, " ");
+    EXPECT_STREQ(state.choices[0].segments[2].style, "");
+    EXPECT_STREQ(state.choices[0].segments[3].text, "42");
+    EXPECT_STREQ(state.choices[0].segments[3].style, "");
+
+    nova_destroy(vm);
+}
+
+TEST_F(VMTest, NativeCApiExposesChoiceQuestionSegments) {
+    auto result = parse(
+        "@var name = \"林晓\"\n"
+        "#scene_start \"Start\"\n"
+        "? 你的{accent:名字}是 {{name}} 吗？\n"
+        "- [是] -> .yes\n"
+        ".yes\n"
+        "> 好\n"
+    );
+    ASSERT_TRUE(result.is_ok()) << result.error().message;
+    AstSerializer serializer;
+    auto buffer = serializer.serialize(as_program(result.unwrap()));
+    ASSERT_FALSE(buffer.empty());
+
+    ::NovaCVM* vm = nova_create();
+    ASSERT_NE(vm, nullptr);
+    ASSERT_TRUE(nova_load_from_buffer(vm, buffer.data(), buffer.size()));
+
+    nova_advance(vm);
+    ::NovaCState state = nova_get_state(vm);
+
+    ASSERT_TRUE(state.hasChoices);
+    EXPECT_STREQ(state.choiceQuestion, "你的名字是 林晓 吗？");
+    ASSERT_EQ(state.choiceQuestionSegmentCount, 5u);
+    ASSERT_NE(state.choiceQuestionSegments, nullptr);
+    EXPECT_STREQ(state.choiceQuestionSegments[0].text, "你的");
+    EXPECT_STREQ(state.choiceQuestionSegments[0].style, "");
+    EXPECT_STREQ(state.choiceQuestionSegments[1].text, "名字");
+    EXPECT_STREQ(state.choiceQuestionSegments[1].style, "accent");
+    EXPECT_STREQ(state.choiceQuestionSegments[2].text, "是 ");
+    EXPECT_STREQ(state.choiceQuestionSegments[2].style, "");
+    EXPECT_STREQ(state.choiceQuestionSegments[3].text, "林晓");
+    EXPECT_STREQ(state.choiceQuestionSegments[3].style, "");
+    EXPECT_STREQ(state.choiceQuestionSegments[4].text, " 吗？");
+    EXPECT_STREQ(state.choiceQuestionSegments[4].style, "");
+
+    nova_destroy(vm);
+}
+
+TEST_F(VMTest, NativeCApiSaveLoadRoundTripPreservesDialogueSegments) {
+    auto result = parse(
+        "@var hp = 12\n"
+        "#scene_start \"Start\"\n"
+        "> Ready {accent:HP} {{hp}}\n"
+    );
+    ASSERT_TRUE(result.is_ok()) << result.error().message;
+    AstSerializer serializer;
+    auto buffer = serializer.serialize(as_program(result.unwrap()));
+    ASSERT_FALSE(buffer.empty());
+
+    auto snapshotPath = (make_temp_dir("novamark_c_api_segments") / "styled.save").string();
+
+    ::NovaCVM* sourceVm = nova_create();
+    ASSERT_NE(sourceVm, nullptr);
+    ASSERT_TRUE(nova_load_from_buffer(sourceVm, buffer.data(), buffer.size()));
+    nova_advance(sourceVm);
+
+    ::NovaCState sourceState = nova_get_state(sourceVm);
+    ASSERT_TRUE(sourceState.hasDialogue);
+    EXPECT_STREQ(sourceState.dialogue.text, "Ready HP 12");
+    ASSERT_EQ(sourceState.dialogue.segmentCount, 4u);
+    EXPECT_STREQ(sourceState.dialogue.segments[1].text, "HP");
+    EXPECT_STREQ(sourceState.dialogue.segments[1].style, "accent");
+    ASSERT_TRUE(nova_save_snapshot_file(sourceVm, snapshotPath.c_str()));
+
+    ::NovaCVM* restoredVm = nova_create();
+    ASSERT_NE(restoredVm, nullptr);
+    ASSERT_TRUE(nova_load_from_buffer(restoredVm, buffer.data(), buffer.size()));
+    ASSERT_TRUE(nova_load_snapshot_file(restoredVm, snapshotPath.c_str()));
+
+    ::NovaCState restoredState = nova_get_state(restoredVm);
+    ASSERT_TRUE(restoredState.hasDialogue);
+    EXPECT_STREQ(restoredState.dialogue.text, "Ready HP 12");
+    ASSERT_EQ(restoredState.dialogue.segmentCount, 4u);
+    ASSERT_NE(restoredState.dialogue.segments, nullptr);
+    EXPECT_STREQ(restoredState.dialogue.segments[0].text, "Ready ");
+    EXPECT_STREQ(restoredState.dialogue.segments[0].style, "");
+    EXPECT_STREQ(restoredState.dialogue.segments[1].text, "HP");
+    EXPECT_STREQ(restoredState.dialogue.segments[1].style, "accent");
+    EXPECT_STREQ(restoredState.dialogue.segments[2].text, " ");
+    EXPECT_STREQ(restoredState.dialogue.segments[2].style, "");
+    EXPECT_STREQ(restoredState.dialogue.segments[3].text, "12");
+    EXPECT_STREQ(restoredState.dialogue.segments[3].style, "");
+
+    nova_destroy(sourceVm);
+    nova_destroy(restoredVm);
+    std::filesystem::remove(snapshotPath);
+}
+
 TEST_F(VMTest, BlockStyleChoiceOptionExecutesPreludeBeforeJump) {
     auto result = parse(
         "@var score = 0\n"
@@ -237,7 +549,7 @@ TEST_F(VMTest, BlockStyleChoiceOptionExecutesPreludeBeforeJump) {
     );
     ASSERT_TRUE(result.is_ok()) << result.error().message;
 
-    NovaVM vm;
+    nova::NovaVM vm;
     vm.load(result.unwrap());
     vm.advance();
     ASSERT_TRUE(vm.state().choice.has_value());
@@ -265,7 +577,7 @@ TEST_F(VMTest, BlockStyleChoiceOptionExecutesTerminalCallAndReturns) {
     );
     ASSERT_TRUE(result.is_ok()) << result.error().message;
 
-    NovaVM vm;
+    nova::NovaVM vm;
     vm.load(result.unwrap());
     vm.advance();
     ASSERT_TRUE(vm.state().choice.has_value());
@@ -304,7 +616,7 @@ TEST_F(VMTest, AstDeserializerSupportsV1ChoiceOptionWithoutBodyLayout) {
     EXPECT_EQ(option->target(), ".buy");
 }
 
-TEST_F(VMTest, AstDeserializerKeepsV2ChoiceOptionBodyLayout) {
+TEST_F(VMTest, AstDeserializerKeepsChoiceOptionBodyLayoutInCurrentFormat) {
     auto result = parse(
         "@var score = 0\n"
         "#scene_start \"Start\"\n"
@@ -323,7 +635,7 @@ TEST_F(VMTest, AstDeserializerKeepsV2ChoiceOptionBodyLayout) {
     AstSerializer serializer;
     auto bytecode = serializer.serialize(original);
 
-    AstDeserializer deserializer(2);
+    AstDeserializer deserializer(NVMP_VERSION);
     auto program = deserializer.deserialize(bytecode);
 
     ASSERT_NE(program, nullptr) << deserializer.errorMessage();
@@ -336,6 +648,38 @@ TEST_F(VMTest, AstDeserializerKeepsV2ChoiceOptionBodyLayout) {
     ASSERT_EQ(option->body().size(), 2u);
     EXPECT_EQ(option->body()[0]->type(), NodeType::SetCommand);
     EXPECT_EQ(option->body()[1]->type(), NodeType::Jump);
+}
+
+TEST_F(VMTest, AstSerializerRoundTripPreservesChoiceQuestionInterpolatedTextInV3) {
+    auto result = parse(
+        "@var name = \"林晓\"\n"
+        "#scene_start \"Start\"\n"
+        "? 你的{accent:名字}是 {{name}} 吗？\n"
+        "- [是] -> .yes\n"
+        ".yes\n"
+        "> 好\n"
+    );
+    ASSERT_TRUE(result.is_ok()) << result.error().message;
+
+    auto* original = as_program(result.unwrap());
+    ASSERT_NE(original, nullptr);
+
+    AstSerializer serializer;
+    auto bytecode = serializer.serialize(original);
+
+    AstDeserializer deserializer(3);
+    auto program = deserializer.deserialize(bytecode);
+
+    ASSERT_NE(program, nullptr) << deserializer.errorMessage();
+    ASSERT_EQ(program->statements().size(), original->statements().size());
+    auto* choice = dynamic_cast<ChoiceNode*>(program->statements()[2].get());
+    ASSERT_NE(choice, nullptr);
+    ASSERT_NE(choice->interpolated_text(), nullptr);
+    ASSERT_EQ(choice->interpolated_text()->segments().size(), 5u);
+    EXPECT_EQ(choice->interpolated_text()->segments()[1].style, "accent");
+    EXPECT_EQ(choice->interpolated_text()->segments()[1].content, "名字");
+    EXPECT_EQ(choice->interpolated_text()->segments()[3].type, InterpolatedTextNode::Segment::Type::Interpolation);
+    EXPECT_EQ(choice->interpolated_text()->segments()[4].content, " 吗？");
 }
 
 TEST_F(VMTest, NvmpReaderExposesVersionAndV1LoadPathDeserializesChoiceOption) {
@@ -669,7 +1013,7 @@ TEST_F(VMTest, VMExecuteJump) {
     );
     ASSERT_TRUE(result.is_ok());
     
-    NovaVM vm;
+    nova::NovaVM vm;
     vm.load(result.unwrap());
     vm.advance();
     
@@ -798,7 +1142,7 @@ TEST_F(VMTest, VMExecuteBranchMultipleStatementsSequentially) {
     );
     ASSERT_TRUE(result.is_ok());
 
-    NovaVM vm;
+    nova::NovaVM vm;
     vm.load(result.unwrap());
 
     vm.advance();
@@ -828,7 +1172,7 @@ TEST_F(VMTest, VMJumpContinuesIntoTargetSceneWithoutSkippingDialogue) {
     );
     ASSERT_TRUE(result.is_ok());
 
-    NovaVM vm;
+    nova::NovaVM vm;
     vm.load(result.unwrap());
 
     vm.advance();
@@ -1141,8 +1485,28 @@ TEST_F(VMTest, SerializeGameState) {
     state.bgmVolume = 0.5;
     state.bgmLoop = false;
     state.ending = "good_ending";
-    state.dialogue = DialogueState{true, "Alice", "Hello", "happy", "#fff"};
-    state.choice = ChoiceState{true, "Choose", {ChoiceOption{"c1", "A", ".a", false}}};
+    DialogueState dialogue;
+    dialogue.isShow = true;
+    dialogue.speaker = "Alice";
+    dialogue.text = "Hello";
+    dialogue.segments = {{"Hello", ""}};
+    dialogue.emotion = "happy";
+    dialogue.color = "#fff";
+    state.dialogue = dialogue;
+
+    ChoiceOption option;
+    option.id = "c1";
+    option.text = "A";
+    option.segments = {{"A", ""}};
+    option.target = ".a";
+    option.disabled = false;
+
+    ChoiceState choice;
+    choice.isShow = true;
+    choice.question = "Choose";
+    choice.questionSegments = {{"Choose", ""}};
+    choice.options = {option};
+    state.choice = choice;
     SpriteState sprite;
     sprite.id = "Alice";
     sprite.url = "alice.png";
@@ -1771,6 +2135,48 @@ TEST_F(VMTest, VMLoadSaveReplacesExistingPlaythroughState) {
     EXPECT_FALSE(restoredVm.playthrough().hasFlag("flag_b"));
 }
 
+TEST_F(VMTest, VMLoadSavePreservesStyledDialogueSegments) {
+    auto result = parse(
+        "@var hp = 12\n"
+        "#scene_start \"Start\"\n"
+        "> Ready {accent:HP} {{hp}}\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+
+    nova::NovaVM sourceVm;
+    sourceVm.load(result.unwrap());
+    sourceVm.advance();
+
+    ASSERT_TRUE(sourceVm.state().dialogue.has_value());
+    EXPECT_EQ(sourceVm.state().dialogue->text, "Ready HP 12");
+    ASSERT_EQ(sourceVm.state().dialogue->segments.size(), 4u);
+    EXPECT_EQ(sourceVm.state().dialogue->segments[1].text, "HP");
+    EXPECT_EQ(sourceVm.state().dialogue->segments[1].style, "accent");
+
+    auto savedState = sourceVm.captureState();
+    ASSERT_TRUE(savedState.dialogue.has_value());
+    EXPECT_EQ(savedState.dialogue->text, "Ready HP 12");
+    ASSERT_EQ(savedState.dialogue->segments.size(), 4u);
+    EXPECT_EQ(savedState.dialogue->segments[1].text, "HP");
+    EXPECT_EQ(savedState.dialogue->segments[1].style, "accent");
+
+    nova::NovaVM restoredVm;
+    restoredVm.load(result.unwrap());
+    ASSERT_TRUE(restoredVm.loadSave(savedState));
+
+    ASSERT_TRUE(restoredVm.state().dialogue.has_value());
+    EXPECT_EQ(restoredVm.state().dialogue->text, "Ready HP 12");
+    ASSERT_EQ(restoredVm.state().dialogue->segments.size(), 4u);
+    EXPECT_EQ(restoredVm.state().dialogue->segments[0].text, "Ready ");
+    EXPECT_EQ(restoredVm.state().dialogue->segments[0].style, "");
+    EXPECT_EQ(restoredVm.state().dialogue->segments[1].text, "HP");
+    EXPECT_EQ(restoredVm.state().dialogue->segments[1].style, "accent");
+    EXPECT_EQ(restoredVm.state().dialogue->segments[2].text, " ");
+    EXPECT_EQ(restoredVm.state().dialogue->segments[2].style, "");
+    EXPECT_EQ(restoredVm.state().dialogue->segments[3].text, "12");
+    EXPECT_EQ(restoredVm.state().dialogue->segments[3].style, "");
+}
+
 TEST_F(VMTest, VMGiveTakeSupportExpressions) {
     auto result = parse(
         "@var bonus = 1\n"
@@ -2024,7 +2430,7 @@ TEST_F(VMTest, VMLoadPlaythroughOnlyRestoresEndingsAndFlagsWithoutTouchingVariab
     );
     ASSERT_TRUE(result.is_ok());
 
-    NovaVM vm;
+    nova::NovaVM vm;
     vm.load(result.unwrap());
     vm.variables().set("score", 99.0);
 
@@ -2045,7 +2451,7 @@ TEST_F(VMTest, VMLoadPlaythroughOnlyReplacesExistingPlaythroughState) {
     );
     ASSERT_TRUE(result.is_ok());
 
-    NovaVM vm;
+    nova::NovaVM vm;
     vm.load(result.unwrap());
     vm.playthrough().triggerEnding("old_end");
     vm.playthrough().setFlag("old_flag");

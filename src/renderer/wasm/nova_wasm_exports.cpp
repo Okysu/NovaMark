@@ -18,6 +18,52 @@ nova::NovaVM* cast_vm(void* vm) {
     return static_cast<nova::NovaVM*>(vm);
 }
 
+const nova::TextSegment* get_dialogue_segment(const nova::NovaVM* vm, int index) {
+    if (!vm || !vm->state().dialogue.has_value() || index < 0) {
+        return nullptr;
+    }
+
+    const auto& segments = vm->state().dialogue->segments;
+    if (static_cast<size_t>(index) >= segments.size()) {
+        return nullptr;
+    }
+
+    return &segments[static_cast<size_t>(index)];
+}
+
+const nova::ChoiceOption* get_choice_option(const nova::NovaVM* vm, int index) {
+    if (!vm || !vm->state().choice.has_value() || index < 0) {
+        return nullptr;
+    }
+
+    const auto& options = vm->state().choice->options;
+    if (static_cast<size_t>(index) >= options.size()) {
+        return nullptr;
+    }
+
+    return &options[static_cast<size_t>(index)];
+}
+
+const nova::TextSegment* get_choice_segment(const nova::NovaVM* vm, int choice_index, int segment_index) {
+    const auto* option = get_choice_option(vm, choice_index);
+    if (!option || segment_index < 0) {
+        return nullptr;
+    }
+
+    if (static_cast<size_t>(segment_index) >= option->segments.size()) {
+        return nullptr;
+    }
+
+    return &option->segments[static_cast<size_t>(segment_index)];
+}
+
+const std::vector<nova::TextSegment>* get_choice_question_segments(const nova::NovaVM* vm) {
+    if (!vm || !vm->state().choice.has_value()) {
+        return nullptr;
+    }
+    return &vm->state().choice->questionSegments;
+}
+
 } // namespace
 
 extern "C" {
@@ -253,10 +299,52 @@ const char* nova_get_dialogue_emotion(void* vm) {
     return nova_vm->state().dialogue->emotion.c_str();
 }
 
+int nova_get_dialogue_segment_count(void* vm) {
+    auto* nova_vm = cast_vm(vm);
+    if (!nova_vm || !nova_vm->state().dialogue.has_value()) return 0;
+    return static_cast<int>(nova_vm->state().dialogue->segments.size());
+}
+
+const char* nova_get_dialogue_segment_text(void* vm, int index) {
+    auto* nova_vm = cast_vm(vm);
+    const auto* segment = get_dialogue_segment(nova_vm, index);
+    return segment ? segment->text.c_str() : "";
+}
+
+const char* nova_get_dialogue_segment_style(void* vm, int index) {
+    auto* nova_vm = cast_vm(vm);
+    const auto* segment = get_dialogue_segment(nova_vm, index);
+    return segment ? segment->style.c_str() : "";
+}
+
 const char* nova_get_choice_question(void* vm) {
     auto* nova_vm = cast_vm(vm);
     if (!nova_vm || !nova_vm->state().choice.has_value()) return "";
     return nova_vm->state().choice->question.c_str();
+}
+
+int nova_get_choice_question_segment_count(void* vm) {
+    auto* nova_vm = cast_vm(vm);
+    const auto* segments = get_choice_question_segments(nova_vm);
+    return segments ? static_cast<int>(segments->size()) : 0;
+}
+
+const char* nova_get_choice_question_segment_text(void* vm, int index) {
+    auto* nova_vm = cast_vm(vm);
+    const auto* segments = get_choice_question_segments(nova_vm);
+    if (!segments || index < 0 || static_cast<size_t>(index) >= segments->size()) {
+        return "";
+    }
+    return (*segments)[static_cast<size_t>(index)].text.c_str();
+}
+
+const char* nova_get_choice_question_segment_style(void* vm, int index) {
+    auto* nova_vm = cast_vm(vm);
+    const auto* segments = get_choice_question_segments(nova_vm);
+    if (!segments || index < 0 || static_cast<size_t>(index) >= segments->size()) {
+        return "";
+    }
+    return (*segments)[static_cast<size_t>(index)].style.c_str();
 }
 
 const char* nova_get_choice_id(void* vm, int index) {
@@ -273,6 +361,24 @@ const char* nova_get_choice_target(void* vm, int index) {
     const auto& options = nova_vm->state().choice->options;
     if (index < 0 || static_cast<size_t>(index) >= options.size()) return "";
     return options[static_cast<size_t>(index)].target.c_str();
+}
+
+int nova_get_choice_segment_count(void* vm, int index) {
+    auto* nova_vm = cast_vm(vm);
+    const auto* option = get_choice_option(nova_vm, index);
+    return option ? static_cast<int>(option->segments.size()) : 0;
+}
+
+const char* nova_get_choice_segment_text(void* vm, int choiceIndex, int segmentIndex) {
+    auto* nova_vm = cast_vm(vm);
+    const auto* segment = get_choice_segment(nova_vm, choiceIndex, segmentIndex);
+    return segment ? segment->text.c_str() : "";
+}
+
+const char* nova_get_choice_segment_style(void* vm, int choiceIndex, int segmentIndex) {
+    auto* nova_vm = cast_vm(vm);
+    const auto* segment = get_choice_segment(nova_vm, choiceIndex, segmentIndex);
+    return segment ? segment->style.c_str() : "";
 }
 
 int nova_has_choices(void* vm) {
@@ -432,13 +538,61 @@ const char* nova_export_runtime_state_json(void* vm, size_t* outSize) {
 
     const auto& state = nova_vm->state();
     json["status"] = static_cast<int>(state.status);
+    json["runtimeStateVersion"] = static_cast<unsigned long long>(nova_vm->runtimeStateVersion());
+    json["runtimeStateChangeFlags"] = nova_vm->consumeRuntimeStateChangeFlags();
     json["currentScene"] = state.currentScene;
     json["currentLabel"] = state.currentLabel;
     json["textConfig"] = {
         {"defaultFont", state.textConfig.defaultFont},
         {"defaultFontSize", state.textConfig.defaultFontSize},
-        {"defaultTextSpeed", state.textConfig.defaultTextSpeed}
+        {"defaultTextSpeed", state.textConfig.defaultTextSpeed},
+        {"baseBgPath", g_current_reader ? g_current_reader->readMetadata().base_bg_path : ""},
+        {"baseSpritePath", g_current_reader ? g_current_reader->readMetadata().base_sprite_path : ""},
+        {"baseAudioPath", g_current_reader ? g_current_reader->readMetadata().base_audio_path : ""}
     };
+
+    if (state.bg.has_value()) {
+        json["bg"] = *state.bg;
+    }
+    if (state.bgTransition.has_value()) {
+        json["bgTransition"] = *state.bgTransition;
+    }
+    if (state.bgm.has_value()) {
+        json["bgm"] = *state.bgm;
+    }
+    json["bgmVolume"] = state.bgmVolume;
+    json["bgmLoop"] = state.bgmLoop;
+
+    if (state.ending.has_value()) {
+        json["endingId"] = *state.ending;
+    }
+    if (state.endingTitle.has_value()) {
+        json["endingTitle"] = *state.endingTitle;
+    }
+
+    json["sprites"] = nlohmann::json::array();
+    for (const auto& sprite : state.sprites) {
+        nlohmann::json spriteJson = {
+            {"id", sprite.id}
+        };
+        if (sprite.url.has_value()) spriteJson["url"] = *sprite.url;
+        if (sprite.x.has_value()) spriteJson["x"] = *sprite.x;
+        if (sprite.y.has_value()) spriteJson["y"] = *sprite.y;
+        if (sprite.position.has_value()) spriteJson["position"] = *sprite.position;
+        if (sprite.opacity.has_value()) spriteJson["opacity"] = *sprite.opacity;
+        if (sprite.zIndex.has_value()) spriteJson["zIndex"] = *sprite.zIndex;
+        json["sprites"].push_back(std::move(spriteJson));
+    }
+
+    json["sfx"] = nlohmann::json::array();
+    for (const auto& sfx : state.sfx) {
+        json["sfx"].push_back({
+            {"id", sfx.id},
+            {"path", sfx.path},
+            {"loop", sfx.loop},
+            {"volume", sfx.volume}
+        });
+    }
 
     json["variables"] = {
         {"numbers", nova_vm->variables().getAllNumbers()},
@@ -490,6 +644,54 @@ const char* nova_export_runtime_state_json(void* vm, size_t* outSize) {
                 {"defaultValue", ""},
                 {"count", count}
             });
+        }
+    }
+
+    if (state.dialogue.has_value()) {
+        json["dialogue"] = {
+            {"isShow", state.dialogue->isShow},
+            {"speaker", state.dialogue->speaker},
+            {"text", state.dialogue->text},
+            {"segments", nlohmann::json::array()},
+            {"emotion", state.dialogue->emotion},
+            {"color", state.dialogue->color}
+        };
+        for (const auto& segment : state.dialogue->segments) {
+            json["dialogue"]["segments"].push_back({
+                {"text", segment.text},
+                {"style", segment.style}
+            });
+        }
+    }
+
+    if (state.choice.has_value()) {
+        json["choice"] = {
+            {"isShow", state.choice->isShow},
+            {"question", state.choice->question},
+            {"questionSegments", nlohmann::json::array()},
+            {"options", nlohmann::json::array()}
+        };
+        for (const auto& segment : state.choice->questionSegments) {
+            json["choice"]["questionSegments"].push_back({
+                {"text", segment.text},
+                {"style", segment.style}
+            });
+        }
+        for (const auto& option : state.choice->options) {
+            nlohmann::json optionJson = {
+                {"id", option.id},
+                {"text", option.text},
+                {"target", option.target},
+                {"disabled", option.disabled},
+                {"segments", nlohmann::json::array()}
+            };
+            for (const auto& segment : option.segments) {
+                optionJson["segments"].push_back({
+                    {"text", segment.text},
+                    {"style", segment.style}
+                });
+            }
+            json["choice"]["options"].push_back(std::move(optionJson));
         }
     }
 
