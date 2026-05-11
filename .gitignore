@@ -59,6 +59,8 @@ gmon.out
 core
 core.*
 
+!src/core
+
 # ----------------------------------------------------------
 # Build-time caches (clangd index, CMake API cache, etc.)
 # ----------------------------------------------------------
