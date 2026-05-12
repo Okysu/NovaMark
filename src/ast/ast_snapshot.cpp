@@ -62,6 +62,7 @@ const char* node_type_name(NodeType type) {
         case NodeType::CheckCommand: return "CheckCommand";
         case NodeType::Ending: return "Ending";
         case NodeType::Flag: return "Flag";
+        case NodeType::CustomCommand: return "CustomCommand";
         case NodeType::BinaryExpr: return "BinaryExpr";
         case NodeType::UnaryExpr: return "UnaryExpr";
         case NodeType::Literal: return "Literal";
@@ -257,6 +258,16 @@ json node_json(const AstNode* node) {
         case NodeType::Flag: {
             auto* flag = dynamic_cast<const FlagNode*>(node);
             result["name"] = flag->name();
+            break;
+        }
+        case NodeType::CustomCommand: {
+            auto* cmd = dynamic_cast<const CustomCommandNode*>(node);
+            result["directive"] = cmd->directive();
+            json args = json::array();
+            for (const auto& arg : cmd->args()) {
+                args.push_back({{"key", arg.key}, {"value", arg.value}});
+            }
+            result["args"] = std::move(args);
             break;
         }
         case NodeType::CallExpr: {

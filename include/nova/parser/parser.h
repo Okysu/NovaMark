@@ -52,6 +52,7 @@ private:
     Result<AstPtr> parse_return_command();
     Result<AstPtr> parse_ending_command();
     Result<AstPtr> parse_flag_command();
+    Result<AstPtr> parse_custom_command(SourceLocation loc, const std::string& directive);
     Result<AstPtr> parse_label();
     Result<AstPtr> parse_check_command();
     Result<AstPtr> parse_theme_def();

@@ -387,8 +387,10 @@ TEST_F(SemanticTest, UnknownFunction) {
     auto result = analyze(
         "@var x = unknown_func()\n"
     );
-    EXPECT_FALSE(result.success);
-    EXPECT_EQ(result.diagnostics.error_count(), 1u);
+    // 注册重载系统：未知函数产生 warning 而非 error
+    EXPECT_TRUE(result.success);
+    EXPECT_EQ(result.diagnostics.error_count(), 0u);
+    EXPECT_GE(result.diagnostics.warning_count(), 1u);
 }
 
 TEST_F(SemanticTest, WrongArity) {

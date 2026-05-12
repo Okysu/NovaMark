@@ -207,6 +207,11 @@ function buildStatusChips(runtimeState) {
             chips.push({ label: `item:${key}`, value: String(value) });
         }
     }
+    // flags (NovaState v2)
+    const flags = Array.isArray(runtimeState.flags) ? runtimeState.flags : [];
+    for (const flag of flags) {
+        chips.push({ label: `flag:${flag}`, value: '✓' });
+    }
     return chips;
 }
 
@@ -251,7 +256,8 @@ function getDebugSnapshot() {
         choices: getDebugChoices(),
         sfx: [],
         sprites: [],
-        themes: []
+        themes: [],
+        flags: renderer.getFlags()
     };
 
     if (renderer.hasDialogue()) {

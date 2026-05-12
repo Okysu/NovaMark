@@ -265,3 +265,46 @@ int nova_has_item(NovaVM* vm, const char* itemId);
 检查玩家是否拥有某物品。
 
 **返回值**: 拥有返回 1，否则返回 0。
+
+## 标志查询（v1.0）
+
+### nova_get_flags_count
+
+```c
+size_t nova_get_flags_count(NovaVM* vm);
+```
+
+获取已触发标志的数量。
+
+### nova_get_flag
+
+```c
+const char* nova_get_flag(NovaVM* vm, size_t index);
+```
+
+按索引获取标志名称。
+
+## 注册重载系统（v1.0）
+
+注册重载系统允许宿主在运行时扩展和覆写 NovaMark 的内置函数与状态字段。详见 [注册重载系统]({{< ref "registry" >}}) 文档。
+
+### nova_register_function
+
+```c
+int nova_register_function(NovaVM* vm, const char* name,
+    NovaFunctionCallback callback, void* userData, int override_);
+```
+
+注册自定义函数。
+
+### nova_register_state_field
+
+```c
+int nova_register_state_field(NovaVM* vm, const char* key,
+    NovaStateFieldSerializeCb serialize,
+    NovaStateFieldDeserializeCb deserialize,
+    const char* defaultValueJson,
+    void* userData);
+```
+
+注册自定义状态字段。

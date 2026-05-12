@@ -28,6 +28,8 @@ weight: 3
 - 旁白：`> 文本`
 - 对话：`角色: 文本`
 - 情绪对话：`角色[emotion]: 文本`
+- 文本插值：`{{expr}}`
+- 内联样式：`{style:text}`
 
 ### 1.3 定义块
 
@@ -58,13 +60,30 @@ weight: 3
 - `if / else / endif`
 - `@check / @success / @fail / @endcheck`
 
-### 1.5 状态变化
+### 1.5 自定义指令（v1.0 注册重载系统）
+
+解析器遇到未知 `@xxx` 指令时产生 `CustomCommandNode`，VM 通过 Registry 查找宿主注册的处理器。
+
+```nvm
+@custom_skill_check difficulty:hard target:boss
+```
+
+参数支持 `key:value` 对有值参数和独立的标识符/字面量参数。
+
+### 1.6 选择
+
+- `? 问题`
+- `- [选项] -> 目标`
+- `- [选项] -> 目标 if 条件`
+- 块级选项（选项后跟缩进块，白名单 `@set`/`@flag`/`@give`/`@take`，末尾 `-> target`）
+
+### 1.7 状态变化
 
 - `@set`
 - `@give`
 - `@take`
 - `@flag`
-- `@ending`
+- `@ending`（支持可选标题 `@ending id "中文标题"`）
 
 其中 `@set / @give / @take` 当前都支持表达式参数，而不仅仅是字面量。
 
@@ -76,18 +95,12 @@ weight: 3
 @set hp = hp - item_count("wound")
 ```
 
-### 1.6 媒体引用
+### 1.8 媒体引用
 
 - `@bg`
 - `@sprite`
 - `@bgm`
 - `@sfx`
-
-### 1.7 选择
-
-- `? 问题`
-- `- [选项] -> 目标`
-- `- [选项] -> 目标 if 条件`
 
 ---
 
@@ -97,9 +110,14 @@ weight: 3
 - `item_count(...)`
 - `has_flag(...)`
 - `has_ending(...)`
+- `var(...)`
 - `roll(...)`
 - `random(min, max)`
 - `chance(probability)`
+
+### v1.0 新增：自定义函数
+
+通过注册重载系统，宿主可注册自定义函数供脚本调用。详见 [注册重载系统]({{< ref "/docs/api/registry" >}})。
 
 ### 参数规则
 
@@ -172,22 +190,41 @@ NovaMark 当前正式采用：
 - bg / bgm / sprites
 - textConfig
 
-### 3.3 快照与存档
+### 3.3 快照与存档（v1.0 stateVersion 兼容）
 
 当前正式支持：
 
-- 运行时快照捕获
-- 快照恢复
-- 文件存档/读档
+- 运行时快照捕获（`captureState`）
+- 快照恢复（`loadSave`）
+- 文件存档/读档（JSON + 二进制）
+- 仅导入多周目继承数据（`loadPlaythroughOnly`）
 
 ### 存档格式规则
 
-- **正式文件存档**：二进制
+- **正式文件存档**：二进制（v6）
 - **JSON**：调试 / 测试 / Web/WASM 工具格式
+- **stateVersion**：v1/v2/v3 存档自动向上迁移，无需手动处理
+
+### 3.4 注册重载系统（v1.0）
+
+宿主可在运行时扩展和覆写 NovaMark 的能力：
+
+- **自定义函数**：`registerFunction()` — 脚本中调用宿主注册的函数
+- **自定义指令**：`registerDirective()` — 脚本中使用 `@custom_directive` 语法
+- **状态字段扩展**：`registerStateField()` — 向 `NovaState.extensions` 注入自定义字段
+- **覆写内置函数**：`registerFunction(“random”, handler, true)` — 用自定义实现替换内置函数
+
+详见 [注册重载系统 API]({{< ref “/docs/api/registry” >}})。
+
+### 3.5 结局标题与标志暴露（v1.0）
+
+- `@ending id “标题”` — 结局支持可选显示标题，在 NovaState 中以 `EndingState` 暴露
+- `NovaState.flags` — 当前已触发的标志列表，渲染器可查询
+- `NovaState.ending.title` / `NovaState.ending.reached` — 结局完整信息
 
 ---
 
-## 4. 保留但应理解为“渲染提示”的字段
+## 4. 保留但应理解为”渲染提示”的字段
 
 这些字段保留，但它们不是引擎内建时间轴或动画系统：
 

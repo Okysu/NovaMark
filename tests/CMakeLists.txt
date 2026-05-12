@@ -3,9 +3,13 @@
 add_executable(nova-test
     test_main.cpp
     ast_source_emitter_test.cpp
+    c_api_test.cpp
     lexer_test.cpp
+    nova_state_v2_test.cpp
     parser_test.cpp
+    registry_test.cpp
     semantic_test.cpp
+    state_version_test.cpp
     vm_test.cpp
 )
 

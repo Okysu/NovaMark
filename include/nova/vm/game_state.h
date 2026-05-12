@@ -12,6 +12,8 @@ namespace nova {
 
 /// @brief 游戏状态快照（可序列化）
 struct GameState {
+    int stateVersion = 2;       ///< 状态快照版本号（v1.0 NovaState v2 契约）
+
     std::string currentScene;
     std::string currentLabel;
     size_t statementIndex = 0;
@@ -29,9 +31,8 @@ struct GameState {
     std::vector<SpriteState> sprites;
     std::optional<DialogueState> dialogue;
     std::optional<ChoiceState> choice;
-    std::optional<std::string> ending;
-    std::optional<std::string> endingTitle;
-    
+    std::optional<EndingState> ending;
+
     std::vector<std::pair<std::string, size_t>> callStack;
     
     std::unordered_map<std::string, double> numberVariables;
@@ -42,8 +43,12 @@ struct GameState {
     
     std::unordered_set<std::string> triggeredEndings;
     std::unordered_set<std::string> flags;
+
+    /// @brief 自定义扩展字段（v1.0 注册重载系统，stateVersion = 3）
+    std::unordered_map<std::string, nlohmann::json> extensions;
     
     void clear() {
+        stateVersion = 2;
         currentScene.clear();
         currentLabel.clear();
         statementIndex = 0;
@@ -59,7 +64,6 @@ struct GameState {
         dialogue.reset();
         choice.reset();
         ending.reset();
-        endingTitle.reset();
         callStack.clear();
         numberVariables.clear();
         stringVariables.clear();
@@ -67,6 +71,7 @@ struct GameState {
         inventory.clear();
         triggeredEndings.clear();
         flags.clear();
+        extensions.clear();
     }
 };
 

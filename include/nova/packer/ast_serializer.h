@@ -44,6 +44,7 @@ private:
     void serializeReturn(const ReturnNode* node);
     void serializeEnding(const EndingNode* node);
     void serializeFlag(const FlagNode* node);
+    void serializeCustomCommand(const CustomCommandNode* node);
     void serializeLabel(const LabelNode* node);
     void serializeCheckCommand(const CheckCommandNode* node);
     void serializeThemeDef(const ThemeDefNode* node);
@@ -100,6 +101,7 @@ private:
     std::unique_ptr<ReturnNode> deserializeReturn();
     std::unique_ptr<EndingNode> deserializeEnding();
     std::unique_ptr<FlagNode> deserializeFlag();
+    std::unique_ptr<CustomCommandNode> deserializeCustomCommand();
     std::unique_ptr<LabelNode> deserializeLabel();
     std::unique_ptr<CheckCommandNode> deserializeCheckCommand();
     std::unique_ptr<ThemeDefNode> deserializeThemeDef();

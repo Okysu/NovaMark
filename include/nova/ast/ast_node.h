@@ -44,7 +44,8 @@ enum class NodeType {
     CheckCommand,       // @check
     Ending,             // @ending
     Flag,               // @flag
-    
+    CustomCommand,      // 自定义指令（注册重载系统）
+
     // 表达式
     BinaryExpr,         // 二元运算
     UnaryExpr,          // 一元运算
@@ -573,6 +574,31 @@ public:
 
 private:
     std::string m_name;
+};
+
+/// @brief 自定义指令节点（注册重载系统）
+///
+/// 解析器遇到未识别的 @xxx 指令时，产生此通用节点。
+/// VM 在执行时通过 Registry 查找对应的处理器。
+class CustomCommandNode : public AstNode {
+public:
+    CustomCommandNode(SourceLocation loc, std::string directive)
+        : AstNode(std::move(loc)), m_directive(std::move(directive)) {}
+
+    NodeType type() const override { return NodeType::CustomCommand; }
+
+    const std::string& directive() const { return m_directive; }
+    std::vector<CommandArg>& args() { return m_args; }
+    const std::vector<CommandArg>& args() const { return m_args; }
+
+    void add_arg(CommandArg arg) { m_args.push_back(std::move(arg)); }
+    void add_arg(std::string key, std::string value) {
+        m_args.push_back({std::move(key), std::move(value)});
+    }
+
+private:
+    std::string m_directive;
+    std::vector<CommandArg> m_args;
 };
 
 /// @brief 函数调用表达式节点

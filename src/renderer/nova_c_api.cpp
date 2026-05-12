@@ -32,6 +32,9 @@ struct NovaVM {
     std::vector<std::string> variableNameCache;
     std::vector<std::string> themeNameCache;
     std::unordered_map<std::string, std::vector<std::string>> themePropertyKeyCache;
+    std::string endingTitleCache;
+    std::vector<std::string> flagCache;
+    std::vector<const char*> flagPtrCache;
 };
 
 namespace {
@@ -255,7 +258,31 @@ NovaState nova_get_state(NovaVM* vm) {
     
     state.choices = vm->choiceBuffer.data();
     state.choiceCount = vm->choiceBuffer.size();
-    
+
+    // ending (NovaState v2)
+    state.hasEnding = novaState.ending.has_value() ? 1 : 0;
+    if (novaState.ending) {
+        vm->endingTitleCache = novaState.ending->title;
+        state.ending.title = vm->endingTitleCache.c_str();
+        state.ending.reached = novaState.ending->reached ? 1 : 0;
+    } else {
+        state.ending.title = nullptr;
+        state.ending.reached = 0;
+    }
+
+    // flags (NovaState v2)
+    vm->flagCache.clear();
+    vm->flagPtrCache.clear();
+    vm->flagCache.reserve(novaState.flags.size());
+    for (const auto& flag : novaState.flags) {
+        vm->flagCache.push_back(flag);
+    }
+    for (const auto& flag : vm->flagCache) {
+        vm->flagPtrCache.push_back(flag.c_str());
+    }
+    state.flags = vm->flagPtrCache.empty() ? nullptr : vm->flagPtrCache.data();
+    state.flagCount = vm->flagPtrCache.size();
+
     return state;
 }
 
@@ -449,6 +476,134 @@ void nova_string_free(char* str) {
     if (str) {
         std::free(str);
     }
+}
+
+size_t nova_get_flags_count(NovaVM* vm) {
+    if (!vm) return 0;
+    return vm->vm.state().flags.size();
+}
+
+const char* nova_get_flag(NovaVM* vm, size_t index) {
+    if (!vm) return nullptr;
+    const auto& flags = vm->vm.state().flags;
+    if (index >= flags.size()) return nullptr;
+    vm->lastError = flags[index];
+    return vm->lastError.c_str();
+}
+
+// ===== 注册重载系统 C API 实现 =====
+
+int nova_register_directive(NovaVM* vm, const char* name,
+    NovaDirectiveCallback callback, void* userData, int override_) {
+    if (!vm || !name || !callback) return 0;
+
+    return vm->vm.registry().registerDirective(
+        std::string(name),
+        [callback, userData](const std::string& directiveName,
+                             const std::vector<std::pair<std::string, std::string>>& args,
+                             nova::NovaState& state) -> nova::DirectiveResult {
+            std::vector<const char*> keys;
+            std::vector<const char*> values;
+            keys.reserve(args.size());
+            values.reserve(args.size());
+            for (const auto& [k, v] : args) {
+                keys.push_back(k.c_str());
+                values.push_back(v.c_str());
+            }
+            int result = callback(directiveName.c_str(), args.size(),
+                                  keys.data(), values.data(), userData);
+            nova::DirectiveResult dr;
+            dr.handled = (result >= 1);
+            dr.advanceAgain = (result >= 2);
+            return dr;
+        },
+        override_ != 0
+    ) ? 1 : 0;
+}
+
+int nova_register_function(NovaVM* vm, const char* name,
+    NovaFunctionCallback callback, void* userData, int override_) {
+    if (!vm || !name || !callback) return 0;
+
+    return vm->vm.registry().registerFunction(
+        std::string(name),
+        [callback, userData](const std::vector<nova::VarValue>& args) -> nova::VarValue {
+            std::vector<std::string> argJsonStrings;
+            std::vector<const char*> argJsonPtrs;
+            argJsonStrings.reserve(args.size());
+            argJsonPtrs.reserve(args.size());
+            for (const auto& arg : args) {
+                nlohmann::json j;
+                if (std::holds_alternative<double>(arg)) {
+                    j = std::get<double>(arg);
+                } else if (std::holds_alternative<std::string>(arg)) {
+                    j = std::get<std::string>(arg);
+                } else if (std::holds_alternative<bool>(arg)) {
+                    j = std::get<bool>(arg);
+                } else {
+                    j = nullptr;
+                }
+                argJsonStrings.push_back(j.dump());
+            }
+            for (const auto& s : argJsonStrings) {
+                argJsonPtrs.push_back(s.c_str());
+            }
+            char* resultJson = nullptr;
+            int ok = callback("", args.size(), argJsonPtrs.data(), &resultJson, userData);
+            nova::VarValue retVal = 0.0;
+            if (ok && resultJson) {
+                try {
+                    auto parsed = nlohmann::json::parse(resultJson);
+                    if (parsed.is_number()) {
+                        retVal = parsed.get<double>();
+                    } else if (parsed.is_string()) {
+                        retVal = parsed.get<std::string>();
+                    } else if (parsed.is_boolean()) {
+                        retVal = parsed.get<bool>();
+                    }
+                } catch (...) {}
+                std::free(resultJson);
+            }
+            return retVal;
+        },
+        override_ != 0
+    ) ? 1 : 0;
+}
+
+int nova_register_state_field(NovaVM* vm, const char* key,
+    NovaStateFieldSerializeCb serialize, NovaStateFieldDeserializeCb deserialize,
+    const char* defaultValueJson, void* userData) {
+    if (!vm || !key || !serialize || !deserialize) return 0;
+
+    nlohmann::json defaultVal;
+    if (defaultValueJson) {
+        try {
+            defaultVal = nlohmann::json::parse(defaultValueJson);
+        } catch (...) {
+            defaultVal = nullptr;
+        }
+    }
+
+    return vm->vm.registry().registerStateField(
+        std::string(key),
+        [serialize, userData]() -> nlohmann::json {
+            char* jsonStr = serialize(userData);
+            if (!jsonStr) return nullptr;
+            try {
+                auto parsed = nlohmann::json::parse(jsonStr);
+                std::free(jsonStr);
+                return parsed;
+            } catch (...) {
+                std::free(jsonStr);
+                return nullptr;
+            }
+        },
+        [deserialize, userData](const nlohmann::json& json) {
+            std::string jsonStr = json.dump();
+            deserialize(jsonStr.c_str(), userData);
+        },
+        defaultVal
+    ) ? 1 : 0;
 }
 
 } // extern "C"

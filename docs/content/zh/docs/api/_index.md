@@ -17,5 +17,6 @@ bookCollapseSection: true
 
 ## 入口
 
-- [运行时状态]({{< ref "runtime-state" >}})
 - [C API]({{< ref "c-api" >}})
+- [运行时状态]({{< ref "runtime-state" >}})
+- [注册重载系统]({{< ref "registry" >}})
