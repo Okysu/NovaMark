@@ -103,11 +103,12 @@ enum class VMStatus {
 
 /// @brief 结局状态（v1.0 NovaState v2 契约）
 struct EndingState {
-    std::string title;      ///< 结局标题
+    std::string id;         ///< 结局标识（如 "good_ending"）
+    std::string title;      ///< 结局显示标题（如 "美好的结局"）
     bool reached = false;   ///< 是否已到达结局
 
     bool operator==(const EndingState& other) const {
-        return title == other.title && reached == other.reached;
+        return id == other.id && title == other.title && reached == other.reached;
     }
 };
 

@@ -279,7 +279,7 @@ std::string GameStateSerializer::serialize(const GameState& state) {
     j["themeProperties"] = state.themeProperties;
     j["stateVersion"] = state.stateVersion;
     if (state.ending) {
-        j["ending"] = {{"title", state.ending->title}, {"reached", state.ending->reached}};
+        j["ending"] = {{"id", state.ending->id}, {"title", state.ending->title}, {"reached", state.ending->reached}};
     } else {
         j["ending"] = nullptr;
     }
@@ -379,7 +379,7 @@ bool GameStateSerializer::deserialize(const std::string& jsonStr, GameState& sta
         }
         state.themeProperties = j.value("themeProperties", std::unordered_map<std::string, std::string>{});
 
-        // ending 反序列化：兼容 v1（string 格式）和 v2（EndingState 对象格式）
+        // ending 反序列化：兼容 v1（string 格式）和 v2+（EndingState 对象格式）
         state.stateVersion = j.value("stateVersion", 1);
         if (j.contains("ending") && !j["ending"].is_null()) {
             if (j["ending"].is_string()) {
@@ -389,12 +389,17 @@ bool GameStateSerializer::deserialize(const std::string& jsonStr, GameState& sta
                 if (j.contains("endingTitle") && !j["endingTitle"].is_null()) {
                     endingTitle = j["endingTitle"].get<std::string>();
                 }
-                state.ending = EndingState{endingTitle, true};
+                state.ending = EndingState{endingId, endingTitle.empty() ? endingId : endingTitle, true};
             } else if (j["ending"].is_object()) {
-                // v2 格式：ending 为 EndingState 对象
+                // v2+ 格式：ending 为 EndingState 对象
                 EndingState es;
+                es.id = j["ending"].value("id", "");
                 es.title = j["ending"].value("title", "");
                 es.reached = j["ending"].value("reached", true);
+                // v2 兼容：无 id 字段时用 title 回退
+                if (es.id.empty() && !es.title.empty()) {
+                    es.id = es.title;
+                }
                 state.ending = es;
             }
         }
@@ -624,6 +629,7 @@ std::vector<uint8_t> GameStateSerializer::serializeSaveBinary(const SaveData& sa
     }
     write_pod(out, save.state.ending.has_value());
     if (save.state.ending) {
+        write_string(out, save.state.ending->id);
         write_string(out, save.state.ending->title);
         write_pod(out, save.state.ending->reached);
     }
@@ -825,8 +831,11 @@ bool GameStateSerializer::deserializeSaveBinary(const std::vector<uint8_t>& data
     }
     if (hasEnding) {
         if (version >= 6) {
-            // v6+: EndingState 格式 (title + reached)
+            // v6+: EndingState 格式 (id + title + reached)
             EndingState es;
+            if (!read_string(data, offset, es.id)) {
+                return false;
+            }
             if (!read_string(data, offset, es.title)) {
                 return false;
             }
@@ -848,9 +857,10 @@ bool GameStateSerializer::deserializeSaveBinary(const std::vector<uint8_t>& data
                 }
             }
             // 迁移到 EndingState：优先使用 endingTitle，否则使用 ending ID
-            std::string title = (endingTitle.has_value() && !endingTitle->empty())
-                                ? *endingTitle : endingStr;
-            save.state.ending = EndingState{title, true};
+            std::string esId = endingStr;
+            std::string esTitle = (endingTitle.has_value() && !endingTitle->empty())
+                                  ? *endingTitle : endingStr;
+            save.state.ending = EndingState{esId, esTitle, true};
             save.state.stateVersion = 2;
         }
     } else {
