@@ -170,7 +170,7 @@ NovaMark 当前正式采用：
 - `advance()`
 - `choose(choiceId)`
 
-也就是说，宿主不需要理解内部“消费对话”的机制，只需要表达：
+也就是说，宿主不需要理解内部"消费对话"的机制，只需要表达：
 
 - 继续推进
 - 选择某个选项
@@ -212,19 +212,19 @@ NovaMark 当前正式采用：
 - **自定义函数**：`registerFunction()` — 脚本中调用宿主注册的函数
 - **自定义指令**：`registerDirective()` — 脚本中使用 `@custom_directive` 语法
 - **状态字段扩展**：`registerStateField()` — 向 `NovaState.extensions` 注入自定义字段
-- **覆写内置函数**：`registerFunction(“random”, handler, true)` — 用自定义实现替换内置函数
+- **覆写内置函数**：`registerFunction("random", handler, true)` — 用自定义实现替换内置函数
 
-详见 [注册重载系统 API]({{< ref “/docs/api/registry” >}})。
+详见 [注册重载系统 API]({{< ref "/docs/api/registry" >}})。
 
 ### 3.5 结局标题与标志暴露（v1.0）
 
-- `@ending id “标题”` — 结局支持可选显示标题，在 NovaState 中以 `EndingState` 暴露
+- `@ending id "标题"` — 结局支持可选显示标题，在 NovaState 中以 `EndingState` 暴露
 - `NovaState.flags` — 当前已触发的标志列表，渲染器可查询
 - `NovaState.ending.title` / `NovaState.ending.reached` — 结局完整信息
 
 ---
 
-## 4. 保留但应理解为”渲染提示”的字段
+## 4. 保留但应理解为"渲染提示"的字段
 
 这些字段保留，但它们不是引擎内建时间轴或动画系统：
 

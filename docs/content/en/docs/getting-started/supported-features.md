@@ -169,7 +169,7 @@ NovaMark officially uses:
 - `advance()`
 - `choose(choiceId)`
 
-The host does not need to understand any internal “consume dialogue” mechanics. It only needs to express:
+The host does not need to understand any internal "consume dialogue" mechanics. It only needs to express:
 
 - continue
 - choose an option

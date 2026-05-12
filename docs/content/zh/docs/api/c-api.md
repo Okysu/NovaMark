@@ -189,7 +189,7 @@ int nova_load_snapshot_file(NovaVM* vm, const char* path);
 
 ### 仅导入多周目进度（桥接/宿主层）
 
-在 NAPI/宿主桥接层，现已提供两种“只导入结局和标记”的接口：
+在 NAPI/宿主桥接层，现已提供两种"只导入结局和标记"的接口：
 
 ```text
 runtimeImportPlaythroughJson(vmHandle, saveJson)
@@ -204,7 +204,7 @@ runtimeImportPlaythroughBinary(vmHandle, saveBuffer)
   - `flags`
 - 当前 VM 的变量、场景、背包和渲染状态保持不变
 
-这两个接口不会替代普通 `runtimeImportSaveJson` / `runtimeImportSaveBinary`，而是提供一个“只同步周目继承数据”的安全选项。
+这两个接口不会替代普通 `runtimeImportSaveJson` / `runtimeImportSaveBinary`，而是提供一个"只同步周目继承数据"的安全选项。
 
 ## 变量和背包
 
