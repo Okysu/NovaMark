@@ -26,14 +26,15 @@ protected:
 
 /// EndingState 结构体值语义
 TEST_F(NovaStateV2Test, EndingStateValueEquality) {
-    EndingState a{"good_ending", true};
-    EndingState b{"good_ending", true};
-    EndingState c{"bad_ending", true};
-    EndingState d{"good_ending", false};
+    EndingState a{"good", "good_ending", true};
+    EndingState b{"good", "good_ending", true};
+    EndingState c{"bad", "bad_ending", true};
+    EndingState d{"good", "good_ending", false};
 
     EXPECT_TRUE(a == b);
     EXPECT_FALSE(a == c);
     EXPECT_FALSE(a == d);
+    EXPECT_EQ(a.id, "good");
     EXPECT_EQ(a.title, "good_ending");
     EXPECT_TRUE(a.reached);
 }
@@ -170,7 +171,7 @@ TEST_F(NovaStateV2Test, V1EndingStringMigratesToV2) {
 /// NovaState 中的 ending 和 flags 在 clear() 时被正确清除
 TEST_F(NovaStateV2Test, ClearResetsEndingAndFlags) {
     NovaState state;
-    state.ending = EndingState{"test", true};
+    state.ending = EndingState{"test", "test", true};
     state.flags.push_back("flag1");
     state.flags.push_back("flag2");
 

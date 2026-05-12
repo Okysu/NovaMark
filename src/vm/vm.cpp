@@ -1066,7 +1066,7 @@ void NovaVM::executeEnding(const EndingNode* node) {
     if (!node) return;
     m_playthrough.triggerEnding(node->name());
     std::string endingTitle = node->title().empty() ? node->name() : node->title();
-    m_state.ending = EndingState{endingTitle, true};
+    m_state.ending = EndingState{node->name(), endingTitle, true};
     m_state.status = VMStatus::Ended;
 }
 

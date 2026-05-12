@@ -1484,7 +1484,7 @@ TEST_F(VMTest, SerializeGameState) {
     state.bgm = "theme.mp3";
     state.bgmVolume = 0.5;
     state.bgmLoop = false;
-    state.ending = EndingState{"good_ending", true};
+    state.ending = EndingState{"good_ending", "good_ending", true};
     DialogueState dialogue;
     dialogue.isShow = true;
     dialogue.speaker = "Alice";
