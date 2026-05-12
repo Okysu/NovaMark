@@ -50,14 +50,14 @@ public:
         const std::vector<SpriteState>& sprites,
         const std::optional<DialogueState>& dialogue,
         const std::optional<ChoiceState>& choice,
-        const std::optional<std::string>& ending,
+        const std::optional<EndingState>& ending,
         const std::vector<std::pair<std::string, size_t>>& callStack,
         const VariableManager& variables,
         const Inventory& inventory,
         const std::unordered_set<std::string>& endings,
         const std::unordered_set<std::string>& flags
     );
-    
+
     /// @brief 将游戏状态应用到 VM 组件
     static void restoreState(
         const GameState& state,
@@ -75,7 +75,7 @@ public:
         std::vector<SpriteState>& sprites,
         std::optional<DialogueState>& dialogue,
         std::optional<ChoiceState>& choice,
-        std::optional<std::string>& ending,
+        std::optional<EndingState>& ending,
         std::vector<std::pair<std::string, size_t>>& callStack,
         VariableManager& variables,
         Inventory& inventory,

@@ -4,6 +4,7 @@
 #include <vector>
 #include <optional>
 #include <unordered_map>
+#include <nlohmann/json.hpp>
 
 namespace nova {
 
@@ -101,33 +102,48 @@ enum class VMStatus {
     Ended
 };
 
+/// @brief 结局状态（v1.0 NovaState v2 契约）
+struct EndingState {
+    std::string title;      ///< 结局标题
+    bool reached = false;   ///< 是否已到达结局
+
+    bool operator==(const EndingState& other) const {
+        return title == other.title && reached == other.reached;
+    }
+};
+
 /// @brief NovaMark 渲染状态（VM 输出给渲染器）
 struct NovaState {
     VMStatus status = VMStatus::Running;
 
     TextConfigState textConfig;
-    
+
     std::string currentScene;
     std::string currentLabel;
-    
+
     std::optional<std::string> bg;
     std::optional<std::string> bgTransition;
-    
+
     std::optional<std::string> bgm;
     double bgmVolume = 1.0;
     bool bgmLoop = true;
-    
+
     std::vector<SfxState> sfx;
-    
+
     std::vector<SpriteState> sprites;
-    
+
     std::optional<DialogueState> dialogue;
-    
+
     std::optional<ChoiceState> choice;
-    
-    std::optional<std::string> ending;
-    std::optional<std::string> endingTitle;
-    
+
+    std::optional<EndingState> ending;
+
+    /// @brief 已触发的标志列表（v1.0 NovaState v2 契约）
+    std::vector<std::string> flags;
+
+    /// @brief 自定义扩展字段（v1.0 注册重载系统）
+    std::unordered_map<std::string, nlohmann::json> extensions;
+
     void clear() {
         status = VMStatus::Running;
         bg.reset();
@@ -138,13 +154,14 @@ struct NovaState {
         dialogue.reset();
         choice.reset();
         ending.reset();
-        endingTitle.reset();
+        flags.clear();
+        extensions.clear();
     }
-    
+
     void clearDialogue() {
         dialogue.reset();
     }
-    
+
     void clearChoice() {
         choice.reset();
     }

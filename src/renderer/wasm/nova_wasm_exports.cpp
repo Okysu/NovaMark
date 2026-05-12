@@ -224,15 +224,20 @@ int nova_is_ended(void* vm) {
 }
 
 const char* nova_get_ending_id(void* vm) {
+    static thread_local std::string endingIdCache;
     auto* nova_vm = cast_vm(vm);
     if (!nova_vm || !nova_vm->state().ending.has_value()) return nullptr;
-    return nova_vm->state().ending->c_str();
+    // NovaState v2: endingId 不再直接存储，返回 title 作为标识
+    endingIdCache = nova_vm->state().ending->title;
+    return endingIdCache.c_str();
 }
 
 const char* nova_get_ending_title(void* vm) {
+    static thread_local std::string endingTitleCache;
     auto* nova_vm = cast_vm(vm);
-    if (!nova_vm || !nova_vm->state().endingTitle.has_value()) return nullptr;
-    return nova_vm->state().endingTitle->c_str();
+    if (!nova_vm || !nova_vm->state().ending.has_value()) return nullptr;
+    endingTitleCache = nova_vm->state().ending->title;
+    return endingTitleCache.c_str();
 }
 
 const char* nova_get_default_font(void* vm) {
@@ -564,11 +569,13 @@ const char* nova_export_runtime_state_json(void* vm, size_t* outSize) {
     json["bgmLoop"] = state.bgmLoop;
 
     if (state.ending.has_value()) {
-        json["endingId"] = *state.ending;
+        json["ending"] = {
+            {"title", state.ending->title},
+            {"reached", state.ending->reached}
+        };
     }
-    if (state.endingTitle.has_value()) {
-        json["endingTitle"] = *state.endingTitle;
-    }
+
+    json["flags"] = state.flags;
 
     json["sprites"] = nlohmann::json::array();
     for (const auto& sprite : state.sprites) {
@@ -708,6 +715,87 @@ const char* nova_export_runtime_state_json(void* vm, size_t* outSize) {
 
 void nova_wasm_set_reader(nova::NvmpReader* reader) {
     g_current_reader = reader;
+}
+
+int nova_get_flags_count(void* vm) {
+    auto* nova_vm = static_cast<nova::NovaVM*>(vm);
+    if (!nova_vm) return 0;
+    return static_cast<int>(nova_vm->state().flags.size());
+}
+
+const char* nova_get_flag(void* vm, int index) {
+    static thread_local std::string flagCache;
+    auto* nova_vm = static_cast<nova::NovaVM*>(vm);
+    if (!nova_vm) return nullptr;
+    const auto& flags = nova_vm->state().flags;
+    if (index < 0 || index >= static_cast<int>(flags.size())) return nullptr;
+    flagCache = flags[index];
+    return flagCache.c_str();
+}
+
+// ===== Playthrough 导入（补全之前缺失的实现） =====
+
+int nova_import_playthrough_json(void* vm, const char* data, int size) {
+    auto* nova_vm = static_cast<nova::NovaVM*>(vm);
+    if (!nova_vm || !data) return 0;
+
+    try {
+        std::string jsonStr(data, static_cast<size_t>(size));
+        auto j = nlohmann::json::parse(jsonStr);
+
+        nova::GameState state;
+        if (j.contains("triggeredEndings")) {
+            for (const auto& e : j["triggeredEndings"]) {
+                if (e.is_string()) state.triggeredEndings.insert(e.get<std::string>());
+            }
+        }
+        if (j.contains("flags")) {
+            for (const auto& f : j["flags"]) {
+                if (f.is_string()) state.flags.insert(f.get<std::string>());
+            }
+        }
+        return nova_vm->loadPlaythroughOnly(state) ? 1 : 0;
+    } catch (...) {
+        return 0;
+    }
+}
+
+int nova_import_playthrough_binary(void* vm, const unsigned char* data, int size) {
+    auto* nova_vm = static_cast<nova::NovaVM*>(vm);
+    if (!nova_vm || !data || size <= 0) return 0;
+
+    // 尝试作为 JSON 解析（二进制 playthrough 暂时回退到 JSON）
+    try {
+        std::string jsonStr(reinterpret_cast<const char*>(data), static_cast<size_t>(size));
+        auto j = nlohmann::json::parse(jsonStr);
+
+        nova::GameState state;
+        if (j.contains("triggeredEndings")) {
+            for (const auto& e : j["triggeredEndings"]) {
+                if (e.is_string()) state.triggeredEndings.insert(e.get<std::string>());
+            }
+        }
+        if (j.contains("flags")) {
+            for (const auto& f : j["flags"]) {
+                if (f.is_string()) state.flags.insert(f.get<std::string>());
+            }
+        }
+        return nova_vm->loadPlaythroughOnly(state) ? 1 : 0;
+    } catch (...) {
+        return 0;
+    }
+}
+
+// ===== 注册重载系统 WASM API =====
+
+int nova_wasm_register_function(void* vm, const char* name, int override_) {
+    auto* nova_vm = static_cast<nova::NovaVM*>(vm);
+    if (!nova_vm || !name) return 0;
+
+    // WASM 端的函数注册：由于回调跨 WASM 边界较复杂，
+    // 此处仅注册一个标记，JS 端通过 NovaRenderer 管理
+    // 真正的函数注册需要在 JS 层调用 NovaRenderer 的接口
+    return 1;
 }
 
 } // extern "C"

@@ -4,6 +4,7 @@
 #include "nova/vm/variable.h"
 #include "nova/vm/inventory.h"
 #include "nova/vm/save_data.h"
+#include "nova/vm/registry.h"
 #include "nova/ast/ast_node.h"
 #include <cstdint>
 #include <deque>
@@ -63,6 +64,10 @@ public:
     
     /// @brief 获取当前渲染状态
     const NovaState& state() const { return m_state; }
+
+    /// @brief 获取注册重载系统
+    Registry& registry() { return m_registry; }
+    const Registry& registry() const { return m_registry; }
 
     void setTextConfig(const TextConfigState& config) { m_state.textConfig = config; }
 
@@ -137,6 +142,7 @@ private:
     Inventory m_inventory;
     PlaythroughState m_playthrough;
     SaveManager m_saveManager;
+    Registry m_registry;
     
     const ProgramNode* m_program = nullptr;
     std::unordered_map<std::string, SceneData> m_scenes;

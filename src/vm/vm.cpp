@@ -234,6 +234,7 @@ void NovaVM::markRuntimeStateChanged(int flags) {
 
 GameState NovaVM::captureState() const {
     GameState state;
+    state.stateVersion = 2;
     state.currentScene = m_currentScene;
     state.currentLabel = m_state.currentLabel;
     state.statementIndex = m_statementIndex;
@@ -256,7 +257,11 @@ GameState NovaVM::captureState() const {
     
     state.triggeredEndings = m_playthrough.endings();
     state.flags = m_playthrough.flags();
-    
+    state.extensions = m_state.extensions;
+    if (!m_state.extensions.empty() && state.stateVersion < 3) {
+        state.stateVersion = 3;
+    }
+
     return state;
 }
 
@@ -314,6 +319,9 @@ bool NovaVM::loadSave(const GameState& state) {
     } else if (state.choice.has_value()) {
         m_state.status = VMStatus::WaitingChoice;
     }
+    m_state.extensions = state.extensions;
+    m_registry.deserializeExtensions(state.extensions);
+
     markRuntimeStateChanged(RuntimeStateChangeVariables | RuntimeStateChangeInventory);
 
     return true;
@@ -495,6 +503,15 @@ void NovaVM::buildSceneIndex() {
 void NovaVM::advance() {
     if (m_state.status == VMStatus::Ended) return;
     if (m_state.status == VMStatus::WaitingChoice) return;
+
+    // 同步 flags 到渲染状态（NovaState v2）
+    m_state.flags.clear();
+    for (const auto& flag : m_playthrough.flags()) {
+        m_state.flags.push_back(flag);
+    }
+    // 同步 extensions（注册重载系统）
+    m_state.extensions.clear();
+    m_state.extensions = m_registry.serializeExtensions();
 
     if (m_state.dialogue) {
         m_state.clearDialogue();
@@ -775,6 +792,25 @@ void NovaVM::executeStatement(const AstNode* node) {
         case NodeType::Return:
             returnFromCall();
             break;
+        case NodeType::CustomCommand: {
+            auto cmd = static_cast<const CustomCommandNode*>(node);
+            // 查找注册表中是否有自定义指令处理器
+            std::vector<std::pair<std::string, std::string>> handlerArgs;
+            for (const auto& arg : cmd->args()) {
+                handlerArgs.emplace_back(arg.key, arg.value);
+            }
+            auto* handler = m_registry.findDirective(cmd->directive());
+            if (handler) {
+                auto result = (*handler)(cmd->directive(), handlerArgs, m_state);
+                if (result.advanceAgain) {
+                    // 清除阻塞状态，使外层循环继续执行下一条语句
+                    m_state.clearDialogue();
+                    m_state.clearChoice();
+                }
+            }
+            // 未注册的自定义指令在 VM 层静默忽略
+            break;
+        }
         case NodeType::Label:
             break;
         default:
@@ -1029,8 +1065,8 @@ void NovaVM::executeSfx(const SfxCommandNode* node) {
 void NovaVM::executeEnding(const EndingNode* node) {
     if (!node) return;
     m_playthrough.triggerEnding(node->name());
-    m_state.ending = node->name();
-    m_state.endingTitle = node->title();
+    std::string endingTitle = node->title().empty() ? node->name() : node->title();
+    m_state.ending = EndingState{endingTitle, true};
     m_state.status = VMStatus::Ended;
 }
 
@@ -1199,7 +1235,18 @@ VarValue NovaVM::evaluateFunctionCall(const CallExprNode* call) {
         std::bernoulli_distribution dist(probability);
         return dist(rng);
     }
-    
+
+    // 检查注册表中是否有自定义函数处理器
+    auto* handler = m_registry.findFunction(name);
+    if (handler) {
+        std::vector<VarValue> fnArgs;
+        fnArgs.reserve(args.size());
+        for (const auto& arg : args) {
+            fnArgs.push_back(evaluateExpression(arg.get()));
+        }
+        return (*handler)(fnArgs);
+    }
+
     return 0.0;
 }
 

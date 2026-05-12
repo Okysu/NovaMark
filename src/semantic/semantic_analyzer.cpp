@@ -466,8 +466,10 @@ void SemanticAnalyzer::check_function_call(const std::string& name,
     
     auto it = builtin_functions.find(name);
     if (it == builtin_functions.end()) {
-        m_diagnostics.error(SemanticError::InvalidFunctionCall,
-            "unknown function: " + name, loc);
+        // 注册重载系统：未知函数产生 warning 而非 error
+        // 宿主可能在运行时通过 Registry 注册自定义函数
+        m_diagnostics.warning(SemanticError::UnknownFunction,
+            "unknown function: " + name + " (may be registered at runtime)", loc);
         return;
     }
     
@@ -609,6 +611,17 @@ void SemanticAnalyzer::check_node_structure(const AstNode* node) {
             break;
         }
         
+        case NodeType::CustomCommand: {
+            auto cmd = dynamic_cast<const CustomCommandNode*>(node);
+            if (cmd) {
+                // 注册重载系统：自定义指令产生 warning 而非 error
+                // 宿主可能在运行时通过 Registry 注册处理器
+                m_diagnostics.warning(SemanticError::UnknownDirective,
+                    "custom directive @" + cmd->directive() + " may be registered at runtime", node->location());
+            }
+            break;
+        }
+
         default:
             break;
     }

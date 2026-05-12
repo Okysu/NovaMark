@@ -34,6 +34,8 @@ enum class SemanticError {
     InvalidChoiceAction,
     UnreachableCode,
     UnusedVariable,
+    UnknownDirective,
+    UnknownFunction,
 };
 
 /// @brief 单条诊断信息

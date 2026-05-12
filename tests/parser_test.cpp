@@ -1173,9 +1173,36 @@ TEST_F(ParserTest, ErrorMissingTarget) {
     EXPECT_TRUE(result.is_err());
 }
 
-TEST_F(ParserTest, ErrorUnknownDirective) {
-    auto result = parse("@unknown_directive");
-    EXPECT_TRUE(result.is_err());
+TEST_F(ParserTest, CustomDirectiveParsesAsCustomCommand) {
+    // 注册重载系统：未知 @指令 现在解析为 CustomCommandNode
+    auto result = parse("@unknown_directive\n#scene_start \"Test\"\n> Hello\n");
+    ASSERT_TRUE(result.is_ok());
+    auto* program = dynamic_cast<ProgramNode*>(result.unwrap().get());
+    ASSERT_NE(program, nullptr);
+    ASSERT_GT(program->statements().size(), 0u);
+    auto* cmd = dynamic_cast<CustomCommandNode*>(program->statements()[0].get());
+    ASSERT_NE(cmd, nullptr);
+    EXPECT_EQ(cmd->directive(), "unknown_directive");
+    EXPECT_EQ(cmd->type(), NodeType::CustomCommand);
+}
+
+TEST_F(ParserTest, CustomDirectiveWithArgs) {
+    auto result = parse(
+        "@custom_effect intensity:high target:enemy\n"
+        "#scene_start \"Test\"\n"
+        "> Done\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+    auto* program = dynamic_cast<ProgramNode*>(result.unwrap().get());
+    ASSERT_GE(program->statements().size(), 1u);
+    auto* cmd = dynamic_cast<CustomCommandNode*>(program->statements()[0].get());
+    ASSERT_NE(cmd, nullptr);
+    EXPECT_EQ(cmd->directive(), "custom_effect");
+    ASSERT_EQ(cmd->args().size(), 2u);
+    EXPECT_EQ(cmd->args()[0].key, "intensity");
+    EXPECT_EQ(cmd->args()[0].value, "high");
+    EXPECT_EQ(cmd->args()[1].key, "target");
+    EXPECT_EQ(cmd->args()[1].value, "enemy");
 }
 
 TEST_F(ParserTest, ErrorSceneDefMissingName) {

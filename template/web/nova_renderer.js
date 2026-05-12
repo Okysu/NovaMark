@@ -396,6 +396,24 @@ class NovaRenderer {
         return ptr ? this.getString(ptr) : null;
     }
 
+    getFlagsCount() {
+        return this.vm._nova_get_flags_count();
+    }
+
+    getFlag(index) {
+        const ptr = this.vm._nova_get_flag(index);
+        return ptr ? this.getString(ptr) : null;
+    }
+
+    getFlags() {
+        const count = this.getFlagsCount();
+        const flags = [];
+        for (let i = 0; i < count; i++) {
+            flags.push(this.getFlag(i));
+        }
+        return flags;
+    }
+
     async playBgm(assetName, loop, volume) {
         if (this.currentBgmUrl === assetName) return;
 
@@ -530,6 +548,57 @@ class NovaRenderer {
         this.vm._free(jsonPtr);
 
         return result === 0;
+    }
+
+    // ===== 注册重载系统 JS API =====
+
+    /**
+     * 注册自定义函数（JS 层实现）
+     * JS 端维护函数映射表，在需要时通过 C++ 注册表桥接
+     * @param {string} name - 函数名
+     * @param {Function} handler - 函数处理器 (args: any[]) => any
+     * @param {boolean} override - 是否覆写内置函数
+     * @returns {boolean} 是否注册成功
+     */
+    registerFunction(name, handler, override = false) {
+        if (!this._customFunctions) this._customFunctions = new Map();
+        if (!override && this._customFunctions.has(name)) return false;
+        this._customFunctions.set(name, handler);
+        return true;
+    }
+
+    /**
+     * 注册自定义指令（JS 层实现）
+     * @param {string} name - 指令名（不含@前缀）
+     * @param {Function} handler - 指令处理器
+     * @param {boolean} override - 是否覆写内置指令
+     * @returns {boolean} 是否注册成功
+     */
+    registerDirective(name, handler, override = false) {
+        if (!this._customDirectives) this._customDirectives = new Map();
+        if (!override && this._customDirectives.has(name)) return false;
+        this._customDirectives.set(name, handler);
+        return true;
+    }
+
+    /**
+     * 查找已注册的自定义函数
+     * @param {string} name
+     * @returns {Function|null}
+     */
+    findCustomFunction(name) {
+        if (!this._customFunctions) return null;
+        return this._customFunctions.get(name) || null;
+    }
+
+    /**
+     * 查找已注册的自定义指令
+     * @param {string} name
+     * @returns {Function|null}
+     */
+    findCustomDirective(name) {
+        if (!this._customDirectives) return null;
+        return this._customDirectives.get(name) || null;
     }
 
     setMode(mode) {

@@ -28,6 +28,8 @@ Its purpose is to make three things clear:
 - Narration: `> text`
 - Dialogue: `Character: text`
 - Emotion dialogue: `Character[emotion]: text`
+- Text interpolation: `{{expr}}`
+- Inline style: `{style:text}`
 
 ### 1.3 Definition blocks
 
@@ -58,13 +60,23 @@ Supported fields include:
 - `if / else / endif`
 - `@check / @success / @fail / @endcheck`
 
-### 1.5 State changes
+### 1.5 Custom directives (v1.0 Registry Override System)
+
+When the parser encounters an unknown `@xxx` directive, it produces a `CustomCommandNode`. The VM dispatches to a host-registered handler via the Registry.
+
+```nvm
+@custom_skill_check difficulty:hard target:boss
+```
+
+Arguments support `key:value` pairs and standalone identifiers/literals.
+
+### 1.6 State changes
 
 - `@set`
 - `@give`
 - `@take`
 - `@flag`
-- `@ending`
+- `@ending`（supports optional title `@ending id "Display Title"`）
 
 `@set / @give / @take` all support expressions, not just literals.
 
@@ -76,14 +88,14 @@ For example:
 @set hp = hp - item_count("wound")
 ```
 
-### 1.6 Media references
+### 1.7 Media references
 
 - `@bg`
 - `@sprite`
 - `@bgm`
 - `@sfx`
 
-### 1.7 Choices
+### 1.8 Choices
 
 - `? question`
 - `- [choice] -> target`
@@ -97,9 +109,14 @@ For example:
 - `item_count(...)`
 - `has_flag(...)`
 - `has_ending(...)`
+- `var(...)`
 - `roll(...)`
 - `random(min, max)`
 - `chance(probability)`
+
+### v1.0: Custom functions
+
+Through the Registry Override System, hosts can register custom functions callable from scripts. See [Registry Override System]({{< ref "/docs/api/registry" >}}).
 
 ### Parameter rules
 
@@ -172,18 +189,37 @@ Officially supported exported state includes:
 - bg / bgm / sprites
 - textConfig
 
-### 3.3 Snapshots and save/load
+### 3.3 Snapshots and save/load (v1.0 stateVersion compatibility)
 
 NovaMark officially supports:
 
-- runtime snapshot capture
-- snapshot restore
-- file save/load
+- Runtime snapshot capture (`captureState`)
+- Snapshot restore (`loadSave`)
+- File save/load (JSON + binary)
+- Playthrough-only import (`loadPlaythroughOnly`)
 
 ### Save format rule
 
-- **official save files**: binary
+- **official save files**: binary (v6)
 - **JSON**: debugging / tests / Web/WASM tooling
+- **stateVersion**: v1/v2/v3 saves auto-migrate upward on load
+
+### 3.4 Registry Override System (v1.0)
+
+Hosts can extend and override NovaMark capabilities at runtime:
+
+- **Custom functions**: `registerFunction()` — host functions callable from scripts
+- **Custom directives**: `registerDirective()` — scripts use `@custom_directive` syntax
+- **State field extensions**: `registerStateField()` — inject custom fields into `NovaState.extensions`
+- **Built-in function override**: `registerFunction("random", handler, true)` — replace built-in with custom implementation
+
+See [Registry Override System API]({{< ref "/docs/api/registry" >}}).
+
+### 3.5 Ending titles and flag exposure (v1.0)
+
+- `@ending id "Title"` — endings support optional display titles, exposed as `EndingState` in NovaState
+- `NovaState.flags` — currently triggered flags list, queryable by renderers
+- `NovaState.ending.title` / `NovaState.ending.reached` — full ending information
 
 ---
 

@@ -265,3 +265,46 @@ int nova_has_item(NovaVM* vm, const char* itemId);
 Check if player has an item.
 
 **Returns**: 1 if player has the item, 0 otherwise.
+
+## Flag Queries (v1.0)
+
+### nova_get_flags_count
+
+```c
+size_t nova_get_flags_count(NovaVM* vm);
+```
+
+Get the number of triggered flags.
+
+### nova_get_flag
+
+```c
+const char* nova_get_flag(NovaVM* vm, size_t index);
+```
+
+Get flag name by index.
+
+## Registry Override System (v1.0)
+
+The Registry Override System allows hosts to extend and override NovaMark's built-in functions and state fields at runtime. See [Registry Override System]({{< ref "registry" >}}) for details.
+
+### nova_register_function
+
+```c
+int nova_register_function(NovaVM* vm, const char* name,
+    NovaFunctionCallback callback, void* userData, int override_);
+```
+
+Register a custom function.
+
+### nova_register_state_field
+
+```c
+int nova_register_state_field(NovaVM* vm, const char* key,
+    NovaStateFieldSerializeCb serialize,
+    NovaStateFieldDeserializeCb deserialize,
+    const char* defaultValueJson,
+    void* userData);
+```
+
+Register a custom state field.

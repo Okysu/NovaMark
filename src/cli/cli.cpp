@@ -564,7 +564,7 @@ int do_run(const CliConfig& config) {
         }
         
         if (state.ending) {
-            std::cout << "\n=== Ending: " << *state.ending << " ===\n";
+            std::cout << "\n=== Ending: " << state.ending->title << " ===\n";
             
             auto playthroughFile = ".novamark/playthrough.json";
             fs::create_directories(".novamark");

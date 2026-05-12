@@ -99,6 +99,9 @@ NOVA_WASM_API const char* nova_get_ending_id(void* vm);
 /// @return 结局标题，NULL 表示无标题
 NOVA_WASM_API const char* nova_get_ending_title(void* vm);
 
+NOVA_WASM_API int nova_get_flags_count(void* vm);
+NOVA_WASM_API const char* nova_get_flag(void* vm, int index);
+
 NOVA_WASM_API const char* nova_get_default_font(void* vm);
 
 NOVA_WASM_API int nova_get_default_font_size(void* vm);
@@ -224,6 +227,15 @@ NOVA_WASM_API const char* nova_get_theme_property_key(void* vm, const char* them
 NOVA_WASM_API const char* nova_get_theme_property_value(void* vm, const char* themeId, const char* key);
 
 NOVA_WASM_API int nova_consume_runtime_state_change_flags(void* vm);
+
+// ===== 注册重载系统 WASM API =====
+
+/// @brief 注册自定义函数（WASM 端通过 JSON 传递参数和返回值）
+/// @param vm VM 实例
+/// @param name 函数名
+/// @param override_ 是否覆写内置函数
+/// @return 1=成功, 0=失败
+NOVA_WASM_API int nova_wasm_register_function(void* vm, const char* name, int override_);
 
 #ifdef __cplusplus
 }

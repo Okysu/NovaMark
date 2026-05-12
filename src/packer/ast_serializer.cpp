@@ -89,6 +89,9 @@ void AstSerializer::serializeNode(const AstNode* node) {
         case NodeType::Flag:
             serializeFlag(dynamic_cast<const FlagNode*>(node));
             break;
+        case NodeType::CustomCommand:
+            serializeCustomCommand(dynamic_cast<const CustomCommandNode*>(node));
+            break;
         case NodeType::Label:
             serializeLabel(dynamic_cast<const LabelNode*>(node));
             break;
@@ -384,6 +387,17 @@ void AstSerializer::serializeFlag(const FlagNode* node) {
     m_writer.writeString(node->name());
 }
 
+void AstSerializer::serializeCustomCommand(const CustomCommandNode* node) {
+    m_writer.writeByte(static_cast<uint8_t>(OpCode::NodeCustomCommand));
+    m_writer.writeString(node->directive());
+    uint32_t argCount = static_cast<uint32_t>(node->args().size());
+    m_writer.writeU32(argCount);
+    for (const auto& arg : node->args()) {
+        m_writer.writeString(arg.key);
+        m_writer.writeString(arg.value);
+    }
+}
+
 void AstSerializer::serializeLabel(const LabelNode* node) {
     m_writer.writeByte(static_cast<uint8_t>(OpCode::NodeLabel));
     m_writer.writeString(node->name());
@@ -605,6 +619,8 @@ std::unique_ptr<AstNode> AstDeserializer::deserializeNode() {
             return deserializeEnding();
         case OpCode::NodeFlag:
             return deserializeFlag();
+        case OpCode::NodeCustomCommand:
+            return deserializeCustomCommand();
         case OpCode::NodeLabel:
             return deserializeLabel();
         case OpCode::NodeCheckCommand:
@@ -943,6 +959,18 @@ std::unique_ptr<EndingNode> AstDeserializer::deserializeEnding() {
 std::unique_ptr<FlagNode> AstDeserializer::deserializeFlag() {
     std::string name = m_reader->readString();
     return std::make_unique<FlagNode>(SourceLocation{}, std::move(name));
+}
+
+std::unique_ptr<CustomCommandNode> AstDeserializer::deserializeCustomCommand() {
+    std::string directive = m_reader->readString();
+    auto node = std::make_unique<CustomCommandNode>(SourceLocation{}, std::move(directive));
+    uint32_t argCount = m_reader->readU32();
+    for (uint32_t i = 0; i < argCount; ++i) {
+        std::string key = m_reader->readString();
+        std::string value = m_reader->readString();
+        node->add_arg(std::move(key), std::move(value));
+    }
+    return node;
 }
 
 std::unique_ptr<LabelNode> AstDeserializer::deserializeLabel() {

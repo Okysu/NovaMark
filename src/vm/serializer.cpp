@@ -13,7 +13,7 @@ using json = nlohmann::json;
 namespace {
 
 constexpr char SAVE_MAGIC[] = "NVMSAVE";
-constexpr uint32_t SAVE_VERSION = 5;
+constexpr uint32_t SAVE_VERSION = 6;
 
 template<typename T>
 void write_pod(std::vector<uint8_t>& out, const T& value) {
@@ -277,8 +277,12 @@ std::string GameStateSerializer::serialize(const GameState& state) {
     j["bgmLoop"] = state.bgmLoop;
     j["currentTheme"] = state.currentTheme;
     j["themeProperties"] = state.themeProperties;
-    j["ending"] = state.ending;
-    j["endingTitle"] = state.endingTitle;
+    j["stateVersion"] = state.stateVersion;
+    if (state.ending) {
+        j["ending"] = {{"title", state.ending->title}, {"reached", state.ending->reached}};
+    } else {
+        j["ending"] = nullptr;
+    }
     j["sprites"] = json::array();
     for (const auto& sp : state.sprites) {
         json sprite = {{"id", sp.id}};
@@ -330,7 +334,16 @@ std::string GameStateSerializer::serialize(const GameState& state) {
     j["inventory"] = state.inventory;
     j["triggeredEndings"] = state.triggeredEndings;
     j["flags"] = state.flags;
-    
+
+    // extensions（stateVersion 3）
+    if (!state.extensions.empty()) {
+        j["extensions"] = state.extensions;
+        // 有 extensions 时升级 stateVersion 为 3
+        if (state.stateVersion < 3) {
+            j["stateVersion"] = 3;
+        }
+    }
+
     return j.dump(2);
 }
 
@@ -358,8 +371,31 @@ bool GameStateSerializer::deserialize(const std::string& jsonStr, GameState& sta
             state.currentTheme = j["currentTheme"].get<std::string>();
         }
         state.themeProperties = j.value("themeProperties", std::unordered_map<std::string, std::string>{});
-        if (j.contains("ending") && !j["ending"].is_null()) state.ending = j["ending"].get<std::string>();
-        if (j.contains("endingTitle") && !j["endingTitle"].is_null()) state.endingTitle = j["endingTitle"].get<std::string>();
+
+        // ending 反序列化：兼容 v1（string 格式）和 v2（EndingState 对象格式）
+        state.stateVersion = j.value("stateVersion", 1);
+        if (j.contains("ending") && !j["ending"].is_null()) {
+            if (j["ending"].is_string()) {
+                // v1 格式：ending 为字符串（结局 ID），转成 EndingState
+                std::string endingId = j["ending"].get<std::string>();
+                std::string endingTitle;
+                if (j.contains("endingTitle") && !j["endingTitle"].is_null()) {
+                    endingTitle = j["endingTitle"].get<std::string>();
+                }
+                state.ending = EndingState{endingTitle, true};
+            } else if (j["ending"].is_object()) {
+                // v2 格式：ending 为 EndingState 对象
+                EndingState es;
+                es.title = j["ending"].value("title", "");
+                es.reached = j["ending"].value("reached", true);
+                state.ending = es;
+            }
+        }
+
+        // stateVersion 自动升级到当前版本
+        if (state.stateVersion < 2) {
+            state.stateVersion = 2;
+        }
 
         state.sprites.clear();
         if (j.contains("sprites")) {
@@ -436,7 +472,14 @@ bool GameStateSerializer::deserialize(const std::string& jsonStr, GameState& sta
         state.inventory = j.value("inventory", std::unordered_map<std::string, int>{});
         state.triggeredEndings = j.value("triggeredEndings", std::unordered_set<std::string>{});
         state.flags = j.value("flags", std::unordered_set<std::string>{});
-        
+
+        // extensions（stateVersion 3 兼容）
+        if (j.contains("extensions") && j["extensions"].is_object()) {
+            for (auto& [key, val] : j["extensions"].items()) {
+                state.extensions[key] = val;
+            }
+        }
+
         return true;
     } catch (const json::exception&) {
         return false;
@@ -572,8 +615,11 @@ std::vector<uint8_t> GameStateSerializer::serializeSaveBinary(const SaveData& sa
             write_pod(out, opt.disabled);
         }
     }
-    write_pod(out, save.state.ending.has_value()); if (save.state.ending) write_string(out, *save.state.ending);
-    write_optional_string(out, save.state.endingTitle);
+    write_pod(out, save.state.ending.has_value());
+    if (save.state.ending) {
+        write_string(out, save.state.ending->title);
+        write_pod(out, save.state.ending->reached);
+    }
     write_call_stack(out, save.state.callStack);
     write_map_string_key(out, save.state.numberVariables);
     write_string_map(out, save.state.stringVariables);
@@ -581,6 +627,12 @@ std::vector<uint8_t> GameStateSerializer::serializeSaveBinary(const SaveData& sa
     write_map_string_key(out, save.state.inventory);
     write_string_set(out, save.state.triggeredEndings);
     write_string_set(out, save.state.flags);
+    // extensions 以 JSON 字符串形式追加
+    nlohmann::json extJson = nlohmann::json::object();
+    for (const auto& [key, val] : save.state.extensions) {
+        extJson[key] = val;
+    }
+    write_string(out, extJson.dump());
     return out;
 }
 
@@ -596,7 +648,7 @@ bool GameStateSerializer::deserializeSaveBinary(const std::vector<uint8_t>& data
     offset += sizeof(SAVE_MAGIC) - 1;
 
     uint32_t version = 0;
-    if (!read_pod(data, offset, version) || (version != 1 && version != 2 && version != 3 && version != 4 && version != SAVE_VERSION)) {
+    if (!read_pod(data, offset, version) || (version != 1 && version != 2 && version != 3 && version != 4 && version != 5 && version != SAVE_VERSION)) {
         return false;
     }
 
@@ -761,16 +813,42 @@ bool GameStateSerializer::deserializeSaveBinary(const std::vector<uint8_t>& data
         return false;
     }
     if (hasEnding) {
-        std::string ending;
-        if (!read_string(data, offset, ending)) {
-            return false;
+        if (version >= 6) {
+            // v6+: EndingState 格式 (title + reached)
+            EndingState es;
+            if (!read_string(data, offset, es.title)) {
+                return false;
+            }
+            if (!read_pod(data, offset, es.reached)) {
+                return false;
+            }
+            save.state.ending = std::move(es);
+        } else {
+            // v1-v5: string 格式 (ending ID)
+            std::string endingStr;
+            if (!read_string(data, offset, endingStr)) {
+                return false;
+            }
+            // v4+ 还有 endingTitle 字段
+            std::optional<std::string> endingTitle;
+            if (version >= 4) {
+                if (!read_optional_string(data, offset, endingTitle)) {
+                    return false;
+                }
+            }
+            // 迁移到 EndingState：优先使用 endingTitle，否则使用 ending ID
+            std::string title = (endingTitle.has_value() && !endingTitle->empty())
+                                ? *endingTitle : endingStr;
+            save.state.ending = EndingState{title, true};
+            save.state.stateVersion = 2;
         }
-        save.state.ending = std::move(ending);
-    }
-
-    if (version >= 4) {
-        if (!read_optional_string(data, offset, save.state.endingTitle)) {
-            return false;
+    } else {
+        if (version >= 4 && version < 6) {
+            // 没有 ending 但旧版本可能有 endingTitle 需要跳过
+            std::optional<std::string> dummy;
+            if (!read_optional_string(data, offset, dummy)) {
+                return false;
+            }
         }
     }
 
@@ -782,6 +860,24 @@ bool GameStateSerializer::deserializeSaveBinary(const std::vector<uint8_t>& data
         !read_string_set(data, offset, save.state.triggeredEndings) ||
         !read_string_set(data, offset, save.state.flags)) {
         return false;
+    }
+
+    // extensions（v6+ 二进制格式）
+    if (version >= 6) {
+        std::string extJson;
+        if (!read_string(data, offset, extJson)) {
+            return false;
+        }
+        try {
+            auto j = nlohmann::json::parse(extJson);
+            if (j.is_object()) {
+                for (auto& [key, val] : j.items()) {
+                    save.state.extensions[key] = val;
+                }
+            }
+        } catch (...) {
+            // 忽略解析失败，extensions 为空
+        }
     }
 
     save.state.statementIndex = static_cast<size_t>(statementIndex);
@@ -804,7 +900,7 @@ GameState GameStateSerializer::captureState(
     const std::vector<SpriteState>& sprites,
     const std::optional<DialogueState>& dialogue,
     const std::optional<ChoiceState>& choice,
-    const std::optional<std::string>& ending,
+    const std::optional<EndingState>& ending,
     const std::vector<std::pair<std::string, size_t>>& callStack,
     const VariableManager& variables,
     const Inventory& inventory,
@@ -812,6 +908,7 @@ GameState GameStateSerializer::captureState(
     const std::unordered_set<std::string>& flags
 ) {
     GameState state;
+    state.stateVersion = 2;
     state.currentScene = currentScene;
     state.currentLabel = currentLabel;
     state.statementIndex = statementIndex;
@@ -853,7 +950,7 @@ void GameStateSerializer::restoreState(
     std::vector<SpriteState>& sprites,
     std::optional<DialogueState>& dialogue,
     std::optional<ChoiceState>& choice,
-    std::optional<std::string>& ending,
+    std::optional<EndingState>& ending,
     std::vector<std::pair<std::string, size_t>>& callStack,
     VariableManager& variables,
     Inventory& inventory,

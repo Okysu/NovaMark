@@ -408,6 +408,49 @@ You've now mastered NovaMark's core features and can start creating your own int
 
 ---
 
+## 7. v1.0 Enhancements (Ending Titles + State Exposure)
+
+Starting from v1.0, endings and flags have richer expression in the render state:
+
+### Ending Titles
+
+`@ending` now supports **optional quoted titles**:
+
+```nvm
+@ending good_ending "A Beautiful Ending"
+```
+
+- `@ending id` format: ID only, for internal logic
+- `@ending id "Title"` format: ID + displayable title, renderers can show directly
+
+In NovaState, endings are exposed as `EndingState`:
+- `ending.title` — Ending title (falls back to ID when no title given)
+- `ending.reached` — Whether the ending was truly reached
+
+### Flag Exposure
+
+All currently triggered flags are exposed in `NovaState.flags` array. Renderers can:
+- Show unlocked flags in status bar / debug panel
+- Dynamically adjust UI based on flag state
+
+### Querying via C API
+
+```c
+size_t count = nova_get_flags_count(vm);
+for (size_t i = 0; i < count; i++) {
+    const char* flag = nova_get_flag(vm, i);
+}
+```
+
+### Save stateVersion
+
+Starting from v1.0, save JSON includes a `stateVersion` field:
+- v1: No `stateVersion` or 1 (legacy format, ending as string)
+- v2: ending as `{title, reached}` object, includes `flags` array
+- v3: Additionally includes `extensions` custom fields
+
+Legacy saves are auto-migrated upward on load, no manual handling needed.
+
 ## What's Next
 
 Congratulations! You've completed the core creator's guide for NovaMark!

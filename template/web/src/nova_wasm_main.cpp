@@ -604,8 +604,8 @@ const char* nova_wasm_get_ending_id() {
 
 EMSCRIPTEN_KEEPALIVE
 const char* nova_wasm_get_ending_title() {
-    if (g_vm && g_vm->state().endingTitle.has_value()) {
-        return g_vm->state().endingTitle->c_str();
+    if (g_vm && g_vm->state().ending.has_value()) {
+        return g_vm->state().ending->title.c_str();
     }
     return nullptr;
 }

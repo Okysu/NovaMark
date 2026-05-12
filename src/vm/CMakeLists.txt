@@ -4,6 +4,7 @@ add_library(nova-vm STATIC
     inventory.cpp
     save_data.cpp
     serializer.cpp
+    registry.cpp
 )
 
 target_include_directories(nova-vm PUBLIC

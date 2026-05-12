@@ -17,5 +17,6 @@ If you're new to NovaMark, start from [Platform Integration]({{< ref "../platfor
 
 ## Entries
 
-- [Runtime State]({{< ref "runtime-state" >}})
 - [C API]({{< ref "c-api" >}})
+- [Runtime State]({{< ref "runtime-state" >}})
+- [Registry Override System]({{< ref "registry" >}})

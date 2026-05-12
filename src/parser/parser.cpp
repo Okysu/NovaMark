@@ -546,8 +546,9 @@ Result<AstPtr> Parser::parse_directive() {
         return parse_theme_def();
     }
     
-    return make_error<AstPtr>(ErrorKind::UnexpectedToken, "unknown directive: @" + directive);
+    return parse_custom_command(loc, directive);
 }
+
 
 Result<AstPtr> Parser::parse_var_def() {
     SourceLocation loc = current().location;
@@ -1197,6 +1198,69 @@ Result<AstPtr> Parser::parse_flag_command() {
     if (check(TokenType::Newline)) advance();
     
     return Ok(AstPtr(new FlagNode(loc, std::move(name))));
+}
+
+Result<AstPtr> Parser::parse_custom_command(SourceLocation loc, const std::string& directive) {
+    auto node = std::make_unique<CustomCommandNode>(loc, directive);
+
+    // 读取该行剩余的所有 token 作为参数
+    while (!at_end() && !check(TokenType::Newline)) {
+        if (check(TokenType::Identifier)) {
+            std::string key = current().value;
+            SourceLocation keyLoc = current().location;
+            advance();
+
+            // 检查是否为 key:value 格式
+            if (!at_end() && check(TokenType::Colon)) {
+                advance();  // 跳过 ':'
+                if (at_end() || check(TokenType::Newline)) {
+                    // ':' 后面没有值，跳过该 key，继续解析后续 token
+                    continue;
+                }
+                std::string value;
+                if (check(TokenType::Identifier)) {
+                    value = current().value;
+                    advance();
+                } else if (check(TokenType::NumberLiteral)) {
+                    value = current().value;
+                    advance();
+                } else if (check(TokenType::StringLiteral)) {
+                    value = current().value;
+                    advance();
+                    // 去掉引号
+                    if (value.size() >= 2 && value.front() == '"' && value.back() == '"') {
+                        value = value.substr(1, value.size() - 2);
+                    }
+                } else {
+                    // 无法识别的值类型，使用 token 原始值
+                    value = current().value;
+                    advance();
+                }
+                node->add_arg(std::move(key), std::move(value));
+            } else {
+                // 无 ':'，作为位置参数（key 为空字符串）
+                node->add_arg("", std::move(key));
+            }
+        } else if (check(TokenType::NumberLiteral)) {
+            std::string value = current().value;
+            advance();
+            node->add_arg("", std::move(value));
+        } else if (check(TokenType::StringLiteral)) {
+            std::string value = current().value;
+            advance();
+            if (value.size() >= 2 && value.front() == '"' && value.back() == '"') {
+                value = value.substr(1, value.size() - 2);
+            }
+            node->add_arg("", std::move(value));
+        } else {
+            // 跳过无法识别的 token
+            advance();
+        }
+    }
+
+    if (check(TokenType::Newline)) advance();
+
+    return Ok(AstPtr(node.release()));
 }
 
 Result<AstPtr> Parser::parse_label() {

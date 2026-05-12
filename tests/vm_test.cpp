@@ -1188,7 +1188,7 @@ TEST_F(VMTest, VMJumpContinuesIntoTargetSceneWithoutSkippingDialogue) {
 
     vm.advance();
     EXPECT_TRUE(vm.state().ending.has_value());
-    EXPECT_EQ(*vm.state().ending, "present_end");
+    EXPECT_EQ(vm.state().ending->title, "present_end");
 }
 
 TEST_F(VMTest, VMExecuteBgCommand) {
@@ -1218,7 +1218,7 @@ TEST_F(VMTest, VMExecuteEnding) {
     
     EXPECT_TRUE(vm.playthrough().hasEnding("bad_ending"));
     EXPECT_TRUE(vm.state().ending.has_value());
-    EXPECT_EQ(vm.state().ending.value(), "bad_ending");
+    EXPECT_EQ(vm.state().ending->title, "bad_ending");
 }
 
 TEST_F(VMTest, VMExecuteFlag) {
@@ -1484,7 +1484,7 @@ TEST_F(VMTest, SerializeGameState) {
     state.bgm = "theme.mp3";
     state.bgmVolume = 0.5;
     state.bgmLoop = false;
-    state.ending = "good_ending";
+    state.ending = EndingState{"good_ending", true};
     DialogueState dialogue;
     dialogue.isShow = true;
     dialogue.speaker = "Alice";
@@ -1537,7 +1537,7 @@ TEST_F(VMTest, SerializeGameState) {
     EXPECT_DOUBLE_EQ(restored.bgmVolume, 0.5);
     EXPECT_FALSE(restored.bgmLoop);
     ASSERT_TRUE(restored.ending.has_value());
-    EXPECT_EQ(*restored.ending, "good_ending");
+    EXPECT_EQ(restored.ending->title, "good_ending");
     ASSERT_TRUE(restored.dialogue.has_value());
     EXPECT_EQ(restored.dialogue->text, "Hello");
     ASSERT_TRUE(restored.choice.has_value());
@@ -1639,7 +1639,7 @@ TEST_F(VMTest, CaptureAndRestoreState) {
     std::vector<SpriteState> sprites;
     std::optional<DialogueState> dialogue;
     std::optional<ChoiceState> choice;
-    std::optional<std::string> ending;
+    std::optional<EndingState> ending;
     std::vector<std::pair<std::string, size_t>> newCallStack;
     std::unordered_set<std::string> newEndings;
     std::unordered_set<std::string> newFlags;
@@ -1971,7 +1971,7 @@ TEST_F(VMTest, VMStatusTransitions) {
     vm.advance();
     EXPECT_EQ(vm.state().status, VMStatus::Ended);
     EXPECT_TRUE(vm.state().ending.has_value());
-    EXPECT_EQ(*vm.state().ending, "test_end");
+    EXPECT_EQ(vm.state().ending->title, "test_end");
 }
 
 TEST_F(VMTest, VMWaitingChoiceTransition) {
@@ -2794,4 +2794,97 @@ TEST_F(VMTest, VMBgmStopClearsCurrentTrack) {
     EXPECT_DOUBLE_EQ(vm.state().bgmVolume, 1.0);
     ASSERT_TRUE(vm.state().dialogue.has_value());
     EXPECT_EQ(vm.state().dialogue->text, "stopped");
+}
+
+// ============================================
+// 注册重载系统——自定义指令端到端测试
+// ============================================
+
+TEST_F(VMTest, CustomDirectiveParsedAndExecutedByVM) {
+    auto result = parse(
+        "#scene_start \"Start\"\n"
+        "@custom_countdown count:3\n"
+        "> Ready\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+
+    NovaVM vm;
+
+    double customValue = 0.0;
+    // 注册自定义指令处理器
+    vm.registry().registerDirective("custom_countdown",
+        [&](const std::string& name,
+            const std::vector<std::pair<std::string, std::string>>& args,
+            NovaState& state) -> DirectiveResult {
+            EXPECT_EQ(name, "custom_countdown");
+            for (const auto& [k, v] : args) {
+                if (k == "count") customValue = std::stod(v);
+            }
+            // 修改 NovaState 的背景来证明处理器被调用
+            state.bg = "custom_bg.png";
+            return {true, false};
+        }
+    );
+
+    vm.load(result.unwrap());
+    vm.advance();
+
+    EXPECT_EQ(customValue, 3.0);
+    EXPECT_TRUE(vm.state().bg.has_value());
+    EXPECT_EQ(*vm.state().bg, "custom_bg.png");
+}
+
+TEST_F(VMTest, CustomDirectiveWithoutHandlerIgnored) {
+    auto result = parse(
+        "#scene_start \"Start\"\n"
+        "@unregistered_cmd\n"
+        "> Still works\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+
+    NovaVM vm;
+    // 不注册处理器——VM 应静默忽略
+    vm.load(result.unwrap());
+    vm.advance();
+
+    ASSERT_TRUE(vm.state().dialogue.has_value());
+    EXPECT_EQ(vm.state().dialogue->text, "Still works");
+}
+
+TEST_F(VMTest, CustomDirectiveSerializationRoundTrip) {
+    auto result = parse(
+        "#scene_start \"Start\"\n"
+        "@custom_event trigger:once value:hello\n"
+        "> Done\n"
+    );
+    ASSERT_TRUE(result.is_ok());
+
+    // 序列化 -> 反序列化 -> 重新执行
+    AstSerializer serializer;
+    auto bytecode = serializer.serialize(
+        dynamic_cast<const ProgramNode*>(result.unwrap().get())
+    );
+    ASSERT_FALSE(bytecode.empty());
+
+    AstDeserializer deserializer(NVMP_VERSION);
+    auto deserialized = deserializer.deserialize(bytecode);
+    ASSERT_NE(deserialized, nullptr);
+
+    // 验证 CustomCommand 在反序列化后保留
+    auto* program = dynamic_cast<ProgramNode*>(deserialized.get());
+    ASSERT_NE(program, nullptr);
+
+    bool found = false;
+    for (const auto& stmt : program->statements()) {
+        if (auto* cmd = dynamic_cast<CustomCommandNode*>(stmt.get())) {
+            found = true;
+            EXPECT_EQ(cmd->directive(), "custom_event");
+            ASSERT_EQ(cmd->args().size(), 2u);
+            EXPECT_EQ(cmd->args()[0].key, "trigger");
+            EXPECT_EQ(cmd->args()[0].value, "once");
+            EXPECT_EQ(cmd->args()[1].key, "value");
+            EXPECT_EQ(cmd->args()[1].value, "hello");
+        }
+    }
+    EXPECT_TRUE(found) << "CustomCommandNode should survive serialization round-trip";
 }

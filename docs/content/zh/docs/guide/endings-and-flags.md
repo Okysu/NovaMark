@@ -408,6 +408,50 @@ endif
 
 ---
 
+## 7. v1.0 增强（结局标题 + 状态暴露）
+
+从 v1.0 开始，结局和标记在渲染状态中有了更完善的表达：
+
+### 结局标题
+
+`@ending` 现在支持**可选的引号标题**：
+
+```nvm
+@ending good_ending "美好的结局"
+```
+
+- `@ending id` 格式：仅 ID，用于内部逻辑
+- `@ending id "标题"` 格式：ID + 可显示标题，渲染器可直接展示
+
+在 NovaState 中，结局以 `EndingState` 结构体暴露：
+- `ending.title` — 结局标题（无标题时回退到 ID）
+- `ending.reached` — 是否真正触达结局
+
+### 标志暴露
+
+当前所有已触发的 `flags` 列表暴露在 `NovaState.flags` 数组中。渲染器可以：
+
+- 在状态栏/调试面板展示已解锁标志
+- 根据标志动态调整 UI 元素显示
+
+### C API 中查询
+
+```c
+size_t count = nova_get_flags_count(vm);
+for (size_t i = 0; i < count; i++) {
+    const char* flag = nova_get_flag(vm, i);
+}
+```
+
+### 存档的 stateVersion
+
+从 v1.0 开始，存档 JSON 顶层新增 `stateVersion` 字段：
+- v1：无 `stateVersion` 或为 1（旧格式，ending 为字符串）
+- v2：ending 为 `{title, reached}` 对象，包含 `flags` 数组
+- v3：额外包含 `extensions` 自定义字段
+
+旧版存档在加载时自动向上迁移，无需手动处理。
+
 ## 下一步该学什么
 
 恭喜你已经完成了 NovaMark 创作者指南的核心内容！

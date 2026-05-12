@@ -258,6 +258,22 @@ std::string emit_node(const json& node, int level) {
     if (type == "GiveCommand") return pad + "@give " + get_string(node, "item") + " " + emit_expr_child(node, "count") + "\n";
     if (type == "TakeCommand") return pad + "@take " + get_string(node, "item") + " " + emit_expr_child(node, "count") + "\n";
     if (type == "Flag") return pad + "@flag " + get_string(node, "name") + "\n";
+    if (type == "CustomCommand") {
+        auto line = pad + "@" + get_string(node, "directive");
+        const auto& args = node["args"];
+        if (args.is_array()) {
+            for (const auto& arg : args) {
+                auto key = get_string(arg, "key");
+                auto val = get_string(arg, "value");
+                if (!key.empty()) {
+                    line += " " + key + ":" + val;
+                } else {
+                    line += " " + val;
+                }
+            }
+        }
+        return line + "\n";
+    }
     if (type == "Ending") {
         auto line = pad + "@ending " + get_string(node, "name");
         auto title = get_string(node, "title");
