@@ -63,7 +63,7 @@ bool Registry::registerFunction(const std::string& name,
 bool Registry::registerStateField(const std::string& key,
                                    StateFieldSerializer serializer,
                                    StateFieldDeserializer deserializer,
-                                   const nlohmann::json& defaultValue) {
+                                   const std::string& defaultValue) {
     if (key.empty() || !serializer || !deserializer) return false;
 
     m_stateFields[key] = StateFieldEntry{
@@ -98,8 +98,8 @@ bool Registry::isBuiltinFunction(const std::string& name) const {
     return std::find(BUILTIN_FUNCTIONS.begin(), BUILTIN_FUNCTIONS.end(), name) != BUILTIN_FUNCTIONS.end();
 }
 
-std::unordered_map<std::string, nlohmann::json> Registry::serializeExtensions() const {
-    std::unordered_map<std::string, nlohmann::json> extensions;
+std::unordered_map<std::string, std::string> Registry::serializeExtensions() const {
+    std::unordered_map<std::string, std::string> extensions;
     for (const auto& [key, entry] : m_stateFields) {
         try {
             extensions[key] = entry.serializer();
@@ -111,10 +111,10 @@ std::unordered_map<std::string, nlohmann::json> Registry::serializeExtensions() 
     return extensions;
 }
 
-void Registry::deserializeExtensions(const std::unordered_map<std::string, nlohmann::json>& extensions) const {
+void Registry::deserializeExtensions(const std::unordered_map<std::string, std::string>& extensions) const {
     for (const auto& [key, entry] : m_stateFields) {
         auto it = extensions.find(key);
-        if (it != extensions.end() && !it->second.is_null()) {
+        if (it != extensions.end() && !it->second.empty()) {
             try {
                 entry.deserializer(it->second);
             } catch (const std::exception& e) {
@@ -124,8 +124,8 @@ void Registry::deserializeExtensions(const std::unordered_map<std::string, nlohm
     }
 }
 
-std::unordered_map<std::string, nlohmann::json> Registry::getDefaultExtensions() const {
-    std::unordered_map<std::string, nlohmann::json> extensions;
+std::unordered_map<std::string, std::string> Registry::getDefaultExtensions() const {
+    std::unordered_map<std::string, std::string> extensions;
     for (const auto& [key, entry] : m_stateFields) {
         extensions[key] = entry.defaultValue;
     }

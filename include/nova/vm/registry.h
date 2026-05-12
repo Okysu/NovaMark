@@ -6,7 +6,6 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include <nlohmann/json.hpp>
 
 namespace nova {
 
@@ -37,18 +36,18 @@ public:
     /// @return 函数返回值
     using FunctionHandler = std::function<VarValue(const std::vector<VarValue>& args)>;
 
-    /// @brief 状态字段序列化回调
-    using StateFieldSerializer = std::function<nlohmann::json()>;
+    /// @brief 状态字段序列化回调（返回 JSON 字符串）
+    using StateFieldSerializer = std::function<std::string()>;
 
-    /// @brief 状态字段反序列化回调
-    using StateFieldDeserializer = std::function<void(const nlohmann::json&)>;
+    /// @brief 状态字段反序列化回调（接收 JSON 字符串）
+    using StateFieldDeserializer = std::function<void(const std::string&)>;
 
     /// @brief 状态字段注册条目
     struct StateFieldEntry {
         std::string key;
         StateFieldSerializer serializer;
         StateFieldDeserializer deserializer;
-        nlohmann::json defaultValue;
+        std::string defaultValue;  ///< 默认值 JSON 字符串
     };
 
 public:
@@ -72,14 +71,14 @@ public:
 
     /// @brief 注册自定义状态字段
     /// @param key 字段名（建议使用命名空间前缀，如 "com.example.myfield"）
-    /// @param serializer 序列化回调
-    /// @param deserializer 反序列化回调
-    /// @param defaultValue 默认值（用于快照恢复时字段缺失的场景）
+    /// @param serializer 序列化回调（返回 JSON 字符串）
+    /// @param deserializer 反序列化回调（接收 JSON 字符串）
+    /// @param defaultValue 默认值 JSON 字符串（用于快照恢复时字段缺失的场景）
     /// @return 注册是否成功
     bool registerStateField(const std::string& key,
                            StateFieldSerializer serializer,
                            StateFieldDeserializer deserializer,
-                           const nlohmann::json& defaultValue);
+                           const std::string& defaultValue);
 
     /// @brief 查找已注册的指令处理器
     /// @param name 指令名
@@ -102,14 +101,14 @@ public:
     /// @brief 检查是否为内置函数名
     bool isBuiltinFunction(const std::string& name) const;
 
-    /// @brief 序列化所有注册的状态字段为 extensions map
-    std::unordered_map<std::string, nlohmann::json> serializeExtensions() const;
+    /// @brief 序列化所有注册的状态字段为 extensions map（值均为 JSON 字符串）
+    std::unordered_map<std::string, std::string> serializeExtensions() const;
 
-    /// @brief 反序列化 extensions map 到注册的状态字段
-    void deserializeExtensions(const std::unordered_map<std::string, nlohmann::json>& extensions) const;
+    /// @brief 反序列化 extensions map（值均为 JSON 字符串）到注册的状态字段
+    void deserializeExtensions(const std::unordered_map<std::string, std::string>& extensions) const;
 
-    /// @brief 获取所有注册字段的默认值作为 extensions map
-    std::unordered_map<std::string, nlohmann::json> getDefaultExtensions() const;
+    /// @brief 获取所有注册字段的默认值作为 extensions map（值均为 JSON 字符串）
+    std::unordered_map<std::string, std::string> getDefaultExtensions() const;
 
     /// @brief 获取所有已注册的指令名列表
     std::vector<std::string> getRegisteredDirectiveNames() const;

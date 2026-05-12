@@ -4,6 +4,7 @@
 #include "nova/vm/game_state.h"
 #include "nova/vm/serializer.h"
 #include "nova/parser/parser.h"
+#include <nlohmann/json.hpp>
 #include "nova/lexer/lexer.h"
 
 using namespace nova;

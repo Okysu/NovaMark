@@ -335,10 +335,17 @@ std::string GameStateSerializer::serialize(const GameState& state) {
     j["triggeredEndings"] = state.triggeredEndings;
     j["flags"] = state.flags;
 
-    // extensions（stateVersion 3）
+    // extensions（stateVersion 3）—— 每个值为 JSON 字符串，需要解析后写入
     if (!state.extensions.empty()) {
-        j["extensions"] = state.extensions;
-        // 有 extensions 时升级 stateVersion 为 3
+        json extObj = json::object();
+        for (const auto& [key, value] : state.extensions) {
+            try {
+                extObj[key] = json::parse(value);
+            } catch (...) {
+                extObj[key] = value;  // 解析失败则作为纯字符串
+            }
+        }
+        j["extensions"] = std::move(extObj);
         if (state.stateVersion < 3) {
             j["stateVersion"] = 3;
         }
@@ -473,10 +480,10 @@ bool GameStateSerializer::deserialize(const std::string& jsonStr, GameState& sta
         state.triggeredEndings = j.value("triggeredEndings", std::unordered_set<std::string>{});
         state.flags = j.value("flags", std::unordered_set<std::string>{});
 
-        // extensions（stateVersion 3 兼容）
+        // extensions（stateVersion 3 兼容）—— 每个值序列化为 JSON 字符串
         if (j.contains("extensions") && j["extensions"].is_object()) {
             for (auto& [key, val] : j["extensions"].items()) {
-                state.extensions[key] = val;
+                state.extensions[key] = val.dump();
             }
         }
 
@@ -627,10 +634,14 @@ std::vector<uint8_t> GameStateSerializer::serializeSaveBinary(const SaveData& sa
     write_map_string_key(out, save.state.inventory);
     write_string_set(out, save.state.triggeredEndings);
     write_string_set(out, save.state.flags);
-    // extensions 以 JSON 字符串形式追加
+    // extensions 以 JSON 对象字符串形式追加
     nlohmann::json extJson = nlohmann::json::object();
     for (const auto& [key, val] : save.state.extensions) {
-        extJson[key] = val;
+        try {
+            extJson[key] = nlohmann::json::parse(val);
+        } catch (...) {
+            extJson[key] = val;
+        }
     }
     write_string(out, extJson.dump());
     return out;
@@ -862,7 +873,7 @@ bool GameStateSerializer::deserializeSaveBinary(const std::vector<uint8_t>& data
         return false;
     }
 
-    // extensions（v6+ 二进制格式）
+    // extensions（v6+ 二进制格式）—— 每个值 dump 为 JSON 字符串
     if (version >= 6) {
         std::string extJson;
         if (!read_string(data, offset, extJson)) {
@@ -872,7 +883,7 @@ bool GameStateSerializer::deserializeSaveBinary(const std::vector<uint8_t>& data
             auto j = nlohmann::json::parse(extJson);
             if (j.is_object()) {
                 for (auto& [key, val] : j.items()) {
-                    save.state.extensions[key] = val;
+                    save.state.extensions[key] = val.dump();
                 }
             }
         } catch (...) {

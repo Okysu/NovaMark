@@ -76,9 +76,9 @@ TEST_F(StateVersionTest, MissingExtensionsUseDefaults) {
     double life = 0.0;
     vm.registry().registerStateField(
         "game.life",
-        [&]() -> nlohmann::json { return life; },
-        [&](const nlohmann::json& j) { life = j.get<double>(); },
-        100.0
+        [&]() -> std::string { return std::to_string(life); },
+        [&](const std::string& s) { life = std::stod(s); },
+        "100.0"
     );
 
     // 构造一个无 extensions 的存档
@@ -98,29 +98,29 @@ TEST_F(StateVersionTest, MissingExtensionsUseDefaults) {
     EXPECT_TRUE(restored.extensions.empty());
 }
 
-/// extensions 往返序列化
+/// extensions 往返序列化（值均为 JSON 字符串）
 TEST_F(StateVersionTest, ExtensionsRoundTrip) {
     NovaVM vm;
 
     double life = 50.0;
     vm.registry().registerStateField(
         "game.life",
-        [&]() -> nlohmann::json { return life; },
-        [&](const nlohmann::json& j) { life = j.get<double>(); },
-        100.0
+        [&]() -> std::string { return std::to_string(life); },
+        [&](const std::string& s) { life = std::stod(s); },
+        "100.0"
     );
 
     GameState state;
     state.currentScene = "scene_start";
     state.stateVersion = 3;
-    state.extensions["game.life"] = 50.0;
+    state.extensions["game.life"] = "50.0";
 
     std::string json = GameStateSerializer::serialize(state);
     GameState restored;
     ASSERT_TRUE(GameStateSerializer::deserialize(json, restored));
 
     ASSERT_TRUE(restored.extensions.count("game.life"));
-    EXPECT_EQ(restored.extensions["game.life"], 50.0);
+    EXPECT_EQ(restored.extensions["game.life"], "50.0");
 }
 
 /// 二进制存档 v6 格式往返
@@ -157,13 +157,13 @@ TEST_F(StateVersionTest, BinarySaveV6RoundTrip) {
     EXPECT_EQ(restored.state.numberVariables.at("score"), 42.0);
 }
 
-/// 二进制存档中的 extensions 往返
+/// 二进制存档中的 extensions 往返（值均为 JSON 字符串）
 TEST_F(StateVersionTest, BinaryExtensionsRoundTrip) {
     GameState state;
     state.currentScene = "scene_start";
     state.stateVersion = 3;
-    state.extensions["game.life"] = 75.0;
-    state.extensions["game.mana"] = 50.0;
+    state.extensions["game.life"] = "75.0";
+    state.extensions["game.mana"] = "50.0";
 
     SaveData save;
     save.saveId = "ext_test";
@@ -175,6 +175,6 @@ TEST_F(StateVersionTest, BinaryExtensionsRoundTrip) {
 
     SaveData restored;
     ASSERT_TRUE(GameStateSerializer::deserializeSaveBinary(binary, restored));
-    EXPECT_EQ(restored.state.extensions.at("game.life"), 75.0);
-    EXPECT_EQ(restored.state.extensions.at("game.mana"), 50.0);
+    EXPECT_EQ(restored.state.extensions.at("game.life"), "75.0");
+    EXPECT_EQ(restored.state.extensions.at("game.mana"), "50.0");
 }

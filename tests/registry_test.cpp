@@ -111,59 +111,59 @@ TEST_F(RegistryTest, OverrideBuiltinFunction) {
     EXPECT_EQ(std::get<double>(result), 42.0);
 }
 
-/// 注册状态字段成功
+/// 注册状态字段成功（使用 JSON 字符串）
 TEST_F(RegistryTest, RegisterStateField) {
     double stored = 0.0;
-    auto serialize = [&]() -> nlohmann::json {
-        return stored;
+    auto serialize = [&]() -> std::string {
+        return std::to_string(stored);
     };
-    auto deserialize = [&](const nlohmann::json& j) {
-        stored = j.get<double>();
+    auto deserialize = [&](const std::string& s) {
+        stored = std::stod(s);
     };
 
-    ASSERT_TRUE(registry.registerStateField("test.score", serialize, deserialize, 0.0));
+    ASSERT_TRUE(registry.registerStateField("test.score", serialize, deserialize, "0.0"));
 
     auto* entry = registry.findStateField("test.score");
     ASSERT_NE(entry, nullptr);
     EXPECT_EQ(entry->key, "test.score");
 }
 
-/// 序列化 extensions
+/// 序列化 extensions（返回 JSON 字符串值）
 TEST_F(RegistryTest, SerializeExtensions) {
     double life = 100.0;
-    auto serLife = [&]() -> nlohmann::json { return life; };
-    auto desLife = [&](const nlohmann::json& j) { life = j.get<double>(); };
+    auto serLife = [&]() -> std::string { return std::to_string(life); };
+    auto desLife = [&](const std::string& s) { life = std::stod(s); };
 
-    ASSERT_TRUE(registry.registerStateField("game.life", serLife, desLife, 100.0));
+    ASSERT_TRUE(registry.registerStateField("game.life", serLife, desLife, "100.0"));
 
     auto ext = registry.serializeExtensions();
-    EXPECT_EQ(ext["game.life"], 100.0);
+    EXPECT_EQ(ext["game.life"], "100.000000");
 }
 
-/// 反序列化 extensions
+/// 反序列化 extensions（接收 JSON 字符串值）
 TEST_F(RegistryTest, DeserializeExtensions) {
     double life = 0.0;
-    auto serLife = [&]() -> nlohmann::json { return life; };
-    auto desLife = [&](const nlohmann::json& j) { life = j.get<double>(); };
+    auto serLife = [&]() -> std::string { return std::to_string(life); };
+    auto desLife = [&](const std::string& s) { life = std::stod(s); };
 
-    ASSERT_TRUE(registry.registerStateField("game.life", serLife, desLife, 0.0));
+    ASSERT_TRUE(registry.registerStateField("game.life", serLife, desLife, "0.0"));
 
-    nlohmann::json ext;
-    ext["game.life"] = 75.0;
+    std::unordered_map<std::string, std::string> ext;
+    ext["game.life"] = "75.0";
     registry.deserializeExtensions(ext);
-    EXPECT_EQ(life, 75.0);
+    EXPECT_DOUBLE_EQ(life, 75.0);
 }
 
-/// getDefaultExtensions 返回默认值
+/// getDefaultExtensions 返回默认值（JSON 字符串）
 TEST_F(RegistryTest, DefaultExtensions) {
     double life = 0.0;
-    auto serLife = [&]() -> nlohmann::json { return life; };
-    auto desLife = [&](const nlohmann::json& j) { life = j.get<double>(); };
+    auto serLife = [&]() -> std::string { return std::to_string(life); };
+    auto desLife = [&](const std::string& s) { life = std::stod(s); };
 
-    ASSERT_TRUE(registry.registerStateField("game.life", serLife, desLife, 100.0));
+    ASSERT_TRUE(registry.registerStateField("game.life", serLife, desLife, "100.0"));
 
     auto defaults = registry.getDefaultExtensions();
-    EXPECT_EQ(defaults["game.life"], 100.0);
+    EXPECT_EQ(defaults["game.life"], "100.0");
     EXPECT_EQ(life, 0.0);  // 未修改实际值
 }
 
@@ -174,7 +174,7 @@ TEST_F(RegistryTest, EmptyNameRegistrationFails) {
     };
     EXPECT_FALSE(registry.registerDirective("", handler));
     EXPECT_FALSE(registry.registerFunction("", [](const auto&) -> VarValue { return 0.0; }));
-    EXPECT_FALSE(registry.registerStateField("", nullptr, nullptr, 0));
+    EXPECT_FALSE(registry.registerStateField("", nullptr, nullptr, "0"));
 }
 
 /// isBuiltin 检查
