@@ -4,7 +4,6 @@
 #include <vector>
 #include <optional>
 #include <unordered_map>
-#include <nlohmann/json.hpp>
 
 namespace nova {
 
@@ -141,8 +140,8 @@ struct NovaState {
     /// @brief 已触发的标志列表（v1.0 NovaState v2 契约）
     std::vector<std::string> flags;
 
-    /// @brief 自定义扩展字段（v1.0 注册重载系统）
-    std::unordered_map<std::string, nlohmann::json> extensions;
+    /// @brief 自定义扩展字段，JSON 字符串值（v1.0 注册重载系统）
+    std::unordered_map<std::string, std::string> extensions;
 
     void clear() {
         status = VMStatus::Running;

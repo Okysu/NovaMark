@@ -10,6 +10,7 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <nlohmann/json.hpp>
 
 struct NovaVM {
     nova::NovaVM vm;
@@ -575,34 +576,19 @@ int nova_register_state_field(NovaVM* vm, const char* key,
     const char* defaultValueJson, void* userData) {
     if (!vm || !key || !serialize || !deserialize) return 0;
 
-    nlohmann::json defaultVal;
-    if (defaultValueJson) {
-        try {
-            defaultVal = nlohmann::json::parse(defaultValueJson);
-        } catch (...) {
-            defaultVal = nullptr;
-        }
-    }
-
     return vm->vm.registry().registerStateField(
         std::string(key),
-        [serialize, userData]() -> nlohmann::json {
+        [serialize, userData]() -> std::string {
             char* jsonStr = serialize(userData);
-            if (!jsonStr) return nullptr;
-            try {
-                auto parsed = nlohmann::json::parse(jsonStr);
-                std::free(jsonStr);
-                return parsed;
-            } catch (...) {
-                std::free(jsonStr);
-                return nullptr;
-            }
+            if (!jsonStr) return "null";
+            std::string result(jsonStr);
+            std::free(jsonStr);
+            return result;
         },
-        [deserialize, userData](const nlohmann::json& json) {
-            std::string jsonStr = json.dump();
+        [deserialize, userData](const std::string& jsonStr) {
             deserialize(jsonStr.c_str(), userData);
         },
-        defaultVal
+        defaultValueJson ? std::string(defaultValueJson) : "null"
     ) ? 1 : 0;
 }
 

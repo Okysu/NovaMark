@@ -228,3 +228,4 @@ Thumbs.db
 # Local helper scripts
 # ----------------------------------------------------------
 scripts/dev-build-msvc-local.bat
+.claude/

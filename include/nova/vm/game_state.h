@@ -44,8 +44,8 @@ struct GameState {
     std::unordered_set<std::string> triggeredEndings;
     std::unordered_set<std::string> flags;
 
-    /// @brief 自定义扩展字段（v1.0 注册重载系统，stateVersion = 3）
-    std::unordered_map<std::string, nlohmann::json> extensions;
+    /// @brief 自定义扩展字段，JSON 字符串值（v1.0 注册重载系统，stateVersion = 3）
+    std::unordered_map<std::string, std::string> extensions;
     
     void clear() {
         stateVersion = 2;
